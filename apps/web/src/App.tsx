@@ -563,8 +563,8 @@ export const App: React.FC = () => {
                   </CardCabecalho>
                   <CardConteudo className="text-xs space-y-2 text-slate-600 font-mono bg-slate-50 p-3 rounded-lg border border-slate-100">
                     <p>• Venda: id, filialId, operadorId, itens[], pagamentos[]</p>
-                    <p>• Formas: DINHEIRO, CARTAO_CREDITO, PIX, CREDIARIO...</p>
-                    <p>• Offline-First: sincronizadoComNuvem, idOfflineLocal</p>
+                    <p>• Formas: DINHEIRO, CARTAO_CREDITO, CARTAO_DEBITO, PIX, VOUCHER...</p>
+                    <p>• Vouchers: Emissão em cancelamento e resgate integral</p>
                   </CardConteudo>
                 </Card>
               </div>

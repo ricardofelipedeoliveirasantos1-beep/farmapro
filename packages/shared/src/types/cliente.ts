@@ -1,4 +1,4 @@
-import { AuditoriaEntidade, Endereco, Identificador, StatusAtivo, ValorMonetarioCentavos } from './comum';
+import { AuditoriaEntidade, Endereco, Identificador, StatusAtivo } from './comum';
 
 export type FinalidadeConsentimentoLGPD =
   | 'MARKETING_PROMOCIONAL'
@@ -19,30 +19,9 @@ export interface ClienteConsentimentoLGPD {
   revogadoEm?: string;
 }
 
-export type TipoMovimentacaoCarteira =
-  | 'CREDITO_TROCO_PDV'
-  | 'CREDITO_DEVOLUCAO'
-  | 'CREDITO_AJUSTE_MANUAL'
-  | 'DEBITO_UTILIZACAO_VENDA'
-  | 'DEBITO_RESGATE_ESPECIE';
-
-export interface ClienteCarteiraMovimentacao {
-  id: Identificador;
-  empresaId: Identificador;
-  filialId: Identificador;
-  clienteId: Identificador;
-  tipoMovimentacao: TipoMovimentacaoCarteira;
-  valorCentavos: ValorMonetarioCentavos;
-  saldoAnteriorCentavos: ValorMonetarioCentavos;
-  saldoPosteriorCentavos: ValorMonetarioCentavos;
-  vendaId?: Identificador;
-  operadorId: Identificador;
-  motivo?: string;
-  criadoEm: string;
-}
-
 /**
- * Cadastro de Cliente / Paciente.
+ * Cadastro Central de Cliente / Paciente.
+ * NOTA: O FarmaPro NÃO possui crediário próprio, limite de crédito ou carteira de crédito.
  */
 export interface Cliente {
   id: Identificador;
@@ -57,16 +36,6 @@ export interface Cliente {
   telefoneSecundario?: string;
   email?: string;
   endereco?: Endereco;
-  
-  // Crediário da Farmácia ("Caderno Digital")
-  limiteCrediarioCentavos: ValorMonetarioCentavos;
-  saldoDevedorCentavos: ValorMonetarioCentavos;
-  bloqueadoParaCrediario: boolean;
-  motivoBloqueioCrediario?: string;
-  
-  // Carteira de Crédito (Saldo de troco / devoluções)
-  saldoCreditoCentavos: ValorMonetarioCentavos;
-  
   status: StatusAtivo;
   observacoes?: string;
   consentimentosLGPD?: ClienteConsentimentoLGPD[];

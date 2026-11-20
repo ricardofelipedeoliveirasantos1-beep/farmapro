@@ -127,14 +127,6 @@ CREATE POLICY p_consentimentos_isolamento ON clientes_consentimentos_lgpd
   USING (empresa_id = current_empresa_id())
   WITH CHECK (empresa_id = current_empresa_id());
 
--- Carteira de Movimentações de Clientes
-ALTER TABLE clientes_carteira_movimentacoes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE clientes_carteira_movimentacoes FORCE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS p_carteira_isolamento ON clientes_carteira_movimentacoes;
-CREATE POLICY p_carteira_isolamento ON clientes_carteira_movimentacoes
-  USING (empresa_id = current_empresa_id())
-  WITH CHECK (empresa_id = current_empresa_id());
-
 -- Caixas Sessões
 ALTER TABLE caixas_sessoes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE caixas_sessoes FORCE ROW LEVEL SECURITY;
@@ -157,6 +149,22 @@ ALTER TABLE venda_itens FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS p_venda_itens_isolamento ON venda_itens;
 CREATE POLICY p_venda_itens_isolamento ON venda_itens
   USING (empresa_id = current_empresa_id() AND (current_filial_id() IS NULL OR filial_id = current_filial_id()))
+  WITH CHECK (empresa_id = current_empresa_id());
+
+-- Vouchers (Origem em cancelamento - Isolamento por Empresa)
+ALTER TABLE vouchers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vouchers FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS p_vouchers_isolamento ON vouchers;
+CREATE POLICY p_vouchers_isolamento ON vouchers
+  USING (empresa_id = current_empresa_id())
+  WITH CHECK (empresa_id = current_empresa_id());
+
+-- Histórico de Vouchers
+ALTER TABLE vouchers_historico ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vouchers_historico FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS p_vouchers_hist_isolamento ON vouchers_historico;
+CREATE POLICY p_vouchers_hist_isolamento ON vouchers_historico
+  USING (empresa_id = current_empresa_id())
   WITH CHECK (empresa_id = current_empresa_id());
 
 -- Venda Pagamentos

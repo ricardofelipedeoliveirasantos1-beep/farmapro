@@ -21,13 +21,17 @@ export interface CaixaSessao {
 
 export type StatusVenda = 'ABERTA' | 'PENDENTE' | 'CONCLUIDA' | 'CANCELADA' | 'ESTORNADA';
 
+/**
+ * Modalidades de pagamento externas e comerciais aceitas no PDV.
+ * NOTA: O FarmaPro NÃO possui crediário próprio ou carteira de crédito da farmácia.
+ * O Voucher é uma modalidade originada exclusivamente do cancelamento de uma venda anterior.
+ */
 export type FormaPagamento =
   | 'DINHEIRO'
   | 'CARTAO_CREDITO'
   | 'CARTAO_DEBITO'
   | 'PIX'
-  | 'CREDIARIO'
-  | 'CARTEIRA_CREDITO'
+  | 'VOUCHER'
   | 'CONVENIO_EMPRESA';
 
 export interface ItemVenda {
@@ -57,6 +61,8 @@ export interface PagamentoVenda {
   parcelas?: number;
   bandeiraCartao?: string;
   autorizacaoTefNsu?: string;
+  voucherId?: Identificador;
+  codigoVoucher?: string;
   detalhes?: Record<string, unknown>;
 }
 
@@ -96,6 +102,7 @@ export interface Venda {
   canceladoPorId?: Identificador;
   motivoCancelamento?: string;
   canceladoEm?: string;
+  voucherGeradoId?: Identificador; // Quando o cancelamento gerou um voucher
   
   observacoes?: string;
   auditoria?: AuditoriaEntidade;

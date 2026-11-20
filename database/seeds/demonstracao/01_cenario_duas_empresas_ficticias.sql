@@ -1,6 +1,7 @@
 -- ==============================================================================
 -- FarmaPro — Seeders Demonstrativos: Cenário com Duas Empresas Concorrentes
 -- Finalidade: Validação do Isolamento Multiempresa por Row-Level Security (RLS)
+-- NOTA: Sem cargo Estoquista; Sem crédito de cliente; Com vouchers auditáveis.
 -- AVISO: Todos os dados abaixo são 100% fictícios e gerados para homologação.
 -- ==============================================================================
 
@@ -12,8 +13,13 @@ INSERT INTO permissoes (id, modulo, nome, descricao) VALUES
   ('pdv:desconto', 'PDV', 'Aplicar Desconto', 'Permite conceder descontos dentro da alçada'),
   ('pdv:cancelar_item', 'PDV', 'Cancelar Item', 'Permite estornar item antes da conclusão'),
   ('pdv:cancelar_venda', 'PDV', 'Cancelar Venda', 'Permite cancelar cupom emitido'),
+  ('vouchers:emitir', 'VOUCHERS', 'Emitir Voucher', 'Permite emitir voucher no cancelamento/devolução autorizada'),
+  ('vouchers:consultar', 'VOUCHERS', 'Consultar Voucher', 'Permite consultar e validar saldo de voucher para resgate'),
+  ('vouchers:autorizar_cancelamento', 'VOUCHERS', 'Autorizar Cancelamento com Voucher', 'Alçada superior para autorizar voucher'),
   ('estoque:visualizar', 'ESTOQUE', 'Consultar Estoque', 'Permite consultar saldos e lotes'),
-  ('estoque:ajustar', 'ESTOQUE', 'Ajuste de Estoque', 'Permite realizar inventários e ajustes manuais'),
+  ('estoque:cadastrar_produto', 'ESTOQUE', 'Cadastrar Produtos', 'Permite criar itens no catálogo'),
+  ('estoque:entrada_mercadoria', 'ESTOQUE', 'Receber Mercadorias', 'Permite dar entrada e conferência em NF-e'),
+  ('estoque:ajustar', 'ESTOQUE', 'Ajuste de Estoque', 'Permite realizar inventários e ajustes manuais autorizados'),
   ('medicamentos:controlados', 'FARMACIA', 'Dispensar Controlados', 'Acesso exclusivo para farmacêuticos (Portaria 344)'),
   ('financeiro:fechar_caixa', 'FINANCEIRO', 'Fechar Caixa', 'Permite apurar conferência cega e fechar turno')
 ON CONFLICT (id) DO NOTHING;
@@ -40,10 +46,10 @@ VALUES
   ('11111111-aaaa-4111-a111-111111111102', '11111111-1111-4111-a111-111111111111', 'FIL-02', 'Unidade Shopping A', '00000000000272', 'Av. Shopping', '500', 'Jardins', 'São Paulo', 'SP', '01002000', '(11) 90000-0102', FALSE, 'ATIVO')
 ON CONFLICT (id) DO NOTHING;
 
--- Cargos da Empresa A
+-- Cargos da Empresa A (Sem cargo Estoquista; permissões de estoque atribuídas a outros cargos)
 INSERT INTO cargos (id, empresa_id, nome, descricao, nivel_acesso, status)
 VALUES
-  ('11111111-cccc-4111-a111-000000000001', '11111111-1111-4111-a111-111111111111', 'Farmacêutico Responsável', 'Responsabilidade Técnica e SNGPC', 'FARMACEUTICO', 'ATIVO'),
+  ('11111111-cccc-4111-a111-000000000001', '11111111-1111-4111-a111-111111111111', 'Farmacêutico Responsável', 'Responsabilidade Técnica, SNGPC e Gestão de Lotes', 'FARMACEUTICO', 'ATIVO'),
   ('11111111-cccc-4111-a111-000000000002', '11111111-1111-4111-a111-111111111111', 'Operador de Caixa PDV', 'Operações de atendimento e frente de caixa', 'OPERADOR_CAIXA', 'ATIVO')
 ON CONFLICT (id) DO NOTHING;
 
@@ -65,6 +71,17 @@ INSERT INTO usuarios_filiais (usuario_id, empresa_id, filial_id, cargo_id, e_fil
   ('11111111-dddd-4111-a111-000000000002', '11111111-1111-4111-a111-111111111111', '11111111-aaaa-4111-a111-111111111101', '11111111-cccc-4111-a111-000000000002', TRUE)
 ON CONFLICT DO NOTHING;
 
+-- Cliente Fictício da Empresa A (Sem crédito ou carteira)
+INSERT INTO clientes (id, empresa_id, nome_razao_social, cpf_cnpj, telefone_principal, status)
+VALUES (
+  '11111111-ffff-4111-a111-000000000001',
+  '11111111-1111-4111-a111-111111111111',
+  'João Pereira da Silva (Fictício)',
+  '12345678900',
+  '(11) 98888-0001',
+  'ATIVO'
+) ON CONFLICT (id) DO NOTHING;
+
 -- Produto Exclusivo da Empresa A
 INSERT INTO produtos (id, empresa_id, nome_comercial, fabricante, apresentacao, tipo_produto, status)
 VALUES (
@@ -78,7 +95,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- ------------------------------------------------------------------------------
--- 3. EMPRESA B: "Farmácia Modelo B Ltda (Concorrente Demonstração)"
+-- 3. EMPRESA B: "Drogaria Concorrente B Ltda (Concorrente Demonstração)"
 -- ------------------------------------------------------------------------------
 INSERT INTO empresas (id, razao_social, nome_fantasia, cnpj, email_contato, telefone_contato, plano, status)
 VALUES (

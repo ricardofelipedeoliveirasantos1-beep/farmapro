@@ -1,5 +1,7 @@
 /**
  * Permissões atômicas granulares do sistema FarmaPro.
+ * NOTA: Não há dependência de um cargo "Estoquista". As operações de estoque são permissões
+ * atribuíveis a funcionários de quaisquer cargos (Gerente, Farmacêutico, Balconista, etc.).
  */
 export type Permissao =
   // Frente de Caixa (PDV)
@@ -13,11 +15,20 @@ export type Permissao =
   | 'pdv:fechar_caixa'
   | 'pdv:reabrir_caixa'
   
-  // Estoque e Medicamentos
+  // Vouchers (Cancelamentos e Devoluções)
+  | 'vouchers:emitir'
+  | 'vouchers:consultar'
+  | 'vouchers:autorizar_cancelamento'
+  
+  // Estoque e Mercadorias (Atribuíveis a qualquer funcionário autorizado)
   | 'estoque:visualizar'
   | 'estoque:cadastrar_produto'
   | 'estoque:editar_produto'
+  | 'estoque:entrada_mercadoria'
+  | 'estoque:movimentar'
   | 'estoque:ajuste_manual'
+  | 'estoque:inventario'
+  | 'estoque:transferir_filiais'
   | 'estoque:gerenciar_lotes'
   | 'estoque:medicamentos_controlados'
   
@@ -26,11 +37,9 @@ export type Permissao =
   | 'compras:emitir_pedido'
   | 'compras:dar_entrada_nfe'
   
-  // Clientes e Crediário
+  // Clientes
   | 'clientes:visualizar'
   | 'clientes:gerenciar'
-  | 'clientes:alterar_limite_crediario'
-  | 'clientes:dar_baixa_crediario'
   
   // Financeiro
   | 'financeiro:visualizar'
@@ -44,4 +53,3 @@ export type Permissao =
   | 'filiais:gerenciar'
   | 'auditoria:visualizar_logs'
   | 'configuracoes:gerenciar';
-
