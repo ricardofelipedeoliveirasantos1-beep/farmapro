@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pill, Building2, User, ShieldCheck } from 'lucide-react';
+import { Pill, Building2, User, ShieldCheck, Menu, X } from 'lucide-react';
 import { Badge } from './Badge';
 
 export interface CabecalhoProps {
@@ -8,6 +8,8 @@ export interface CabecalhoProps {
   nomeOperador?: string;
   cargoOperador?: string;
   ambienteDemonstracao?: boolean;
+  onAlternarMenu?: () => void;
+  menuAberto?: boolean;
 }
 
 export const Cabecalho: React.FC<CabecalhoProps> = ({
@@ -16,12 +18,25 @@ export const Cabecalho: React.FC<CabecalhoProps> = ({
   nomeOperador = 'Dr. Carlos Silva',
   cargoOperador = 'Farmacêutico Responsável',
   ambienteDemonstracao = true,
+  onAlternarMenu,
+  menuAberto = false,
 }) => {
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        {/* Identidade FarmaPro */}
+        {/* Identidade FarmaPro com Botão Hambúrguer */}
         <div className="flex items-center gap-3">
+          {onAlternarMenu && (
+            <button
+              type="button"
+              onClick={onAlternarMenu}
+              aria-label={menuAberto ? 'Fechar menu de navegação' : 'Abrir menu de navegação'}
+              className="p-2 -ml-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            >
+              {menuAberto ? <X className="w-5 h-5 text-slate-700" /> : <Menu className="w-5 h-5 text-slate-700" />}
+            </button>
+          )}
+
           <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm ring-4 ring-blue-500/10">
             <Pill className="w-5 h-5" />
           </div>

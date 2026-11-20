@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "tsx --test test/seguranca-rls-e-concorrencia.test.ts test/autenticacao-e-permissoes.test.ts",
+    "test": "tsx --test test/seguranca-rls-e-concorrencia.test.ts test/autenticacao-e-permissoes.test.ts test/vendas-e-caixa.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

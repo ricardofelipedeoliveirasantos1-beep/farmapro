@@ -5,6 +5,8 @@ import { pluginDatabase } from './plugins/database.js';
 import { rotasAutenticacao } from './routes/auth.routes.js';
 import { rotasFuncionarios } from './routes/funcionarios.routes.js';
 import { rotasCargos } from './routes/cargos.routes.js';
+import { rotasCaixa } from './routes/caixa.routes.js';
+import { rotasVendas } from './routes/vendas.routes.js';
 
 const porta = Number(process.env.PORT) || 3333;
 const host = process.env.API_HOST || '0.0.0.0';
@@ -33,6 +35,8 @@ async function iniciarServidor() {
     await fastify.register(rotasAutenticacao);
     await fastify.register(rotasFuncionarios);
     await fastify.register(rotasCargos);
+    await fastify.register(rotasCaixa);
+    await fastify.register(rotasVendas);
 
     // Rota de Verificação de Saúde (Health Check)
     fastify.get('/api/health', async () => {
@@ -41,8 +45,8 @@ async function iniciarServidor() {
       return {
         status: saudeBanco.conectado ? 'OK' : 'DEGRADADO',
         sistema: 'FarmaPro API',
-        versao: '0.1.0-etapa05',
-        etapa: '05 — Autenticação, Empresas, Filiais e Controle de Permissões',
+        versao: '0.1.0-etapa06',
+        etapa: '06 — PDV Balcão, Registro de Vendas e Operação de Caixa',
         dataHora: new Date().toISOString(),
         multiempresa: 'Habilitado (Isolamento RLS e JWT Seguro)',
         banco: {
