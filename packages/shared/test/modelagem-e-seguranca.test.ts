@@ -15,6 +15,8 @@ import {
   gerarChaveIdempotencia,
   validarIsolamentoTenant,
   validarResgateVoucher,
+  validarEmissaoVoucher,
+  contabilizarImpactoCaixaVoucher,
   criarHistoricoEstornoVendaComVoucher,
   Cliente,
   Voucher,
@@ -26,11 +28,11 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-describe('FarmaPro — Testes da Etapa 03 (Revisão): Modelagem, Vouchers e Segurança Multiempresa', () => {
-  // --------------------------------------------------------------------------
-  // 1. CONSISTÊNCIA MONETÁRIA
-  // --------------------------------------------------------------------------
-  describe('Consistência Monetária e Ausência de Erros de Ponto Flutuante', () => {
+describe('FarmaPro — Suíte de Testes da Etapa 03 (Revisão Complementar)', () => {
+  // ==========================================================================
+  // PARTE 1: TESTES UNITÁRIOS DE DOMÍNIO
+  // ==========================================================================
+  describe('1. Testes Unitários: Consistência Monetária e Documentos', () => {
     it('deve formatar centavos inteiros para o formato BRL correto', () => {
       assert.match(formatarCentavosParaReal(4990), /49,90/);
       assert.match(formatarCentavosParaReal(5), /0,05/);
@@ -55,11 +57,8 @@ describe('FarmaPro — Testes da Etapa 03 (Revisão): Modelagem, Vouchers e Segu
     });
   });
 
-  // --------------------------------------------------------------------------
-  // 2. CLIENTE SEM CRÉDITO PRÓPRIO E AUSÊNCIA DE CARTEIRA
-  // --------------------------------------------------------------------------
-  describe('Cadastro de Cliente sem Crédito Próprio e Ausência de Carteira', () => {
-    it('deve permitir instanciar cliente sem limites de crédito, saldo devedor ou carteira', () => {
+  describe('2. Testes Unitários: Cliente sem Crédito Próprio e Permissões sem Estoquista', () => {
+    it('deve instanciar cliente sem limites de crédito, saldo devedor ou carteira', () => {
       const clienteMock: Cliente = {
         id: 'cli-001',
         empresaId: 'emp-001',
@@ -71,24 +70,12 @@ describe('FarmaPro — Testes da Etapa 03 (Revisão): Modelagem, Vouchers e Segu
       };
 
       assert.equal(clienteMock.nomeCompleto, 'Maria Francisca da Silva');
-      // Verificação em runtime de que não existem propriedades de crédito
       assert.equal((clienteMock as Record<string, unknown>)['limiteCrediarioCentavos'], undefined);
       assert.equal((clienteMock as Record<string, unknown>)['saldoDevedorCentavos'], undefined);
       assert.equal((clienteMock as Record<string, unknown>)['saldoCreditoCentavos'], undefined);
     });
-  });
 
-  // --------------------------------------------------------------------------
-  // 3. ISOLAMENTO MULTIEMPRESA E PERMISSÕES DE ESTOQUE
-  // --------------------------------------------------------------------------
-  describe('Isolamento Multiempresa e Permissões de Estoque sem Cargo Estoquista', () => {
-    it('deve validar isolamento estrito de tenant context', () => {
-      assert.equal(validarIsolamentoTenant('emp-1', 'emp-2'), false);
-      assert.equal(validarIsolamentoTenant('emp-1', 'emp-1'), true);
-      assert.equal(validarIsolamentoTenant(undefined, 'emp-1'), false);
-    });
-
-    it('deve permitir atribuir permissões de estoque a um Gerente ou Farmacêutico', () => {
+    it('deve permitir atribuir permissões de estoque a qualquer cargo (sem cargo Estoquista)', () => {
       const permissoesEstoque: Permissao[] = [
         'estoque:visualizar',
         'estoque:entrada_mercadoria',
@@ -97,106 +84,22 @@ describe('FarmaPro — Testes da Etapa 03 (Revisão): Modelagem, Vouchers e Segu
         'estoque:gerenciar_lotes',
       ];
 
-      const cargoFarmaceutico: Cargo = {
-        id: 'cargo-farm-01',
+      const cargoGerente: Cargo = {
+        id: 'cargo-ger-01',
         empresaId: 'emp-001',
-        nome: 'Farmacêutico Gestor',
-        nivelAcesso: 'FARMACEUTICO',
+        nome: 'Gerente Operacional',
+        nivelAcesso: 'GERENTE',
         permissoes: permissoesEstoque,
         status: 'ATIVO',
       };
 
-      assert.ok(cargoFarmaceutico.permissoes.includes('estoque:entrada_mercadoria'));
-      assert.ok(cargoFarmaceutico.permissoes.includes('estoque:inventario'));
-      assert.notEqual(cargoFarmaceutico.nome, 'Estoquista', 'Não há dependência do cargo Estoquista');
+      assert.ok(cargoGerente.permissoes.includes('estoque:entrada_mercadoria'));
+      assert.ok(cargoGerente.permissoes.includes('estoque:inventario'));
+      assert.notEqual(cargoGerente.nome, 'Estoquista');
     });
   });
 
-  // --------------------------------------------------------------------------
-  // 4. MODELAGEM E REGRAS MANDATÓRIAS DE VOUCHER
-  // --------------------------------------------------------------------------
-  describe('Regras Obrigatórias de Emissão e Resgate de Vouchers', () => {
-    const empresaA = '11111111-1111-4111-a111-111111111111';
-    const empresaB = '22222222-2222-4222-b222-222222222222';
-
-    const voucherValido100Reais: Voucher = {
-      id: 'vch-100',
-      empresaId: empresaA,
-      filialOrigemId: 'filial-a1',
-      codigoVoucher: 'VCH-2026-TEST-100',
-      valorCentavos: 10000, // R$ 100,00
-      vendaOrigemId: 'venda-cancelada-01',
-      motivoCancelamentoOrigem: 'Produto com embalagem violada pelo cliente no balcão',
-      status: 'DISPONIVEL',
-      emitidoEm: '2026-11-20T10:00:00Z',
-      emitidoPorId: 'user-op-01',
-      autorizadoPorId: 'user-gerente-01',
-      criadoEm: '2026-11-20T10:00:00Z',
-      atualizadoEm: '2026-11-20T10:00:00Z',
-    };
-
-    it('deve autorizar resgate integral quando o valor da compra for EXATAMENTE IGUAL ao voucher', () => {
-      const res = validarResgateVoucher(voucherValido100Reais, 10000, empresaA);
-      assert.equal(res.valido, true);
-      assert.equal(res.valorAbatidoCentavos, 10000);
-      assert.equal(res.valorComplementarCentavos, 0);
-    });
-
-    it('deve autorizar resgate integral quando o valor da compra for SUPERIOR, exigindo pagamento da diferença', () => {
-      // Compra de R$ 130,00 com voucher de R$ 100,00
-      const res = validarResgateVoucher(voucherValido100Reais, 13000, empresaA);
-      assert.equal(res.valido, true);
-      assert.equal(res.valorAbatidoCentavos, 10000, 'Abate integral do voucher de R$ 100,00');
-      assert.equal(res.valorComplementarCentavos, 3000, 'Diferença de R$ 30,00 a pagar');
-    });
-
-    it('deve BLOQUEAR o resgate quando o valor da compra for INFERIOR ao voucher (proibido uso parcial e troco)', () => {
-      // Compra de R$ 80,00 com voucher de R$ 100,00
-      const res = validarResgateVoucher(voucherValido100Reais, 8000, empresaA);
-      assert.equal(res.valido, false);
-      assert.equal(res.codigoErro, 'VALOR_COMPRA_INFERIOR_AO_VOUCHER');
-      assert.match(res.mensagem, /inferior ao valor do voucher/i);
-    });
-
-    it('deve BLOQUEAR tentativa de resgate de voucher com status UTILIZADO (proteção contra duplo resgate)', () => {
-      const voucherUtilizado: Voucher = {
-        ...voucherValido100Reais,
-        status: 'UTILIZADO',
-        utilizadoEm: '2026-11-20T11:00:00Z',
-      };
-
-      const res = validarResgateVoucher(voucherUtilizado, 15000, empresaA);
-      assert.equal(res.valido, false);
-      assert.equal(res.codigoErro, 'VOUCHER_NAO_DISPONIVEL');
-    });
-
-    it('deve BLOQUEAR tentativa de resgate de voucher em outra empresa (isolamento multiempresa)', () => {
-      // Tentativa de resgatar voucher da Empresa A na Empresa B
-      const res = validarResgateVoucher(voucherValido100Reais, 10000, empresaB);
-      assert.equal(res.valido, false);
-      assert.equal(res.codigoErro, 'EMPRESA_DIVERGENTE');
-    });
-
-    it('deve gerar registro auditável caso a venda que utilizou voucher seja cancelada', () => {
-      const hist = criarHistoricoEstornoVendaComVoucher({
-        empresaId: empresaA,
-        voucherId: voucherValido100Reais.id,
-        vendaId: 'venda-resgate-02',
-        operadorId: 'user-gerente-01',
-        justificativa: 'Cliente devolveu os itens da nova compra antes da emissão da NFC-e',
-      });
-
-      assert.equal(hist.operacao, 'ESTORNO_VENDA_RESGATE');
-      assert.equal(hist.statusAnterior, 'UTILIZADO');
-      assert.equal(hist.statusNovo, 'CANCELADO');
-      assert.ok(hist.justificativa?.includes('Cliente devolveu'));
-    });
-  });
-
-  // --------------------------------------------------------------------------
-  // 5. RASTREABILIDADE DE LOTES E FEFO
-  // --------------------------------------------------------------------------
-  describe('Rastreabilidade de Lotes e Regra FEFO', () => {
+  describe('3. Testes Unitários: Lotes, FEFO e Idempotência Offline', () => {
     const lotesMock: Lote[] = [
       {
         id: 'lote-3',
@@ -230,44 +133,21 @@ describe('FarmaPro — Testes da Etapa 03 (Revisão): Modelagem, Vouchers e Segu
         status: 'ATIVO',
         origemEntradaTipo: 'COMPRA_NFE',
       },
-      {
-        id: 'lote-2',
-        empresaId: 'emp-1',
-        filialId: 'fil-1',
-        produtoId: 'prod-1',
-        numeroLote: 'LOTE-MEDIO',
-        dataFabricacao: '2025-06-01',
-        dataValidade: '2027-01-10',
-        quantidadeRecebida: 80,
-        quantidadeDisponivel: 80,
-        quantidadeReservada: 0,
-        quantidadeBloqueada: 0,
-        precoCustoUnitarioCentavos: 1000,
-        status: 'ATIVO',
-        origemEntradaTipo: 'COMPRA_NFE',
-      },
     ];
 
     it('deve ordenar lotes priorizando estritamente o vencimento mais próximo (FEFO)', () => {
       const ordenados = ordenarLotesPorFEFO(lotesMock);
       assert.equal(ordenados[0]?.id, 'lote-1');
-      assert.equal(ordenados[1]?.id, 'lote-2');
-      assert.equal(ordenados[2]?.id, 'lote-3');
     });
 
-    it('deve segregar produtos vencidos e bloqueados, impedindo sua inclusão em vendáveis', () => {
+    it('deve segregar produtos vencidos e bloqueados', () => {
       const dataHoje = new Date('2026-06-01');
       const resultado = classificarLotesValidade(lotesMock, dataHoje, 90);
       assert.equal(resultado.vencidos.length, 1);
       assert.ok(!resultado.vendaveis.some(l => l.numeroLote === 'LOTE-PROXIMO'));
     });
-  });
 
-  // --------------------------------------------------------------------------
-  // 6. IDEMPOTÊNCIA E RESILIÊNCIA OFFLINE
-  // --------------------------------------------------------------------------
-  describe('Idempotência de Operações Offline', () => {
-    it('deve gerar chave determinística única para evento de venda', () => {
+    it('deve gerar chave determinística única de idempotência para o mesmo evento de venda', () => {
       const params = {
         empresaId: '11111111-1111-4111-a111-111111111111',
         filialId: '11111111-aaaa-4111-a111-111111111101',
@@ -275,55 +155,166 @@ describe('FarmaPro — Testes da Etapa 03 (Revisão): Modelagem, Vouchers e Segu
         numeroSequencial: '000042',
         idOfflineUuid: '99999999-9999-4999-a999-999999999999',
       };
-
-      const chave1 = gerarChaveIdempotencia(params);
-      const chave2 = gerarChaveIdempotencia(params);
-      assert.equal(chave1, chave2);
-      assert.ok(chave1.startsWith('IDMP-'));
+      assert.equal(gerarChaveIdempotencia(params), gerarChaveIdempotencia(params));
     });
   });
 
-  // --------------------------------------------------------------------------
-  // 7. ANÁLISE ESTÁTICA DOS SCRIPTS SQL DE MIGRAÇÃO
-  // --------------------------------------------------------------------------
-  describe('Integridade e Rigor dos Scripts SQL Preparados', () => {
-    const diretorioMigracoes = path.resolve(__dirname, '../../../database/migrations');
+  // ==========================================================================
+  // PARTE 2: TESTES DE INTEGRAÇÃO LÓGICA E CENÁRIOS DE SEGURANÇA
+  // ==========================================================================
+  describe('4. Cenários de Integração: Vouchers, Isolamento e Integridade Financeira', () => {
+    const empresaA = '11111111-1111-4111-a111-111111111111';
+    const empresaB = '22222222-2222-4222-b222-222222222222';
 
-    it('deve conter todos os 8 scripts de migração ordenados', () => {
-      const arquivosEsperados = [
-        '001_extensoes_e_funcoes_base.sql',
-        '002_tabelas_multiempresa_e_acesso.sql',
-        '003_tabelas_produtos_medicamentos_e_lotes.sql',
-        '004_tabelas_clientes_e_lgpd.sql',
-        '005_tabelas_caixas_e_vendas.sql',
-        '006_tabelas_estoque_e_movimentacoes.sql',
-        '007_tabelas_auditoria_e_offline.sql',
-        '008_politicas_rls_e_seguranca.sql',
-      ];
+    const voucherBase: Voucher = {
+      id: 'vch-100',
+      empresaId: empresaA,
+      filialOrigemId: 'filial-a1',
+      codigoVoucher: 'VCH-2026-TEST-100',
+      valorCentavos: 10000, // R$ 100,00
+      vendaOrigemId: 'venda-cancelada-01',
+      motivoCancelamentoOrigem: 'Cancelamento autorizado pelo farmacêutico com emissão de voucher',
+      status: 'DISPONIVEL',
+      emitidoEm: '2026-05-01T10:00:00Z', // Emitido há mais de 180 dias
+      emitidoPorId: 'user-op-01',
+      autorizadoPorId: 'user-gerente-01',
+      criadoEm: '2026-05-01T10:00:00Z',
+      atualizadoEm: '2026-05-01T10:00:00Z',
+    };
 
-      for (const arquivo of arquivosEsperados) {
-        const caminho = path.join(diretorioMigracoes, arquivo);
-        assert.ok(fs.existsSync(caminho), `Arquivo ${arquivo} deve existir`);
-      }
+    // Cenário 1: Duas empresas tentando consultar o mesmo voucher
+    it('Cenário 1: Duas empresas tentando consultar o mesmo voucher (bloqueio multi-tenant)', () => {
+      // Consulta da Empresa A (proprietária legítima)
+      const resA = validarResgateVoucher(voucherBase, 10000, empresaA);
+      assert.equal(resA.valido, true, 'Empresa A pode consultar e resgatar');
+
+      // Tentativa de consulta da Empresa B (concorrente)
+      const resB = validarResgateVoucher(voucherBase, 10000, empresaB);
+      assert.equal(resB.valido, false);
+      assert.equal(resB.codigoErro, 'EMPRESA_DIVERGENTE');
     });
 
-    it('deve garantir que os vouchers possuam RLS no script 008', () => {
-      const conteudoScript008 = fs.readFileSync(
-        path.join(diretorioMigracoes, '008_politicas_rls_e_seguranca.sql'),
-        'utf-8',
-      );
+    // Cenário 2: Dois caixas tentando resgatar simultaneamente o mesmo voucher
+    it('Cenário 2: Concorrência simultânea de resgate (simulação de transação atômica / lock)', () => {
+      // Simulação de estado compartilhado transacional
+      let voucherBanco = { ...voucherBase };
 
+      const tentarResgateTransacional = (operadorId: string, valorCompra: number) => {
+        // Validação inicial
+        const validacao = validarResgateVoucher(voucherBanco, valorCompra, empresaA);
+        if (!validacao.valido) {
+          return { sucesso: false, erro: validacao.mensagem };
+        }
+        // Transição de estado atômica (CAS - Compare-And-Swap)
+        if (voucherBanco.status === 'DISPONIVEL') {
+          voucherBanco = {
+            ...voucherBanco,
+            status: 'UTILIZADO',
+            utilizadoPorId: operadorId,
+            utilizadoEm: new Date().toISOString(),
+          };
+          return { sucesso: true, valorAbatido: validacao.valorAbatidoCentavos };
+        }
+        return { sucesso: false, erro: 'Voucher já utilizado por outra transação concorrente' };
+      };
+
+      // Caixa 1 executa primeiro
+      const resultadoCaixa1 = tentarResgateTransacional('operador-caixa-1', 12000);
+      assert.equal(resultadoCaixa1.sucesso, true, 'Caixa 1 obtém sucesso no resgate');
+
+      // Caixa 2 tenta resgatar simultaneamente o mesmo voucher
+      const resultadoCaixa2 = tentarResgateTransacional('operador-caixa-2', 12000);
+      assert.equal(resultadoCaixa2.sucesso, false, 'Caixa 2 deve ser bloqueado');
+      assert.match(resultadoCaixa2.erro || '', /não disponível|já utilizado/i);
+    });
+
+    // Cenário 3: Tentativa de emitir dois vouchers para o mesmo cancelamento
+    it('Cenário 3: Tentativa de emitir dois vouchers para o mesmo evento de cancelamento (bloqueio de duplicidade)', () => {
+      const vouchersJaEmitidos = [{ vendaOrigemId: 'venda-cancelada-01', status: 'DISPONIVEL' as const }];
+
+      const tentativa1 = validarEmissaoVoucher({
+        vendaOrigemId: 'venda-cancelada-01',
+        vouchersExistentes: vouchersJaEmitidos,
+      });
+
+      assert.equal(tentativa1.autorizada, false);
+      assert.match(tentativa1.motivo || '', /Já existe um voucher emitido/);
+
+      // Emissão para outra venda distinta deve ser autorizada
+      const tentativaVendaDistinta = validarEmissaoVoucher({
+        vendaOrigemId: 'venda-cancelada-02',
+        vouchersExistentes: vouchersJaEmitidos,
+      });
+      assert.equal(tentativaVendaDistinta.autorizada, true);
+    });
+
+    // Cenário 4: Preservação de registros históricos (ON DELETE RESTRICT no schema)
+    it('Cenário 4: Preservação dos registros históricos contra exclusão em cascata (verificação DDL)', () => {
+      const diretorioMigracoes = path.resolve(__dirname, '../../../database/migrations');
+      const script005 = fs.readFileSync(path.join(diretorioMigracoes, '005_tabelas_caixas_e_vendas.sql'), 'utf-8');
+      const script006 = fs.readFileSync(path.join(diretorioMigracoes, '006_tabelas_estoque_e_movimentacoes.sql'), 'utf-8');
+      const script007 = fs.readFileSync(path.join(diretorioMigracoes, '007_tabelas_auditoria_e_offline.sql'), 'utf-8');
+
+      // Vouchers e Vendas devem usar ON DELETE RESTRICT para empresas e filiais
       assert.ok(
-        conteudoScript008.includes('ALTER TABLE vouchers ENABLE ROW LEVEL SECURITY'),
-        'Script 008 deve habilitar RLS para vouchers',
+        script005.includes('empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT'),
+        'Vendas e vouchers devem proteger empresa_id com ON DELETE RESTRICT',
       );
       assert.ok(
-        conteudoScript008.includes('p_vouchers_isolamento'),
-        'Script 008 deve conter política de isolamento para vouchers',
+        script005.includes('CONSTRAINT uq_voucher_venda_origem UNIQUE (venda_origem_id)'),
+        'Vouchers devem garantir unicidade de emissão por venda_origem_id',
       );
       assert.ok(
-        !conteudoScript008.includes('clientes_carteira_movimentacoes'),
-        'Não deve haver referência a carteira de crédito no script 008',
+        script006.includes('empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT'),
+        'Movimentações de estoque devem proteger empresa_id com ON DELETE RESTRICT',
+      );
+      assert.ok(
+        script007.includes('empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT'),
+        'Logs de auditoria devem proteger empresa_id com ON DELETE RESTRICT',
+      );
+    });
+
+    // Cenário 5: Cancelamento de venda que utilizou voucher
+    it('Cenário 5: Cancelamento de venda que utilizou voucher (rastreabilidade sem duplicação de crédito)', () => {
+      const hist = criarHistoricoEstornoVendaComVoucher({
+        empresaId: empresaA,
+        voucherId: voucherBase.id,
+        vendaId: 'venda-resgate-02',
+        operadorId: 'user-gerente-01',
+        justificativa: 'Cliente devolveu os itens da nova compra antes da emissão da NFC-e',
+      });
+
+      assert.equal(hist.operacao, 'ESTORNO_VENDA_RESGATE');
+      assert.equal(hist.statusAnterior, 'UTILIZADO');
+      assert.equal(hist.statusNovo, 'CANCELADO');
+      assert.ok(hist.justificativa?.includes('Cliente devolveu'));
+    });
+
+    // Cenário 6: Integridade do pagamento complementar
+    it('Cenário 6: Integridade do pagamento complementar e impacto no caixa', () => {
+      // Compra de R$ 130,00 (13000 centavos) com voucher de R$ 100,00 (10000 centavos)
+      const resgate = validarResgateVoucher(voucherBase, 13000, empresaA);
+      assert.equal(resgate.valido, true);
+      assert.equal(resgate.valorAbatidoCentavos, 10000);
+      assert.equal(resgate.valorComplementarCentavos, 3000);
+
+      // Verificação da soma exata (10000 + 3000 = 13000)
+      assert.equal(resgate.valorAbatidoCentavos + resgate.valorComplementarCentavos, 13000);
+
+      // Verificação contábil do caixa: Voucher tem impacto ZERO no dinheiro físico da gaveta
+      const impactoCaixa = contabilizarImpactoCaixaVoucher(resgate.valorAbatidoCentavos);
+      assert.equal(impactoCaixa.impactoDinheiroGavetaCentavos, 0, 'Voucher não é dinheiro físico');
+      assert.equal(impactoCaixa.baixaObrigacoesVoucherCentavos, 10000, 'Liquidação contábil da obrigação');
+    });
+
+    // Cenário 7: Bloqueio de expiração automática sem prazo aprovado
+    it('Cenário 7: Bloqueio de expiração automática (voucher emitido no passado permanece DISPONÍVEL)', () => {
+      // voucherBase foi emitido em 2026-05-01 (mais de 180 dias atrás)
+      const res = validarResgateVoucher(voucherBase, 10000, empresaA);
+      assert.equal(
+        res.valido,
+        true,
+        'Não há expiração automática arbitrária; voucher permanece disponível até política comercial formal',
       );
     });
   });

@@ -1,12 +1,15 @@
 -- ==============================================================================
 -- FarmaPro — Migração 006: Saldos de Estoque e Livro-Razão de Movimentações (Ledger)
 -- Banco: PostgreSQL 15+
+--
+-- DIRETRIZ DE PRESERVAÇÃO: Movimentações contábeis de estoque utilizam
+-- ON DELETE RESTRICT para proteger o histórico de inventário contra exclusão em cascata.
 -- ==============================================================================
 
 -- 1. Saldos Consolidados de Estoque por Filial e Produto (Snapshot em tempo real)
 CREATE TABLE IF NOT EXISTS estoque_saldos (
-  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
-  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE CASCADE,
+  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT,
+  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE RESTRICT,
   produto_id UUID NOT NULL REFERENCES produtos(id) ON DELETE CASCADE,
   quantidade_fisica NUMERIC(12,3) NOT NULL DEFAULT 0,
   quantidade_reservada NUMERIC(12,3) NOT NULL DEFAULT 0 CHECK (quantidade_reservada >= 0),
@@ -39,8 +42,8 @@ CREATE INDEX idx_reservas_ativas ON estoque_reservas(filial_id, produto_id, stat
 -- 3. Livro-Razão Imutável de Movimentações de Estoque (Audit Trail Contábil)
 CREATE TABLE IF NOT EXISTS estoque_movimentacoes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
-  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE CASCADE,
+  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT,
+  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE RESTRICT,
   produto_id UUID NOT NULL REFERENCES produtos(id) ON DELETE RESTRICT,
   lote_id UUID REFERENCES lotes(id) ON DELETE RESTRICT,
   tipo_movimentacao VARCHAR(40) NOT NULL CHECK (tipo_movimentacao IN (

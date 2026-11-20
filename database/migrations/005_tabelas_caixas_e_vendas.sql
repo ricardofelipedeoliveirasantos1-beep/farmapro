@@ -1,15 +1,18 @@
 -- ==============================================================================
 -- FarmaPro — Migração 005: Sessões de Caixa, Vendas (PDV), Vouchers e Pagamentos
 -- Banco: PostgreSQL 15+
--- NOTA: O FarmaPro NÃO possui crediário próprio ou carteira de crédito.
--- O Voucher é uma modalidade originada no cancelamento/devolução autorizada.
+--
+-- DIRETRIZ DE PRESERVAÇÃO FINANCEIRA E AUDITORIA:
+-- Nenhuma tabela financeira admite exclusão em cascata (ON DELETE CASCADE) de empresas
+-- ou filiais. A integridade contábil e legal exige ON DELETE RESTRICT em registros de
+-- vendas, sessões de caixa, vouchers e histórico de transações.
 -- ==============================================================================
 
 -- 1. Sessões de Caixa (Abertura, Movimentações de Suprimento/Sangria e Fechamento)
 CREATE TABLE IF NOT EXISTS caixas_sessoes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
-  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE CASCADE,
+  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT,
+  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE RESTRICT,
   dispositivo_id UUID NOT NULL REFERENCES dispositivos_autorizados(id) ON DELETE RESTRICT,
   operador_abertura_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE RESTRICT,
   operador_fechamento_id UUID REFERENCES usuarios(id),
@@ -28,8 +31,8 @@ CREATE INDEX idx_caixas_sessoes_filial ON caixas_sessoes(empresa_id, filial_id, 
 -- 2. Registro Central de Vendas do PDV
 CREATE TABLE IF NOT EXISTS vendas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
-  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE CASCADE,
+  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT,
+  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE RESTRICT,
   caixa_sessao_id UUID NOT NULL REFERENCES caixas_sessoes(id) ON DELETE RESTRICT,
   dispositivo_id UUID NOT NULL REFERENCES dispositivos_autorizados(id) ON DELETE RESTRICT,
   operador_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE RESTRICT,
@@ -77,8 +80,8 @@ CREATE INDEX idx_vendas_offline_sync ON vendas(empresa_id, sincronizado_em);
 -- 3. Itens da Venda
 CREATE TABLE IF NOT EXISTS venda_itens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
-  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE CASCADE,
+  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT,
+  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE RESTRICT,
   venda_id UUID NOT NULL REFERENCES vendas(id) ON DELETE CASCADE,
   produto_id UUID NOT NULL REFERENCES produtos(id) ON DELETE RESTRICT,
   lote_id UUID REFERENCES lotes(id) ON DELETE RESTRICT,
@@ -107,12 +110,14 @@ CREATE INDEX idx_venda_itens_produto ON venda_itens(empresa_id, produto_id);
 CREATE INDEX idx_venda_itens_lote ON venda_itens(empresa_id, lote_id);
 
 -- 4. Tabela de Vouchers (Originados de cancelamentos autorizados)
--- REGRA OBRIGATÓRIA: Utilização integral em uma única compra.
--- Proibido uso parcial, proibido devolução de troco, proibido saldo residual.
+-- REGRAS MANDATÓRIAS:
+-- 1. Utilização integral em uma única compra (sem troco, sem resíduos).
+-- 2. Proteção contra exclusão em cascata: ON DELETE RESTRICT.
+-- 3. Unicidade de emissão: Apenas 1 voucher por venda_origem_id cancelada (uq_voucher_venda_origem).
 CREATE TABLE IF NOT EXISTS vouchers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
-  filial_origem_id UUID NOT NULL REFERENCES filiais(id) ON DELETE CASCADE,
+  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT,
+  filial_origem_id UUID NOT NULL REFERENCES filiais(id) ON DELETE RESTRICT,
   codigo_voucher VARCHAR(30) NOT NULL,
   valor_centavos BIGINT NOT NULL CHECK (valor_centavos > 0),
   cliente_id UUID REFERENCES clientes(id) ON DELETE SET NULL,
@@ -131,13 +136,14 @@ CREATE TABLE IF NOT EXISTS vouchers (
   -- Dados de Resgate
   utilizado_em TIMESTAMPTZ,
   utilizado_por_id UUID REFERENCES usuarios(id),
-  filial_resgate_id UUID REFERENCES filiais(id),
-  venda_resgate_id UUID REFERENCES vendas(id),
+  filial_resgate_id UUID REFERENCES filiais(id) ON DELETE RESTRICT,
+  venda_resgate_id UUID REFERENCES vendas(id) ON DELETE RESTRICT,
   
   observacoes TEXT,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT uq_voucher_codigo_empresa UNIQUE (empresa_id, codigo_voucher)
+  CONSTRAINT uq_voucher_codigo_empresa UNIQUE (empresa_id, codigo_voucher),
+  CONSTRAINT uq_voucher_venda_origem UNIQUE (venda_origem_id) -- Impede duplicidade de emissão
 );
 
 CREATE INDEX idx_vouchers_busca ON vouchers(empresa_id, codigo_voucher, status);
@@ -147,8 +153,8 @@ CREATE INDEX idx_vouchers_venda_origem ON vouchers(empresa_id, venda_origem_id);
 -- 5. Histórico e Trilha de Auditoria do Voucher
 CREATE TABLE IF NOT EXISTS vouchers_historico (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
-  voucher_id UUID NOT NULL REFERENCES vouchers(id) ON DELETE CASCADE,
+  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT,
+  voucher_id UUID NOT NULL REFERENCES vouchers(id) ON DELETE RESTRICT,
   operacao VARCHAR(30) NOT NULL CHECK (operacao IN (
     'EMISSAO',
     'CONSULTA_VALIDACAO',
@@ -158,8 +164,8 @@ CREATE TABLE IF NOT EXISTS vouchers_historico (
   )),
   status_anterior VARCHAR(20),
   status_novo VARCHAR(20) NOT NULL,
-  venda_id UUID REFERENCES vendas(id),
-  operador_id UUID NOT NULL REFERENCES usuarios(id),
+  venda_id UUID REFERENCES vendas(id) ON DELETE RESTRICT,
+  operador_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE RESTRICT,
   justificativa TEXT,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -169,8 +175,8 @@ CREATE INDEX idx_vouchers_historico_voucher ON vouchers_historico(empresa_id, vo
 -- 6. Formas de Pagamento da Venda
 CREATE TABLE IF NOT EXISTS venda_pagamentos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
-  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE CASCADE,
+  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT,
+  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE RESTRICT,
   venda_id UUID NOT NULL REFERENCES vendas(id) ON DELETE CASCADE,
   forma_pagamento VARCHAR(30) NOT NULL CHECK (forma_pagamento IN (
     'DINHEIRO',

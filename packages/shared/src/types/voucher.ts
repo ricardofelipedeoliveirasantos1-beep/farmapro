@@ -1,5 +1,11 @@
 import { Identificador, ValorMonetarioCentavos } from './comum';
 
+/**
+ * Situação do Voucher.
+ * NOTA DE AUDITORIA: O status 'EXPIRADO' é mantido para suporte futuro,
+ * mas NENHUMA regra de expiração automática é ativada nesta fase.
+ * A definição de prazo de validade depende de aprovação comercial e jurídica prévia.
+ */
 export type StatusVoucher = 'DISPONIVEL' | 'UTILIZADO' | 'CANCELADO' | 'EXPIRADO';
 
 export type OperacaoVoucherHistorico =
@@ -11,9 +17,14 @@ export type OperacaoVoucherHistorico =
 
 /**
  * Entidade Voucher.
- * Emitido exclusivamente no cancelamento/devolução de uma venda autorizada.
- * REGRA CENTRAL: O voucher deve ser utilizado integralmente em uma única compra.
- * Não gera troco, não gera saldo remanescente e não permite uso parcial.
+ * Emitido EXCLUSIVAMENTE no cancelamento/devolução autorizada de uma venda anterior.
+ *
+ * REGRAS FINANCEIRAS E DE INTEGRIDADE:
+ * 1. Resgate 100% integral em uma única compra.
+ * 2. Não gera troco, não gera saldo residual, não permite uso parcial.
+ * 3. Proibida emissão duplicada para o mesmo cancelamento de venda.
+ * 4. Não é contabilizado como dinheiro em espécie na gaveta de caixa.
+ * 5. Registros protegidos contra exclusão em cascata (ON DELETE RESTRICT).
  */
 export interface Voucher {
   id: Identificador;
@@ -22,7 +33,7 @@ export interface Voucher {
   codigoVoucher: string; // Ex: "VCH-2026-X89A-4B21"
   valorCentavos: ValorMonetarioCentavos;
   clienteId?: Identificador;
-  vendaOrigemId: Identificador;
+  vendaOrigemId: Identificador; // Unicidade: 1 voucher por venda cancelada
   motivoCancelamentoOrigem: string;
   status: StatusVoucher;
   emitidoEm: string; // ISO 8601

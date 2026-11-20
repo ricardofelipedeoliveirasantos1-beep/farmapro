@@ -1,14 +1,17 @@
 -- ==============================================================================
 -- FarmaPro — Migração 007: Trilha de Auditoria Imutável e Fila de Conflitos Offline
 -- Banco: PostgreSQL 15+
+--
+-- DIRETRIZ DE PRESERVAÇÃO: A trilha de auditoria utiliza ON DELETE RESTRICT
+-- para garantir que eventos históricos nunca sejam expurgados em cascata.
 -- ==============================================================================
 
 -- 1. Trilha de Auditoria Geral (Audit Trail)
 -- Imutável: nunca deve sofrer UPDATE ou DELETE
 CREATE TABLE IF NOT EXISTS auditoria_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
-  filial_id UUID REFERENCES filiais(id) ON DELETE SET NULL,
+  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT,
+  filial_id UUID REFERENCES filiais(id) ON DELETE RESTRICT,
   usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
   
   operacao VARCHAR(30) NOT NULL CHECK (operacao IN (
@@ -20,6 +23,8 @@ CREATE TABLE IF NOT EXISTS auditoria_logs (
     'DESCONTO_ALCADA_SUPERIOR',
     'CANCELAMENTO_ITEM_PDV',
     'CANCELAMENTO_VENDA_TOTAL',
+    'EMISSAO_VOUCHER_CANCELAMENTO',
+    'RESGATE_VOUCHER_PDV',
     'SANGRIA_CAIXA',
     'SUPRIMENTO_CAIXA',
     'AJUSTE_ESTOQUE_MANUAL',
