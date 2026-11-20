@@ -14,6 +14,7 @@ export * from './types/cliente';
 export * from './types/venda';
 export * from './types/voucher';
 export * from './types/estoque';
+export * from './types/compras';
 export * from './types/auditoria';
 
 export * from './utils/moeda';

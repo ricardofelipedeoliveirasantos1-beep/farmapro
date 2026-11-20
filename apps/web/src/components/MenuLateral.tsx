@@ -13,6 +13,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Truck,
 } from 'lucide-react';
 import { Badge } from '@farmapro/ui';
 import { useAuth } from '../contexts/AuthContext.js';
@@ -22,6 +23,7 @@ export type ModuloNavegacao =
   | 'operacao-caixa'
   | 'historico-vendas'
   | 'estoque-lotes'
+  | 'compras-pedidos'
   | 'funcionarios'
   | 'cargos-permissoes'
   | 'catalogo-demo'
@@ -112,6 +114,20 @@ export const MenuLateral: React.FC<MenuLateralProps> = ({
           descricao: 'Consulta de produtos e consulta rápida',
           icone: Pill,
           permissao: 'estoque:visualizar',
+        },
+      ],
+    },
+    {
+      titulo: 'Compras & Suprimentos',
+      itens: [
+        {
+          id: 'compras-pedidos',
+          titulo: 'Fornecedores & Pedidos',
+          descricao: 'Fornecedores, solicitações e ordens de compra',
+          icone: Truck,
+          permissao: 'fornecedores:consultar',
+          destaque: true,
+          badge: 'Etapa 08',
         },
       ],
     },

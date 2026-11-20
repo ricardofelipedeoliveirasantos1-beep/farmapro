@@ -50,3 +50,30 @@ export function validarCpf(cpf: string | undefined | null): boolean {
   const digito2 = resto >= 10 ? 0 : resto;
   return digito2 === parseInt(digitos.charAt(10), 10);
 }
+
+export function validarCnpj(cnpj: string | undefined | null): boolean {
+  if (!cnpj) return false;
+  const digitos = cnpj.replace(/\D/g, '');
+  if (digitos.length !== 14) return false;
+  if (/^(\d)\1{13}$/.test(digitos)) return false;
+
+  const pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  let soma = 0;
+  for (let i = 0; i < 12; i++) {
+    const peso = pesos1[i] ?? 0;
+    soma += parseInt(digitos.charAt(i), 10) * peso;
+  }
+  let resto = soma % 11;
+  const digito1 = resto < 2 ? 0 : 11 - resto;
+  if (digito1 !== parseInt(digitos.charAt(12), 10)) return false;
+
+  const pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  soma = 0;
+  for (let i = 0; i < 13; i++) {
+    const peso = pesos2[i] ?? 0;
+    soma += parseInt(digitos.charAt(i), 10) * peso;
+  }
+  resto = soma % 11;
+  const digito2 = resto < 2 ? 0 : 11 - resto;
+  return digito2 === parseInt(digitos.charAt(13), 10);
+}

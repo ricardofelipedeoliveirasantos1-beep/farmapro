@@ -44,6 +44,7 @@ import { PdvBalcaoPage } from './pages/PdvBalcaoPage.js';
 import { OperacaoCaixaPage } from './pages/OperacaoCaixaPage.js';
 import { HistoricoVendasPage } from './pages/HistoricoVendasPage.js';
 import { PainelEstoquePage } from './pages/PainelEstoquePage.js';
+import { PainelComprasPage } from './pages/PainelComprasPage.js';
 import { LoginModal } from './pages/LoginModal.js';
 import { SelecionarTenantModal } from './pages/SelecionarTenantModal.js';
 import { MenuLateral, ModuloNavegacao } from './components/MenuLateral.js';
@@ -247,6 +248,11 @@ export const App: React.FC = () => {
           {moduloAtivo === 'estoque-lotes' && <PainelEstoquePage />}
 
           {/* ========================================================================= */}
+          {/* MÓDULO: FORNECEDORES, SOLICITAÇÕES E PEDIDOS DE COMPRA (ETAPA 08) */}
+          {/* ========================================================================= */}
+          {moduloAtivo === 'compras-pedidos' && <PainelComprasPage />}
+
+          {/* ========================================================================= */}
           {/* MÓDULO: COLABORADORES & PIN (ETAPA 05) */}
           {/* ========================================================================= */}
           {moduloAtivo === 'funcionarios' && <FuncionariosPage />}
@@ -328,10 +334,10 @@ export const App: React.FC = () => {
                       <h1 className="text-xl font-bold text-slate-900 tracking-tight">
                         FarmaPro — Plataforma SaaS de Gestão Farmacêutica
                       </h1>
-                      <Badge variante="sucesso" tamanho="sm">Etapa 07 Concluída</Badge>
+                      <Badge variante="sucesso" tamanho="sm">Etapa 08 Concluída</Badge>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
-                      Arquitetura técnica com PostgreSQL, RLS, PDV Balcão, Gestão de Estoque, Lotes Sanitários, FEFO automático, Inventário Físico e Livro-Razão Imutável.
+                      PostgreSQL, RLS multiempresa, PDV Balcão, Gestão de Estoque, Lotes e FEFO, Fornecedores Centralizados, Solicitações por Filial e Pedidos de Compra Auditados.
                     </p>
                   </div>
 
@@ -546,7 +552,7 @@ export interface Venda {
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>FarmaPro © 2026 — Plataforma SaaS de Gestão Farmacêutica</span>
           <span className="text-[11px] text-slate-400">
-            Etapa 06: PDV Balcão, Registro de Vendas e Operação de Caixa
+            Etapa 08: Fornecedores, Solicitações e Pedidos de Compra
           </span>
         </div>
       </footer>

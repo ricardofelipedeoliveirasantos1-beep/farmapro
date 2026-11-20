@@ -36,10 +36,20 @@ export type Permissao =
   | 'estoque:gerenciar_lotes'
   | 'estoque:medicamentos_controlados'
   
-  // Compras e Fornecedores
+  // Compras e Fornecedores (Etapa 08)
   | 'compras:visualizar'
   | 'compras:emitir_pedido'
   | 'compras:dar_entrada_nfe'
+  | 'fornecedores:consultar'
+  | 'fornecedores:cadastrar'
+  | 'fornecedores:editar'
+  | 'fornecedores:aprovar'
+  | 'fornecedores:bloquear'
+  | 'compras:solicitar'
+  | 'compras:aprovar_solicitacao'
+  | 'compras:criar_pedido'
+  | 'compras:aprovar_pedido'
+  | 'compras:cancelar_pedido'
   
   // Clientes
   | 'clientes:visualizar'
