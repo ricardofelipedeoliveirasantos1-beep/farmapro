@@ -3,6 +3,7 @@ import {
   ShoppingCart,
   Coins,
   Receipt,
+  Boxes,
   Users,
   ShieldCheck,
   Pill,
@@ -20,6 +21,7 @@ export type ModuloNavegacao =
   | 'pdv-balcao'
   | 'operacao-caixa'
   | 'historico-vendas'
+  | 'estoque-lotes'
   | 'funcionarios'
   | 'cargos-permissoes'
   | 'catalogo-demo'
@@ -93,6 +95,27 @@ export const MenuLateral: React.FC<MenuLateralProps> = ({
       ],
     },
     {
+      titulo: 'Estoque & Rastreabilidade',
+      itens: [
+        {
+          id: 'estoque-lotes',
+          titulo: 'Estoque, Lotes & FEFO',
+          descricao: 'Painel, lotes, FEFO, inventário e ledger',
+          icone: Boxes,
+          permissao: 'estoque:visualizar',
+          destaque: true,
+          badge: 'Etapa 07',
+        },
+        {
+          id: 'catalogo-demo',
+          titulo: 'Catálogo de Produtos',
+          descricao: 'Consulta de produtos e consulta rápida',
+          icone: Pill,
+          permissao: 'estoque:visualizar',
+        },
+      ],
+    },
+    {
       titulo: 'Gestão de Pessoas & Acessos',
       itens: [
         {
@@ -108,13 +131,6 @@ export const MenuLateral: React.FC<MenuLateralProps> = ({
           descricao: 'Matriz granular sem cargo Estoquista',
           icone: ShieldCheck,
           permissao: 'cargos:gerenciar',
-        },
-        {
-          id: 'catalogo-demo',
-          titulo: 'Catálogo de Produtos',
-          descricao: 'Consulta de estoque e rastreabilidade',
-          icone: Pill,
-          permissao: 'estoque:visualizar',
         },
       ],
     },

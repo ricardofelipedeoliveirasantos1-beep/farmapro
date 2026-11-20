@@ -22,12 +22,16 @@ export type Permissao =
   
   // Estoque e Mercadorias (Atribuíveis a qualquer funcionário autorizado)
   | 'estoque:visualizar'
+  | 'estoque:consultar'
   | 'estoque:cadastrar_produto'
   | 'estoque:editar_produto'
   | 'estoque:entrada_mercadoria'
+  | 'estoque:saida_mercadoria'
   | 'estoque:movimentar'
   | 'estoque:ajuste_manual'
   | 'estoque:inventario'
+  | 'estoque:aprovar_divergencia'
+  | 'estoque:bloquear_produto'
   | 'estoque:transferir_filiais'
   | 'estoque:gerenciar_lotes'
   | 'estoque:medicamentos_controlados'

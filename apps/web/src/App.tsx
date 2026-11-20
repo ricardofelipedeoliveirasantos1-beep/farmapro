@@ -43,6 +43,7 @@ import { CargosPermissoesPage } from './pages/CargosPermissoesPage.js';
 import { PdvBalcaoPage } from './pages/PdvBalcaoPage.js';
 import { OperacaoCaixaPage } from './pages/OperacaoCaixaPage.js';
 import { HistoricoVendasPage } from './pages/HistoricoVendasPage.js';
+import { PainelEstoquePage } from './pages/PainelEstoquePage.js';
 import { LoginModal } from './pages/LoginModal.js';
 import { SelecionarTenantModal } from './pages/SelecionarTenantModal.js';
 import { MenuLateral, ModuloNavegacao } from './components/MenuLateral.js';
@@ -241,6 +242,11 @@ export const App: React.FC = () => {
           {moduloAtivo === 'historico-vendas' && <HistoricoVendasPage />}
 
           {/* ========================================================================= */}
+          {/* MÓDULO: GESTÃO DE ESTOQUE, LOTES, FEFO & INVENTÁRIO (ETAPA 07) */}
+          {/* ========================================================================= */}
+          {moduloAtivo === 'estoque-lotes' && <PainelEstoquePage />}
+
+          {/* ========================================================================= */}
           {/* MÓDULO: COLABORADORES & PIN (ETAPA 05) */}
           {/* ========================================================================= */}
           {moduloAtivo === 'funcionarios' && <FuncionariosPage />}
@@ -322,10 +328,10 @@ export const App: React.FC = () => {
                       <h1 className="text-xl font-bold text-slate-900 tracking-tight">
                         FarmaPro — Plataforma SaaS de Gestão Farmacêutica
                       </h1>
-                      <Badge variante="sucesso" tamanho="sm">Etapa 06 Concluída</Badge>
+                      <Badge variante="sucesso" tamanho="sm">Etapa 07 Concluída</Badge>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
-                      Arquitetura técnica com PostgreSQL, Row-Level Security (RLS), autenticação Argon2id, controle de turnos de caixa e PDV Balcão operacional.
+                      Arquitetura técnica com PostgreSQL, RLS, PDV Balcão, Gestão de Estoque, Lotes Sanitários, FEFO automático, Inventário Físico e Livro-Razão Imutável.
                     </p>
                   </div>
 

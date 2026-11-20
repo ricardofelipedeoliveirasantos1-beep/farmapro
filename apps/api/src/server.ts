@@ -7,6 +7,7 @@ import { rotasFuncionarios } from './routes/funcionarios.routes.js';
 import { rotasCargos } from './routes/cargos.routes.js';
 import { rotasCaixa } from './routes/caixa.routes.js';
 import { rotasVendas } from './routes/vendas.routes.js';
+import { rotasEstoque } from './routes/estoque.routes.js';
 
 const porta = Number(process.env.PORT) || 3333;
 const host = process.env.API_HOST || '0.0.0.0';
@@ -37,6 +38,7 @@ async function iniciarServidor() {
     await fastify.register(rotasCargos);
     await fastify.register(rotasCaixa);
     await fastify.register(rotasVendas);
+    await fastify.register(rotasEstoque);
 
     // Rota de Verificação de Saúde (Health Check)
     fastify.get('/api/health', async () => {
@@ -45,8 +47,8 @@ async function iniciarServidor() {
       return {
         status: saudeBanco.conectado ? 'OK' : 'DEGRADADO',
         sistema: 'FarmaPro API',
-        versao: '0.1.0-etapa06',
-        etapa: '06 — PDV Balcão, Registro de Vendas e Operação de Caixa',
+        versao: '0.1.0-etapa07',
+        etapa: '07 — Gestão de Estoque, Lotes, Validade, FEFO e Inventário',
         dataHora: new Date().toISOString(),
         multiempresa: 'Habilitado (Isolamento RLS e JWT Seguro)',
         banco: {
