@@ -7,19 +7,22 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "tsx --test test/seguranca-rls-e-concorrencia.test.ts",
+    "test": "tsx --test test/seguranca-rls-e-concorrencia.test.ts test/autenticacao-e-permissoes.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@farmapro/shared": "*",
     "@fastify/cors": "^10.0.2",
+    "@node-rs/argon2": "^2.2.2",
     "dotenv": "^18.0.10",
     "fastify": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.23.1"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.17",
     "@farmapro/config": "*",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.13.5",
     "@types/pg": "^8.23.1",
     "tsx": "^4.19.3",

@@ -1,44 +1,44 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-
-/**
- * Interface para estender a requisição com o contexto de tenant autenticado.
- */
-export interface ContextoTenant {
-  empresaId: string;
-  filialId: string;
-  usuarioId: string;
-}
+import { JwtService, PayloadAccessToken } from '../services/jwt.service.js';
+import { ContextoTenant } from '@farmapro/shared';
 
 declare module 'fastify' {
   interface FastifyRequest {
     tenant?: ContextoTenant;
+    usuario?: PayloadAccessToken;
   }
 }
 
 /**
  * Plugin de contexto de Tenant para Fastify.
- * Garante que nenhuma rota protegida acerte dados sem identificar a empresa.
+ * Garante que a identidade e o tenant sejam derivados exclusivamente do Token JWT validado.
+ * NUNCA confia em cabeçalhos arbitrários (ex: x-empresa-id) enviados livremente pelo frontend.
  */
 export async function pluginContextoTenant(fastify: FastifyInstance): Promise<void> {
   fastify.decorateRequest('tenant', undefined);
+  fastify.decorateRequest('usuario', undefined);
 
   fastify.addHook('preHandler', async (request: FastifyRequest, _reply: FastifyReply) => {
-    // Rotas públicas (ex: saúde, documentação) são ignoradas
-    if (request.url.startsWith('/api/health') || request.url.startsWith('/api/public')) {
+    // Rotas públicas ou de autenticação preliminar não requerem tenant estabelecido
+    if (request.url.startsWith('/api/health') || request.url.startsWith('/api/auth/')) {
       return;
     }
 
-    const headerEmpresaId = request.headers['x-empresa-id'] as string | undefined;
-    const headerFilialId = request.headers['x-filial-id'] as string | undefined;
+    const authHeader = request.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7).trim();
+      const payload = JwtService.verificarAccessToken(token);
 
-    // Em etapas futuras, a extração virá do Token JWT validado
-    if (headerEmpresaId) {
-      request.tenant = {
-        empresaId: headerEmpresaId,
-        filialId: headerFilialId || 'filial-padrao',
-        usuarioId: (request.headers['x-usuario-id'] as string) || 'anonimo',
-      };
+      if (payload) {
+        request.usuario = payload;
+        if (payload.empresaId && payload.filialId) {
+          request.tenant = {
+            empresaId: payload.empresaId,
+            filialId: payload.filialId,
+            usuarioId: payload.sub,
+          };
+        }
+      }
     }
   });
 }
-

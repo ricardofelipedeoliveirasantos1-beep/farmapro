@@ -21,8 +21,6 @@ import {
 import {
   formatarCentavosParaReal,
   formatarDataBR,
-  formatarCpf,
-  formatarCnpj,
   Produto,
 } from '@farmapro/shared';
 import {
@@ -32,17 +30,24 @@ import {
   Pill,
   ShoppingCart,
   Boxes,
-  Settings,
   Shield,
   Search,
   CheckCircle2,
-  Plus,
-  ArrowRight,
   Database,
   Smartphone,
   Eye,
   RefreshCw,
+  Users,
+  ShieldCheck,
+  Building2,
+  KeyRound,
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from './contexts/AuthContext.js';
+import { FuncionariosPage } from './pages/FuncionariosPage.js';
+import { CargosPermissoesPage } from './pages/CargosPermissoesPage.js';
+import { LoginModal } from './pages/LoginModal.js';
+import { SelecionarTenantModal } from './pages/SelecionarTenantModal.js';
 
 // Produtos demonstrativos com tipagem estrita
 const produtosDemonstrativos: (Partial<Produto> & {
@@ -98,7 +103,7 @@ const produtosDemonstrativos: (Partial<Produto> & {
     estoqueMinimo: 15,
     status: 'ATIVO',
     loteDemonstrativo: 'LOS-2025-Q4',
-    validadeDemonstrativa: '2026-03-10', // Validade próxima
+    validadeDemonstrativa: '2026-03-10',
     statusLote: 'aviso',
   },
   {
@@ -120,10 +125,27 @@ const produtosDemonstrativos: (Partial<Produto> & {
   },
 ];
 
-type AbaAtiva = 'visao-geral' | 'design-system' | 'contratos' | 'catalogo-demo';
+type AbaAtiva =
+  | 'visao-geral'
+  | 'funcionarios'
+  | 'cargos-permissoes'
+  | 'design-system'
+  | 'contratos'
+  | 'catalogo-demo';
 
 export const App: React.FC = () => {
-  const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>('visao-geral');
+  const {
+    usuario,
+    empresaAtiva,
+    filialAtiva,
+    cargoAtual,
+    origemPin,
+    logout,
+  } = useAuth();
+
+  const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>('funcionarios');
+  const [modalLoginAberto, setModalLoginAberto] = useState(false);
+  const [modalTenantAberto, setModalTenantAberto] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
   const [botaoCarregando, setBotaoCarregando] = useState(false);
   const [termoBusca, setTermoBusca] = useState('');
@@ -135,21 +157,104 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
-      {/* Cabeçalho do SaaS */}
+      {/* Cabeçalho do SaaS FarmaPro */}
       <Cabecalho
-        nomeFarmacia="Farmácia FarmaPro — Matriz"
-        nomeFilial="Unidade 01 (Centro)"
-        nomeOperador="Dr. Carlos Silva"
-        cargoOperador="Farmacêutico Responsável (CRF 45.892/SP)"
+        nomeFarmacia={empresaAtiva?.nomeFantasia || 'Farmácia FarmaPro — Matriz'}
+        nomeFilial={filialAtiva?.nome || 'Unidade 01 (Centro)'}
+        nomeOperador={usuario?.nome || 'Carlos Proprietário'}
+        cargoOperador={cargoAtual?.nome || 'Proprietário Geral'}
         ambienteDemonstracao={true}
       />
+
+      {/* Barra de Ações Rápidas de Sessão e Tenant */}
+      <div className="bg-white border-b border-slate-200 shadow-2xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-slate-500 font-medium">Contexto Multiempresa Ativo:</span>
+            <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-blue-600" />
+              {empresaAtiva?.nomeFantasia} ({filialAtiva?.codigoFilial})
+            </span>
+            {origemPin && (
+              <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                <Smartphone className="w-3 h-3" />
+                PDV PIN Ativo (Origem Restrita)
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Botao
+              variante="outline"
+              tamanho="sm"
+              iconeEsquerda={<Building2 className="w-3.5 h-3.5" />}
+              onClick={() => setModalTenantAberto(true)}
+            >
+              Trocar Farmácia / Filial
+            </Botao>
+
+            <Botao
+              variante="outline"
+              tamanho="sm"
+              iconeEsquerda={<KeyRound className="w-3.5 h-3.5" />}
+              onClick={() => setModalLoginAberto(true)}
+            >
+              Trocar Operador / Login
+            </Botao>
+
+            <Botao
+              variante="secundario"
+              tamanho="sm"
+              iconeEsquerda={<LogOut className="w-3.5 h-3.5" />}
+              onClick={logout}
+            >
+              Sair
+            </Botao>
+          </div>
+        </div>
+      </div>
 
       <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col lg:flex-row gap-6">
         {/* Barra Lateral de Navegação */}
         <aside className="w-full lg:w-64 shrink-0 space-y-4">
           <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs">
-            <p className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Navegação — Etapa 02
+            <p className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-blue-700">
+              Módulos — Etapa 05 (Acessos)
+            </p>
+            <nav className="space-y-1">
+              <button
+                onClick={() => setAbaAtiva('funcionarios')}
+                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors text-left ${
+                  abaAtiva === 'funcionarios'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <Users className="w-4 h-4 text-blue-600" />
+                  <span>Colaboradores & PIN</span>
+                </span>
+                <Badge variante="sucesso" tamanho="sm">Ativo</Badge>
+              </button>
+
+              <button
+                onClick={() => setAbaAtiva('cargos-permissoes')}
+                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors text-left ${
+                  abaAtiva === 'cargos-permissoes'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  <span>Cargos & Permissões</span>
+                </span>
+                <Badge variante="sucesso" tamanho="sm">Ativo</Badge>
+              </button>
+            </nav>
+
+            <p className="px-3 pt-4 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Fundação & Demonstração
             </p>
             <nav className="space-y-1">
               <button
@@ -203,7 +308,7 @@ export const App: React.FC = () => {
 
             <div className="pt-4 mt-4 border-t border-slate-100">
               <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Módulos Futuros (Etapas 03-08)
+                Próximas Etapas
               </p>
               <div className="space-y-1 text-slate-400">
                 <div className="flex items-center justify-between px-3 py-1.5 text-xs">
@@ -216,44 +321,38 @@ export const App: React.FC = () => {
                   <span className="flex items-center gap-2">
                     <Boxes className="w-3.5 h-3.5" /> Estoque & Lotes
                   </span>
-                  <Badge variante="neutro" tamanho="sm">Etapa 05</Badge>
-                </div>
-                <div className="flex items-center justify-between px-3 py-1.5 text-xs">
-                  <span className="flex items-center gap-2">
-                    <Settings className="w-3.5 h-3.5" /> Configurações
-                  </span>
-                  <Badge variante="neutro" tamanho="sm">Pendente</Badge>
+                  <Badge variante="neutro" tamanho="sm">Etapa 07</Badge>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Card de Informação Técnica */}
+          {/* Card de Informação Técnica de Segurança */}
           <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 space-y-2">
             <div className="flex items-center gap-2 font-semibold">
               <Shield className="w-4 h-4 text-blue-700" />
-              <span>Diretriz de Segurança</span>
+              <span>Segurança da Etapa 05</span>
             </div>
             <p className="text-[11px] leading-relaxed text-blue-800">
-              Fundação com isolamento multiempresa via <strong>Row-Level Security (RLS)</strong> no PostgreSQL e moedas calculadas estritamente em centavos inteiros.
+              Autenticação real com senhas protegidas por <strong>Argon2id</strong>, tokens <strong>JWT assinados</strong> e isolamento multiempresa estrito sem cabeçalhos temporários.
             </p>
           </div>
         </aside>
 
         {/* Conteúdo Principal */}
         <main className="flex-1 space-y-6">
-          {/* Banner de Apresentação da Etapa */}
+          {/* Banner de Apresentação da Etapa 05 */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                    FarmaPro — Fundação Estrutural & Design System
+                    FarmaPro — Autenticação, Empresas, Filiais e Permissões
                   </h1>
-                  <Badge variante="info" tamanho="sm">Etapa 02 Concluída</Badge>
+                  <Badge variante="sucesso" tamanho="sm">Etapa 05 Pronta</Badge>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Ambiente inicial estabelecido: monorepo com npm workspaces, contratos de tipos estritos, Design System em Light Mode e arquitetura preparada para SaaS comercial.
+                  Ambiente multiempresa ativo: gestão de colaboradores, atribuição de filiais, matriz de permissões atômicas (sem cargo Estoquista), login Argon2id e PIN de PDV.
                 </p>
               </div>
 
@@ -280,28 +379,38 @@ export const App: React.FC = () => {
 
             <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
-                <span className="text-[11px] text-slate-500 block">Identidade Visual</span>
-                <span className="text-xs font-semibold text-slate-800">Light Mode Exclusivo</span>
+                <span className="text-[11px] text-slate-500 block">Criptografia de Senhas</span>
+                <span className="text-xs font-semibold text-slate-800">Argon2id (19 MiB)</span>
               </div>
               <div>
-                <span className="text-[11px] text-slate-500 block">Idioma</span>
-                <span className="text-xs font-semibold text-slate-800">Português do Brasil (pt-BR)</span>
+                <span className="text-[11px] text-slate-500 block">Sessões & Tokens</span>
+                <span className="text-xs font-semibold text-slate-800">JWT + Refresh Token</span>
               </div>
               <div>
-                <span className="text-[11px] text-slate-500 block">TypeScript</span>
+                <span className="text-[11px] text-slate-500 block">Terminal PDV</span>
+                <span className="text-xs font-semibold text-slate-800">PIN 6 Dígitos (Bloqueio Sensível)</span>
+              </div>
+              <div>
+                <span className="text-[11px] text-slate-500 block">Estoque</span>
                 <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> Modo Strict Ativo
+                  <CheckCircle2 className="w-3 h-3" /> Permissões Atômicas
                 </span>
-              </div>
-              <div>
-                <span className="text-[11px] text-slate-500 block">Arquitetura</span>
-                <span className="text-xs font-semibold text-slate-800">Multiempresa & Offline</span>
               </div>
             </div>
           </div>
 
           {/* ========================================================================= */}
-          {/* ABA 1: VISÃO GERAL */}
+          {/* ABA: COLABORADORES & ACESSOS (ETAPA 05) */}
+          {/* ========================================================================= */}
+          {abaAtiva === 'funcionarios' && <FuncionariosPage />}
+
+          {/* ========================================================================= */}
+          {/* ABA: CARGOS & MATRIZ DE PERMISSÕES (ETAPA 05) */}
+          {/* ========================================================================= */}
+          {abaAtiva === 'cargos-permissoes' && <CargosPermissoesPage />}
+
+          {/* ========================================================================= */}
+          {/* ABA: VISÃO GERAL */}
           {/* ========================================================================= */}
           {abaAtiva === 'visao-geral' && (
             <div className="space-y-6">
@@ -309,7 +418,7 @@ export const App: React.FC = () => {
                 tipo="info"
                 titulo="Ambiente de Fundação e Demonstração Técnica"
               >
-                Esta tela demonstra os blocos construtivos e a padronização do FarmaPro. Nenhuma funcionalidade operacional de venda, estoque ou nota fiscal foi implementada nesta etapa para garantir a solidez da base.
+                Esta tela demonstra os blocos construtivos e a padronização do FarmaPro. Todas as operações utilizam dados fictícios de demonstração.
               </Alerta>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -349,165 +458,42 @@ export const App: React.FC = () => {
                   </CardConteudo>
                 </Card>
               </div>
-
-              {/* Status dos Pacotes do Monorepo */}
-              <Card>
-                <CardCabecalho>
-                  <div>
-                    <CardTitulo>Estrutura dos Módulos do Monorepo</CardTitulo>
-                    <CardDescricao>Status dos pacotes gerenciados via npm workspaces</CardDescricao>
-                  </div>
-                </CardCabecalho>
-                <CardConteudo>
-                  <div className="divide-y divide-slate-100 text-xs">
-                    <div className="py-2.5 flex items-center justify-between">
-                      <div>
-                        <span className="font-semibold text-slate-800">apps/web</span>
-                        <p className="text-[11px] text-slate-500">Frontend SaaS em React 18 + Vite + Tailwind CSS</p>
-                      </div>
-                      <Badge variante="sucesso" ponto>Inicializado e Validado</Badge>
-                    </div>
-
-                    <div className="py-2.5 flex items-center justify-between">
-                      <div>
-                        <span className="font-semibold text-slate-800">apps/api</span>
-                        <p className="text-[11px] text-slate-500">Backend Node.js + Fastify + TypeScript (Esqueleto arquitetural)</p>
-                      </div>
-                      <Badge variante="sucesso" ponto>Estruturado</Badge>
-                    </div>
-
-                    <div className="py-2.5 flex items-center justify-between">
-                      <div>
-                        <span className="font-semibold text-slate-800">packages/shared</span>
-                        <p className="text-[11px] text-slate-500">Entidades de domínio, contratos TypeScript, utilitários monetários BRL e máscaras</p>
-                      </div>
-                      <Badge variante="sucesso" ponto>10 Entidades Mapeadas</Badge>
-                    </div>
-
-                    <div className="py-2.5 flex items-center justify-between">
-                      <div>
-                        <span className="font-semibold text-slate-800">packages/ui</span>
-                        <p className="text-[11px] text-slate-500">Design System padronizado exclusivamente em Light Mode com acessibilidade</p>
-                      </div>
-                      <Badge variante="sucesso" ponto>Componentes Atômicos Prontos</Badge>
-                    </div>
-                  </div>
-                </CardConteudo>
-              </Card>
             </div>
           )}
 
           {/* ========================================================================= */}
-          {/* ABA 2: DESIGN SYSTEM (LIGHT MODE) */}
+          {/* ABA: DESIGN SYSTEM */}
           {/* ========================================================================= */}
           {abaAtiva === 'design-system' && (
             <div className="space-y-6">
-              {/* Botões */}
               <Card>
                 <CardCabecalho>
                   <div>
-                    <CardTitulo>Botões e Estados</CardTitulo>
-                    <CardDescricao>Variantes de botões com suporte a carregamento e ícones</CardDescricao>
+                    <CardTitulo>Componentes Atômicos (@farmapro/ui)</CardTitulo>
+                    <CardDescricao>Visualização e teste dos componentes em conformidade com o Design System</CardDescricao>
                   </div>
                 </CardCabecalho>
-                <CardConteudo className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Botao variante="primario">Botão Primário</Botao>
-                    <Botao variante="secundario">Secundário</Botao>
-                    <Botao variante="outline">Outline</Botao>
-                    <Botao variante="perigo">Perigo / Exclusão</Botao>
-                    <Botao variante="fantasma">Fantasma</Botao>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100">
-                    <Botao variante="primario" tamanho="sm" iconeEsquerda={<Plus className="w-3.5 h-3.5" />}>
-                      Novo Produto (sm)
-                    </Botao>
-                    <Botao variante="primario" tamanho="md" iconeDireita={<ArrowRight className="w-4 h-4" />}>
-                      Continuar Venda (md)
-                    </Botao>
-                    <Botao variante="outline" tamanho="lg">
-                      Tamanho Grande (lg)
-                    </Botao>
-                    <Botao variante="primario" carregando>
-                      Carregando
-                    </Botao>
-                    <Botao variante="primario" disabled>
-                      Desabilitado
-                    </Botao>
-                  </div>
-                </CardConteudo>
-              </Card>
-
-              {/* Campos de Formulário */}
-              <Card>
-                <CardCabecalho>
+                <CardConteudo className="space-y-6">
                   <div>
-                    <CardTitulo>Campos de Formulário</CardTitulo>
-                    <CardDescricao>Inputs com rótulos, dicas, validação de erro e ícones</CardDescricao>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Botões</h4>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Botao variante="primario">Primário</Botao>
+                      <Botao variante="secundario">Secundário</Botao>
+                      <Botao variante="outline">Outline</Botao>
+                      <Botao variante="perigo">Perigo</Botao>
+                      <Botao variante="primario" carregando>Carregando</Botao>
+                    </div>
                   </div>
-                </CardCabecalho>
-                <CardConteudo className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <CampoTexto
-                    rotulo="Código de Barras ou Nome do Medicamento"
-                    placeholder="Digite o código EAN-13 ou nome comercial..."
-                    iconeEsquerda={<Search className="w-4 h-4" />}
-                    dica="Ex: 7891234567890 ou Amoxicilina"
-                    value={termoBusca}
-                    onChange={e => setTermoBusca(e.target.value)}
-                  />
 
-                  <CampoTexto
-                    rotulo="Preço de Venda (BRL)"
-                    placeholder="R$ 0,00"
-                    dica="Armazenado internamente como centavos inteiros"
-                    defaultValue="R$ 44,90"
-                  />
-
-                  <CampoTexto
-                    rotulo="CPF do Cliente"
-                    placeholder="000.000.000-00"
-                    defaultValue="123.456.789-00"
-                    dica="Formatado com máscara e validação de dígitos"
-                  />
-
-                  <CampoTexto
-                    rotulo="Campo com Erro de Validação"
-                    defaultValue="Valor Incorreto"
-                    erro="O campo informado não cumpre os requisitos da ANVISA."
-                  />
-                </CardConteudo>
-              </Card>
-
-              {/* Badges e Alertas */}
-              <Card>
-                <CardCabecalho>
                   <div>
-                    <CardTitulo>Badges de Status & Alertas de Sistema</CardTitulo>
-                    <CardDescricao>Indicadores visuais para estados operacionais e avisos ao farmacêutico</CardDescricao>
-                  </div>
-                </CardCabecalho>
-                <CardConteudo className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variante="sucesso" ponto>Em Estoque (Ativo)</Badge>
-                    <Badge variante="aviso" ponto>Validade Próxima</Badge>
-                    <Badge variante="perigo" ponto>Estoque Crítico</Badge>
-                    <Badge variante="info" ponto>Receita Retida</Badge>
-                    <Badge variante="neutro">Rascunho</Badge>
-                  </div>
-
-                  <div className="space-y-2.5 pt-3 border-t border-slate-100">
-                    <Alerta tipo="sucesso" titulo="Operação de Caixa Registrada">
-                      Abertura de caixa da Manhã efetuada com sucesso pelo operador.
-                    </Alerta>
-
-                    <Alerta tipo="aviso" titulo="Alerta de Validade Farmacêutica">
-                      O lote LOS-2025-Q4 vence em menos de 120 dias. Priorizar dispensação conforme FEFO.
-                    </Alerta>
-
-                    <Alerta tipo="erro" titulo="Ação Bloqueada por Permissão">
-                      Cancelamento de cupom fiscal requer autorização do Gerente ou Farmacêutico Responsável.
-                    </Alerta>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Badges</h4>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variante="sucesso" ponto>Ativo / Sucesso</Badge>
+                      <Badge variante="aviso" ponto>Atenção</Badge>
+                      <Badge variante="perigo" ponto>Bloqueado</Badge>
+                      <Badge variante="info" ponto>Informativo</Badge>
+                      <Badge variante="neutro">Neutro</Badge>
+                    </div>
                   </div>
                 </CardConteudo>
               </Card>
@@ -515,89 +501,39 @@ export const App: React.FC = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* ABA 3: CONTRATOS & ENTIDADES */}
+          {/* ABA: CONTRATOS & TIPOS */}
           {/* ========================================================================= */}
           {abaAtiva === 'contratos' && (
             <div className="space-y-6">
-              <Alerta tipo="info" titulo="Contratos de Domínio (@farmapro/shared)">
-                Tipos estritos em TypeScript configurados para garantir integridade estrutural entre o frontend e a API.
-              </Alerta>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardCabecalho>
-                    <CardTitulo className="text-sm">Empresa & Filial (Multi-tenant)</CardTitulo>
-                  </CardCabecalho>
-                  <CardConteudo className="text-xs space-y-2 text-slate-600 font-mono bg-slate-50 p-3 rounded-lg border border-slate-100">
-                    <p>• Empresa: id, razaoSocial, nomeFantasia, cnpj, plano...</p>
-                    <p>• Filial: id, empresaId, codigoFilial, endereco, eMatriz...</p>
-                    <p>• RLS: Isolamento automático no banco PostgreSQL</p>
-                  </CardConteudo>
-                </Card>
-
-                <Card>
-                  <CardCabecalho>
-                    <CardTitulo className="text-sm">Produto & Lote (Regulatório)</CardTitulo>
-                  </CardCabecalho>
-                  <CardConteudo className="text-xs space-y-2 text-slate-600 font-mono bg-slate-50 p-3 rounded-lg border border-slate-100">
-                    <p>• Produto: id, codigoBarras, tipo, classificacaoReceita...</p>
-                    <p>• Lote: id, produtoId, filialId, numeroLote, validade...</p>
-                    <p>• Preços: precoCustoCentavos, precoVendaCentavos (number)</p>
-                  </CardConteudo>
-                </Card>
-
-                <Card>
-                  <CardCabecalho>
-                    <CardTitulo className="text-sm">Usuário, Cargo & Permissões (RBAC)</CardTitulo>
-                  </CardCabecalho>
-                  <CardConteudo className="text-xs space-y-2 text-slate-600 font-mono bg-slate-50 p-3 rounded-lg border border-slate-100">
-                    <p>• Níveis: ADMIN, GERENTE, FARMACEUTICO, OPERADOR_CAIXA</p>
-                    <p>• Permissões: 20+ permissões atômicas granulares</p>
-                    <p>• Responsável Técnico: crfNumero, crfUf com validação</p>
-                  </CardConteudo>
-                </Card>
-
-                <Card>
-                  <CardCabecalho>
-                    <CardTitulo className="text-sm">Venda & Pagamento (PDV)</CardTitulo>
-                  </CardCabecalho>
-                  <CardConteudo className="text-xs space-y-2 text-slate-600 font-mono bg-slate-50 p-3 rounded-lg border border-slate-100">
-                    <p>• Venda: id, filialId, operadorId, itens[], pagamentos[]</p>
-                    <p>• Formas: DINHEIRO, CARTAO_CREDITO, CARTAO_DEBITO, PIX, VOUCHER...</p>
-                    <p>• Vouchers: Emissão em cancelamento e resgate integral</p>
-                  </CardConteudo>
-                </Card>
-              </div>
-
-              {/* Exemplos de Formatação Segura */}
               <Card>
                 <CardCabecalho>
-                  <CardTitulo>Validação de Utilitários de Domínio</CardTitulo>
+                  <div>
+                    <CardTitulo>Contratos Compartilhados (@farmapro/shared)</CardTitulo>
+                    <CardDescricao>Entidades de domínio e tipos estritos do ecossistema FarmaPro</CardDescricao>
+                  </div>
                 </CardCabecalho>
-                <CardConteudo className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
-                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-slate-400 block text-[11px]">Entrada: 4490 centavos</span>
-                    <span className="font-semibold text-slate-900 text-sm">
-                      {formatarCentavosParaReal(4490)}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-slate-400 block text-[11px]">Data ISO: 2026-11-20</span>
-                    <span className="font-semibold text-slate-900 text-sm">
-                      {formatarDataBR('2026-11-20')}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-slate-400 block text-[11px]">CPF Limpo: 12345678900</span>
-                    <span className="font-semibold text-slate-900 text-sm">
-                      {formatarCpf('12345678900')}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-slate-400 block text-[11px]">CNPJ Limpo: 12345678000195</span>
-                    <span className="font-semibold text-slate-900 text-sm">
-                      {formatarCnpj('12345678000195')}
-                    </span>
+                <CardConteudo>
+                  <div className="p-3 bg-slate-900 text-slate-100 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>{`// Exemplo de ContextoTenant derivado do JWT
+export interface ContextoTenant {
+  empresaId: string;
+  filialId: string;
+  usuarioId: string;
+}
+
+// Payload do Access Token JWT Seguro
+export interface PayloadAccessToken {
+  sub: string;
+  nome: string;
+  email: string;
+  empresaId?: string;
+  filialId?: string;
+  papelEmpresa?: 'PROPRIETARIO' | 'ADMINISTRADOR' | 'COLABORADOR';
+  cargoNome?: string;
+  nivelAcesso?: 'ADMIN' | 'GERENTE' | 'FARMACEUTICO' | 'OPERADOR_CAIXA' | 'ATENDENTE';
+  permissoes?: string[];
+  origemPin?: boolean;
+}`}</pre>
                   </div>
                 </CardConteudo>
               </Card>
@@ -605,51 +541,43 @@ export const App: React.FC = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* ABA 4: CATÁLOGO DEMONSTRATIVO */}
+          {/* ABA: CATÁLOGO DEMONSTRATIVO */}
           {/* ========================================================================= */}
           {abaAtiva === 'catalogo-demo' && (
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-base font-semibold text-slate-900">
-                    Produtos e Medicamentos (Dados Simulados)
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Demonstração da tabela responsiva, máscaras de moeda e tipagem de lotes.
-                  </p>
-                </div>
-                <Badge variante="aviso" ponto>Catálogo Simulado para Testes</Badge>
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+                <CampoTexto
+                  placeholder="Buscar produto por nome, código de barras ou fabricante..."
+                  value={termoBusca}
+                  onChange={e => setTermoBusca(e.target.value)}
+                  iconeEsquerda={<Search className="w-4 h-4 text-slate-400" />}
+                />
               </div>
 
               <TabelaContainer>
                 <TabelaCabecalho>
-                  <tr>
-                    <TabelaColuna>Medicamento / Apresentação</TabelaColuna>
-                    <TabelaColuna>Código / EAN</TabelaColuna>
-                    <TabelaColuna>Lote / Validade</TabelaColuna>
+                  <TabelaLinha>
+                    <TabelaColuna>Medicamento / Produto</TabelaColuna>
+                    <TabelaColuna>Lote & Validade</TabelaColuna>
                     <TabelaColuna>Estoque</TabelaColuna>
                     <TabelaColuna>Preço Venda</TabelaColuna>
-                    <TabelaColuna>Status</TabelaColuna>
-                  </tr>
+                    <TabelaColuna>Situação</TabelaColuna>
+                  </TabelaLinha>
                 </TabelaCabecalho>
                 <TabelaCorpo>
                   {produtosDemonstrativos.map(item => (
                     <TabelaLinha key={item.id}>
                       <TabelaCelula>
-                        <div className="font-medium text-slate-900">{item.nomeComercial}</div>
-                        <div className="text-xs text-slate-500">{item.apresentacao}</div>
-                        <span className="text-[10px] text-blue-600 font-medium">
-                          {item.fabricante}
-                        </span>
-                      </TabelaCelula>
-                      <TabelaCelula>
-                        <span className="font-mono text-xs text-slate-600">{item.codigoBarras}</span>
-                      </TabelaCelula>
-                      <TabelaCelula>
-                        <div className="text-xs font-medium text-slate-800">{item.loteDemonstrativo}</div>
-                        <div className="text-[11px] text-slate-500">
-                          Vence: {formatarDataBR(item.validadeDemonstrativa)}
+                        <div>
+                          <span className="font-semibold text-slate-900 block">{item.nomeComercial}</span>
+                          <span className="text-xs text-slate-500">{item.apresentacao}</span>
                         </div>
+                      </TabelaCelula>
+                      <TabelaCelula>
+                        <span className="font-mono text-xs text-slate-800 block">{item.loteDemonstrativo}</span>
+                        <span className="text-[11px] text-slate-500">
+                          Vence: {formatarDataBR(item.validadeDemonstrativa)}
+                        </span>
                       </TabelaCelula>
                       <TabelaCelula>
                         <span className="font-semibold text-slate-900">{item.estoqueAtual}</span>
@@ -669,14 +597,22 @@ export const App: React.FC = () => {
                   ))}
                 </TabelaCorpo>
               </TabelaContainer>
-
-              <div className="text-right text-[11px] text-slate-400">
-                * Todos os nomes, lotes e valores exibidos acima são fictícios e gerados estritamente para homologação técnica.
-              </div>
             </div>
           )}
         </main>
       </div>
+
+      {/* Modal de Autenticação / Login */}
+      <LoginModal
+        aberto={modalLoginAberto}
+        aoFechar={() => setModalLoginAberto(false)}
+      />
+
+      {/* Modal de Seleção de Empresa / Filial (Tenant Context) */}
+      <SelecionarTenantModal
+        aberto={modalTenantAberto}
+        aoFechar={() => setModalTenantAberto(false)}
+      />
 
       {/* Modal Interativo Demonstrativo */}
       <Modal
@@ -684,24 +620,11 @@ export const App: React.FC = () => {
         aoFechar={() => setModalAberto(false)}
         titulo="Modal Demonstrativo do Design System"
         descricao="Componente de diálogo acessível, com foco protegido e fechamento por tecla ESC."
-        rodape={
-          <>
-            <Botao variante="outline" tamanho="sm" onClick={() => setModalAberto(false)}>
-              Fechar
-            </Botao>
-            <Botao variante="primario" tamanho="sm" onClick={() => setModalAberto(false)}>
-              Confirmar
-            </Botao>
-          </>
-        }
       >
         <div className="space-y-3">
-          <p>
+          <p className="text-sm text-slate-600">
             Este modal exemplifica a aplicação do padrão visual <strong>Light Mode</strong> com desfoque de fundo, bordas sutis e tipografia padronizada em conformidade com as diretrizes do FarmaPro.
           </p>
-          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-600">
-            <strong>Dica de Usabilidade:</strong> Em telas operacionais de balcão (PDV), atalhos rápidos de teclado como <code>ESC</code> para cancelar e <code>ENTER</code> para confirmar aceleram o atendimento.
-          </div>
         </div>
       </Modal>
 
@@ -710,11 +633,10 @@ export const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>FarmaPro © 2026 — Plataforma SaaS de Gestão Farmacêutica</span>
           <span className="text-[11px] text-slate-400">
-            Etapa 02: Fundação Técnica, Padronização e Design System
+            Etapa 05: Autenticação Real, Empresas, Filiais e Controle de Permissões
           </span>
         </div>
       </footer>
     </div>
   );
 };
-

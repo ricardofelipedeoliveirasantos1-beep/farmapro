@@ -35,6 +35,7 @@ describe('FarmaPro — Etapa 04: Validação Real de RLS, Concorrência e Vouche
       '006_tabelas_estoque_e_movimentacoes.sql',
       '007_tabelas_auditoria_e_offline.sql',
       '008_politicas_rls_e_seguranca.sql',
+      '009_tabelas_autenticacao_e_sessoes.sql',
     ];
 
     for (const arq of arquivosMigracao) {
