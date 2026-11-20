@@ -1,20 +1,15 @@
-# FarmaPro — Estratégia de Dados Demonstrativos e Simulação
+# FarmaPro — Seeders e Dados Demonstrativos Fictícios
 
-## 1. Contexto e Isolamento
-Como o ambiente de desenvolvimento não possui uma farmácia física real para validações, toda a massa de dados deve ser:
-1. **100% Simulada:** Nomes de empresas fictícias, CNPJs matematicamente válidos mas em faixa reservada para testes, CPFs simulados e medicamentos com dados sintéticos.
-2. **Totalmente Segregada:** Os seeders demonstrativos ficam isolados em `database/seeds/demonstracao/` e jamais devem ser executados em ambientes de produção.
-3. **Respeito à LGPD:** Nenhum dado pessoal real ou histórico clínico de pacientes reais será utilizado.
+## 1. Diretrizes de Homologação Sem Farmácia Física
+Para o desenvolvimento, validação e homologação do FarmaPro sem expor estabelecimentos ou pacientes reais:
+1. **Dados Estritamente Sintéticos:** Nomes fictícios, empresas com CNPJs simulados em faixa de teste (`00.000.000/0001-91` e `99.999.999/0001-88`), CPFs e CRFs explicitamente sufixados com `DEMO` ou gerados aleatoriamente.
+2. **Cenário de Duas Empresas Concorrentes:**
+   * **Empresa A:** Farmácia Modelo A Ltda (Rede com Matriz Centro e Filial Shopping).
+   * **Empresa B:** Drogaria Concorrente B Ltda (Empresa competidora no mesmo SaaS).
+3. **Prova Estrutural de RLS:**
+   * O script `01_cenario_duas_empresas_ficticias.sql` popula ambas as empresas no mesmo banco relacional.
+   * Ao setar a variável de sessão `app.current_empresa_id` para o UUID da Empresa A, todas as operações no sistema (catálogo de produtos, clientes, vendas, saldos de estoque e relatórios) enxergam apenas os dados da Empresa A.
+   * Tentativas de consulta com IDs da Empresa B retornam zero linhas, comprovando a eficácia das políticas do PostgreSQL.
 
-## 2. Cenário Demonstrativo Previsto
-* **Empresa Principal:** "Farmácia FarmaPro Brasil Ltda" (CNPJ fictício)
-* **Filiais:**
-  * Filial 01 — Matriz Centro
-  * Filial 02 — Unidade Bairro / Shopping
-* **Usuários Demonstrativos:**
-  * Administrador do Sistema
-  * Farmacêutico Responsável Técnico (com CRF fictício)
-  * Operador de Caixa 01
-  * Operador de Caixa 02
-* **Catálogo:** Medicamentos isentos (MIPs), antibióticos com controle de receita, genéricos e perfumaria.
-
+## 2. Regra de Isolamento de Produção
+Os scripts desta pasta **jamais** devem ser executados em bases produtivas reais.

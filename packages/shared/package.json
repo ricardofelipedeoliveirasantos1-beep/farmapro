@@ -6,7 +6,8 @@
   "types": "./src/index.ts",
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/modelagem-e-seguranca.test.ts"
   },
   "devDependencies": {
     "@farmapro/config": "*",

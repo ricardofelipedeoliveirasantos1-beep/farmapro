@@ -12,8 +12,11 @@ export * from './types/produto';
 export * from './types/lote';
 export * from './types/cliente';
 export * from './types/venda';
+export * from './types/estoque';
+export * from './types/auditoria';
 
 export * from './utils/moeda';
 export * from './utils/data';
 export * from './utils/documento';
-
+export * from './utils/fefo';
+export * from './utils/seguranca';

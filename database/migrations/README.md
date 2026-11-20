@@ -1,27 +1,33 @@
-# FarmaPro — Arquitetura de Banco de Dados & RLS (PostgreSQL)
+# FarmaPro — Guia de Migrações e Ordem de Execução SQL
 
-## 1. Visão Geral do Isolamento Multiempresa
+## 1. Diretrizes de Segurança (IMPORTANTE)
+* **Status:** Todos os scripts nesta pasta foram gerados estritamente para revisão técnica e aprovação de arquitetura.
+* **RESTRIÇÃO:** NENHUM script desta pasta foi executado automaticamente em banco de dados de produção ou remoto, em estrito cumprimento às instruções da Etapa 03.
 
-No FarmaPro, a proteção dos dados de cada farmácia é garantida em múltiplos níveis:
-1. **Camada de Aplicação:** Middleware extrai e valida `empresaId` e `filialId` a partir de credenciais autenticadas.
-2. **Camada de Persistência (PostgreSQL RLS):** Políticas nativas de **Row-Level Security** garantem que nenhuma query (mesmo com erros de sintaxe ou injeções) consiga ler ou escrever registros de outros tenants.
+---
 
-## 2. Padrão de RLS Planejado (Para Etapa 03)
+## 2. Ordem de Execução das Migrações
 
-Nas tabelas operacionais, a coluna `empresa_id UUID NOT NULL` será incluída como chave estrangeira mandatória.
+A ordem de execução deve ser rigorosamente sequencial para respeitar chaves estrangeiras e funções utilitárias:
 
-Exemplo conceitual da política:
+| Ordem | Arquivo | Descrição |
+| :---: | :--- | :--- |
+| **01** | `001_extensoes_e_funcoes_base.sql` | Instala `uuid-ossp`, `pgcrypto` e funções de contexto de sessão RLS (`current_empresa_id()`, etc.). |
+| **02** | `002_tabelas_multiempresa_e_acesso.sql` | Cria tabelas de `empresas`, `filiais`, `usuarios`, `usuarios_empresas`, `cargos`, `permissoes`, `usuarios_filiais` e `dispositivos_autorizados`. |
+| **03** | `003_tabelas_produtos_medicamentos_e_lotes.sql` | Cria catálogo desacoplado: `categorias_produtos`, `produtos`, `produtos_codigos_barras`, `medicamentos_dados_farmaceuticos`, `produtos_filiais` e `lotes`. |
+| **04** | `004_tabelas_clientes_e_lgpd.sql` | Cria `clientes`, crediário, `clientes_consentimentos_lgpd` e `clientes_carteira_movimentacoes`. |
+| **05** | `005_tabelas_caixas_e_vendas.sql` | Cria `caixas_sessoes`, `vendas`, `venda_itens` e `venda_pagamentos` com suporte a idempotência e offline. |
+| **06** | `006_tabelas_estoque_e_movimentacoes.sql` | Cria `estoque_saldos`, livro-razão imutável `estoque_movimentacoes` e `estoque_reservas`. |
+| **07** | `007_tabelas_auditoria_e_offline.sql` | Cria `auditoria_logs` (ledger imutável de eventos) e `sincronizacao_offline_conflitos`. |
+| **08** | `008_politicas_rls_e_seguranca.sql` | Habilita e impõe `ROW LEVEL SECURITY (RLS)` em todas as 23 tabelas com dados de tenants. |
+
+---
+
+## 3. Como o Backend (Fastify) Opera com as Migrações
+Em produção, a aplicação conecta-se ao PostgreSQL utilizando o usuário `farmapro_app` (sem privilégios de `BYPASSRLS`). Em cada requisição recebida, o middleware de Tenant Context abre uma transação e executa:
 ```sql
--- Ativação de RLS na tabela
-ALTER TABLE produtos ENABLE ROW LEVEL SECURITY;
-
--- Política de isolamento por sessão de tenant
-CREATE POLICY tenant_isolation_policy ON produtos
-  USING (empresa_id = NULLIF(current_setting('app.current_empresa_id', true), '')::uuid)
-  WITH CHECK (empresa_id = NULLIF(current_setting('app.current_empresa_id', true), '')::uuid);
+SET LOCAL app.current_empresa_id = 'UUID-DA-EMPRESA';
+SET LOCAL app.current_filial_id  = 'UUID-DA-FILIAL';
+SET LOCAL app.current_usuario_id = 'UUID-DO-OPERADOR';
 ```
-
-## 3. Diretrizes de Migrações
-* As migrações serão versionadas e executadas através de ferramentas automatizadas.
-* Nenhuma migração ou criação de tabelas operacionais foi executada na Etapa 02, preservando a fase de fundação.
-
+Qualquer consulta posterior dentro da transação tem filtragem forçada em hardware/kernel pelo PostgreSQL, impedindo vazamento de dados entre concorrentes.
