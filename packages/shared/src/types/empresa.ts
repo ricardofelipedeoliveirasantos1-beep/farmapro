@@ -20,3 +20,12 @@ export interface Empresa {
   auditoria: AuditoriaEntidade;
 }
 
+/**
+ * Contexto de Tenant da sessão autenticada.
+ */
+export interface ContextoTenant {
+  empresaId: string;
+  filialId?: string;
+  usuarioId?: string;
+}
+

@@ -169,8 +169,8 @@ describe('FarmaPro — Suíte de Testes da Etapa 03 (Revisão Complementar)', ()
     const voucherBase: Voucher = {
       id: 'vch-100',
       empresaId: empresaA,
-      filialOrigemId: 'filial-a1',
-      codigoVoucher: 'VCH-2026-TEST-100',
+      filialId: 'filial-a1',
+      codigo: 'VCH-2026-TEST-100',
       valorCentavos: 10000, // R$ 100,00
       vendaOrigemId: 'venda-cancelada-01',
       motivoCancelamentoOrigem: 'Cancelamento autorizado pelo farmacêutico com emissão de voucher',
@@ -184,6 +184,10 @@ describe('FarmaPro — Suíte de Testes da Etapa 03 (Revisão Complementar)', ()
 
     // Cenário 1: Duas empresas tentando consultar o mesmo voucher
     it('Cenário 1: Duas empresas tentando consultar o mesmo voucher (bloqueio multi-tenant)', () => {
+      // Validação de isolamento do tenant
+      assert.equal(validarIsolamentoTenant(voucherBase.empresaId, empresaA), true);
+      assert.equal(validarIsolamentoTenant(voucherBase.empresaId, empresaB), false);
+
       // Consulta da Empresa A (proprietária legítima)
       const resA = validarResgateVoucher(voucherBase, 10000, empresaA);
       assert.equal(resA.valido, true, 'Empresa A pode consultar e resgatar');
@@ -278,6 +282,7 @@ describe('FarmaPro — Suíte de Testes da Etapa 03 (Revisão Complementar)', ()
     it('Cenário 5: Cancelamento de venda que utilizou voucher (rastreabilidade sem duplicação de crédito)', () => {
       const hist = criarHistoricoEstornoVendaComVoucher({
         empresaId: empresaA,
+        filialId: 'filial-a1',
         voucherId: voucherBase.id,
         vendaId: 'venda-resgate-02',
         operadorId: 'user-gerente-01',

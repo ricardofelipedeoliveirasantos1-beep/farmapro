@@ -7,18 +7,22 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "test": "tsx --test test/seguranca-rls-e-concorrencia.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@farmapro/shared": "*",
     "@fastify/cors": "^10.0.2",
-    "fastify": "^5.2.1"
+    "dotenv": "^18.0.10",
+    "fastify": "^5.2.1",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.17",
     "@farmapro/config": "*",
     "@types/node": "^22.13.5",
+    "@types/pg": "^8.23.1",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3"
   }
 }
-

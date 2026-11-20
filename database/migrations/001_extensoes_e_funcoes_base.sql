@@ -3,11 +3,22 @@
 -- Banco: PostgreSQL 15+
 -- ==============================================================================
 
--- Extensão para geração de identificadores universais UUIDv4
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Extensões opcionais para funções auxiliares (compatível com PG 13+ onde gen_random_uuid() é nativo)
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+EXCEPTION
+  WHEN OTHERS THEN
+    NULL; -- gen_random_uuid() já é nativo do PostgreSQL 13+
+END $$;
 
--- Extensão para funções criptográficas seguras
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+EXCEPTION
+  WHEN OTHERS THEN
+    NULL;
+END $$;
 
 -- ------------------------------------------------------------------------------
 -- Funções utilitárias para extração do contexto da sessão de Tenant (RLS)

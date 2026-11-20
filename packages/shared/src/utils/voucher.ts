@@ -122,6 +122,7 @@ export function contabilizarImpactoCaixaVoucher(valorVoucherCentavos: number): {
  */
 export function criarHistoricoEstornoVendaComVoucher(params: {
   empresaId: string;
+  filialId: string;
   voucherId: string;
   vendaId: string;
   operadorId: string;
@@ -130,6 +131,7 @@ export function criarHistoricoEstornoVendaComVoucher(params: {
   return {
     id: `vch-hist-${Date.now()}`,
     empresaId: params.empresaId,
+    filialId: params.filialId,
     voucherId: params.voucherId,
     operacao: 'ESTORNO_VENDA_RESGATE',
     statusAnterior: 'UTILIZADO',

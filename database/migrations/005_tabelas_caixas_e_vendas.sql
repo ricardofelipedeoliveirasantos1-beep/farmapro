@@ -117,8 +117,8 @@ CREATE INDEX idx_venda_itens_lote ON venda_itens(empresa_id, lote_id);
 CREATE TABLE IF NOT EXISTS vouchers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT,
-  filial_origem_id UUID NOT NULL REFERENCES filiais(id) ON DELETE RESTRICT,
-  codigo_voucher VARCHAR(30) NOT NULL,
+  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE RESTRICT,
+  codigo VARCHAR(30) NOT NULL,
   valor_centavos BIGINT NOT NULL CHECK (valor_centavos > 0),
   cliente_id UUID REFERENCES clientes(id) ON DELETE SET NULL,
   venda_origem_id UUID NOT NULL REFERENCES vendas(id) ON DELETE RESTRICT,
@@ -142,11 +142,11 @@ CREATE TABLE IF NOT EXISTS vouchers (
   observacoes TEXT,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT uq_voucher_codigo_empresa UNIQUE (empresa_id, codigo_voucher),
+  CONSTRAINT uq_voucher_codigo_empresa UNIQUE (empresa_id, codigo),
   CONSTRAINT uq_voucher_venda_origem UNIQUE (venda_origem_id) -- Impede duplicidade de emissão
 );
 
-CREATE INDEX idx_vouchers_busca ON vouchers(empresa_id, codigo_voucher, status);
+CREATE INDEX idx_vouchers_busca ON vouchers(empresa_id, codigo, status);
 CREATE INDEX idx_vouchers_cliente ON vouchers(empresa_id, cliente_id);
 CREATE INDEX idx_vouchers_venda_origem ON vouchers(empresa_id, venda_origem_id);
 
@@ -154,6 +154,7 @@ CREATE INDEX idx_vouchers_venda_origem ON vouchers(empresa_id, venda_origem_id);
 CREATE TABLE IF NOT EXISTS vouchers_historico (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE RESTRICT,
+  filial_id UUID NOT NULL REFERENCES filiais(id) ON DELETE RESTRICT,
   voucher_id UUID NOT NULL REFERENCES vouchers(id) ON DELETE RESTRICT,
   operacao VARCHAR(30) NOT NULL CHECK (operacao IN (
     'EMISSAO',

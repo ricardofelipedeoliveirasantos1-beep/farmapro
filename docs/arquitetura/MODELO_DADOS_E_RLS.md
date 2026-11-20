@@ -105,15 +105,20 @@ Em sistemas contábeis e fiscais, a integridade do histórico é prioritária. P
 * **`clientes`**: Dados cadastrais por empresa (Nome, CPF/CNPJ, Telefone, Email, Endereço). **Sem limites de crédito, sem saldo devedor e sem carteira de crédito**.
 * **`clientes_consentimentos_lgpd`**: Registro explícito de autorizações do cliente (Marketing, Lembrete de tratamento contínuo, Retenção de histórico).
 
-### 4.5. Vouchers (Origem em Cancelamentos & Regra de Resgate Integral)
+### 4.5. Vouchers (Origem em Cancelamentos & Nomenclatura Padronizada)
 * **`vouchers`**:
-  * `empresa_id RESTRICT`, `filial_origem_id RESTRICT`, `codigo_voucher UNIQUE`.
+  * `empresa_id RESTRICT`, `filial_id RESTRICT` (filial emissora padronizada), `codigo UNIQUE` (código legível unificado).
+  * `filial_resgate_id RESTRICT`: Filial onde o voucher foi utilizado (se já resgatado).
   * `valor_centavos`: Valor integral gerado no cancelamento.
   * `venda_origem_id UNIQUE`: Venda cancelada que originou o voucher (impede dupla emissão).
   * `motivo_cancelamento_origem`: Justificativa legal/comercial.
   * `status`: `DISPONIVEL`, `UTILIZADO`, `CANCELADO`, `EXPIRADO`.
   * Rastreabilidade: `emitido_por_id`, `autorizado_por_id`, `utilizado_em`, `utilizado_por_id`, `venda_resgate_id`.
-* **`vouchers_historico`**: Trilha de auditoria das movimentações do voucher (`EMISSAO`, `CONSULTA_VALIDACAO`, `RESGATE_UTILIZACAO`, `CANCELAMENTO_VOUCHER`, `ESTORNO_VENDA_RESGATE`).
+* **`vouchers_historico`**: Trilha de auditoria das movimentações do voucher (`EMISSAO`, `CONSULTA_VALIDACAO`, `RESGATE_UTILIZACAO`, `CANCELAMENTO_VOUCHER`, `ESTORNO_VENDA_RESGATE`), contendo `empresa_id` e `filial_id`.
+
+**Decisão de Nomenclatura Única (Etapa 04):**
+- **`filial_id`**: Padronizado em todas as tabelas multiempresa (`caixas_sessoes`, `vendas`, `venda_pagamentos`, `vouchers`, `estoque_saldos`), eliminando a divergência anterior (`filial_origem_id`). A filial de uso complementar permanece explicitamente como `filial_resgate_id`.
+- **`codigo`**: Padronizado na tabela `vouchers` (eliminando a redundância de `codigo_voucher`), mantendo conformidade com as demais entidades (`produtos.codigo_interno`, `clientes.cpf_cnpj`).
 
 **Regras Mandatórias do Voucher:**
 1. Resgate 100% integral em uma única compra.

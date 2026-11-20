@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { pluginContextoTenant } from './plugins/tenant.js';
+import { pluginDatabase } from './plugins/database.js';
 
 const porta = Number(process.env.PORT) || 3333;
 const host = process.env.API_HOST || '0.0.0.0';
@@ -19,18 +20,28 @@ async function iniciarServidor() {
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     });
 
+    // Registro do plugin de banco de dados e pool de conexões
+    await fastify.register(pluginDatabase);
+
     // Registro do middleware/plugin de contexto Multi-tenant
     await fastify.register(pluginContextoTenant);
 
     // Rota de Verificação de Saúde (Health Check)
     fastify.get('/api/health', async () => {
+      const saudeBanco = await fastify.db.verificarSaude();
+
       return {
-        status: 'OK',
+        status: saudeBanco.conectado ? 'OK' : 'DEGRADADO',
         sistema: 'FarmaPro API',
-        versao: '0.1.0-fundacao',
-        etapa: '02 — Estrutura e Fundação',
+        versao: '0.1.0-etapa04',
+        etapa: '04 — Infraestrutura PostgreSQL e Segurança Multiempresa',
         dataHora: new Date().toISOString(),
         multiempresa: 'Habilitado (Isolamento RLS)',
+        banco: {
+          conectado: saudeBanco.conectado,
+          tempoRespostaMs: saudeBanco.tempoRespostaMs,
+          detalhe: saudeBanco.conectado ? 'Disponível' : saudeBanco.mensagem,
+        },
       };
     });
 
@@ -48,4 +59,3 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 export { fastify };
-

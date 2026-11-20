@@ -214,3 +214,12 @@ DROP POLICY IF EXISTS p_conflitos_isolamento ON sincronizacao_offline_conflitos;
 CREATE POLICY p_conflitos_isolamento ON sincronizacao_offline_conflitos
   USING (empresa_id = current_empresa_id())
   WITH CHECK (empresa_id = current_empresa_id());
+
+-- ------------------------------------------------------------------------------
+-- 3. Concessão de Privilégios ao Papel da Aplicação (farmapro_app)
+-- ------------------------------------------------------------------------------
+GRANT USAGE ON SCHEMA public TO farmapro_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO farmapro_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO farmapro_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO farmapro_app;
+

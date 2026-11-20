@@ -29,8 +29,10 @@ export type OperacaoVoucherHistorico =
 export interface Voucher {
   id: Identificador;
   empresaId: Identificador;
-  filialOrigemId: Identificador;
-  codigoVoucher: string; // Ex: "VCH-2026-X89A-4B21"
+  filialId: Identificador; // Filial emissora do voucher (cancelamento da venda original)
+  filialOrigemId?: Identificador; // Alias de compatibilidade para filialId
+  codigo: string; // Ex: "VCH-2026-X89A-4B21" (Nomenclatura única padronizada)
+  codigoVoucher?: string; // Alias de compatibilidade para codigo
   valorCentavos: ValorMonetarioCentavos;
   clienteId?: Identificador;
   vendaOrigemId: Identificador; // Unicidade: 1 voucher por venda cancelada
@@ -57,6 +59,7 @@ export interface Voucher {
 export interface VoucherHistorico {
   id: Identificador;
   empresaId: Identificador;
+  filialId: Identificador; // Filial da ocorrência do evento de auditoria
   voucherId: Identificador;
   operacao: OperacaoVoucherHistorico;
   statusAnterior?: StatusVoucher;
