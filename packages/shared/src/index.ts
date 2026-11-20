@@ -15,6 +15,7 @@ export * from './types/venda';
 export * from './types/voucher';
 export * from './types/estoque';
 export * from './types/compras';
+export * from './types/recebimento';
 export * from './types/auditoria';
 
 export * from './utils/moeda';
@@ -23,3 +24,4 @@ export * from './utils/documento';
 export * from './utils/fefo';
 export * from './utils/seguranca';
 export * from './utils/voucher';
+export * from './utils/nfe-parser';

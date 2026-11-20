@@ -51,6 +51,15 @@ export type Permissao =
   | 'compras:aprovar_pedido'
   | 'compras:cancelar_pedido'
   
+  // Recebimento de Mercadorias e Importação de XML de NF-e (Etapa 09)
+  | 'recebimento:consultar'
+  | 'recebimento:importar_xml'
+  | 'recebimento:conferir'
+  | 'recebimento:registrar_divergencia'
+  | 'recebimento:aprovar_divergencia'
+  | 'recebimento:confirmar'
+  | 'recebimento:consultar_documentos'
+  
   // Clientes
   | 'clientes:visualizar'
   | 'clientes:gerenciar'

@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Truck,
+  PackageCheck,
 } from 'lucide-react';
 import { Badge } from '@farmapro/ui';
 import { useAuth } from '../contexts/AuthContext.js';
@@ -24,6 +25,7 @@ export type ModuloNavegacao =
   | 'historico-vendas'
   | 'estoque-lotes'
   | 'compras-pedidos'
+  | 'recebimento-nfe'
   | 'funcionarios'
   | 'cargos-permissoes'
   | 'catalogo-demo'
@@ -128,6 +130,15 @@ export const MenuLateral: React.FC<MenuLateralProps> = ({
           permissao: 'fornecedores:consultar',
           destaque: true,
           badge: 'Etapa 08',
+        },
+        {
+          id: 'recebimento-nfe',
+          titulo: 'Recebimento & XML NF-e',
+          descricao: '3-Way Matching, XML, lotes e divergências',
+          icone: PackageCheck,
+          permissao: 'recebimento:consultar',
+          destaque: true,
+          badge: 'Etapa 09',
         },
       ],
     },

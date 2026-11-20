@@ -45,6 +45,7 @@ import { OperacaoCaixaPage } from './pages/OperacaoCaixaPage.js';
 import { HistoricoVendasPage } from './pages/HistoricoVendasPage.js';
 import { PainelEstoquePage } from './pages/PainelEstoquePage.js';
 import { PainelComprasPage } from './pages/PainelComprasPage.js';
+import { PainelRecebimentoPage } from './pages/PainelRecebimentoPage.js';
 import { LoginModal } from './pages/LoginModal.js';
 import { SelecionarTenantModal } from './pages/SelecionarTenantModal.js';
 import { MenuLateral, ModuloNavegacao } from './components/MenuLateral.js';
@@ -251,6 +252,11 @@ export const App: React.FC = () => {
           {/* MÓDULO: FORNECEDORES, SOLICITAÇÕES E PEDIDOS DE COMPRA (ETAPA 08) */}
           {/* ========================================================================= */}
           {moduloAtivo === 'compras-pedidos' && <PainelComprasPage />}
+
+          {/* ========================================================================= */}
+          {/* MÓDULO: RECEBIMENTO DE MERCADORIAS & XML NF-E (ETAPA 09) */}
+          {/* ========================================================================= */}
+          {moduloAtivo === 'recebimento-nfe' && <PainelRecebimentoPage />}
 
           {/* ========================================================================= */}
           {/* MÓDULO: COLABORADORES & PIN (ETAPA 05) */}
@@ -552,7 +558,7 @@ export interface Venda {
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>FarmaPro © 2026 — Plataforma SaaS de Gestão Farmacêutica</span>
           <span className="text-[11px] text-slate-400">
-            Etapa 08: Fornecedores, Solicitações e Pedidos de Compra
+            Etapa 09: Recebimento de Mercadorias e Importação de XML de NF-e
           </span>
         </div>
       </footer>
