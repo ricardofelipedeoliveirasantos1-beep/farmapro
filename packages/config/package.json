@@ -1,0 +1,7 @@
+{
+  "name": "@farmapro/config",
+  "version": "0.1.0",
+  "private": true,
+  "main": "tsconfig.base.json"
+}
+

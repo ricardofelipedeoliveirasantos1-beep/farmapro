@@ -1,0 +1,79 @@
+# ==============================================================================
+# FarmaPro — .gitignore Rigoroso
+# Proteção contra vazamento de credenciais, builds e dados locais
+# ==============================================================================
+
+# Dependências
+node_modules/
+.pnp
+.pnp.js
+
+# Variáveis de Ambiente e Segredos (NUNCA COMMITTAR)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+*.pem
+*.key
+*.cert
+*.crt
+id_rsa
+id_ecdsa
+id_ed25519
+
+# Builds e Distribuição
+dist/
+build/
+out/
+.next/
+.turbo/
+.cache/
+
+# Logs e Processos
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Testes e Cobertura
+coverage/
+*.lcov
+.nyc_output/
+
+# Arquivos de Banco de Dados Local e Backups
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.dump
+*.sql.gz
+*.backup
+
+# IDEs e Editores
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Tauri / Desktop Builds
+apps/desktop/src-tauri/target/
+
+# Dados Temporários e Uploads
+uploads/
+temp/
+tmp/
+
