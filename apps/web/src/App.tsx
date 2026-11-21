@@ -5,52 +5,98 @@ import { PdvCaixaScreen } from './pages/PdvCaixaScreen.js';
 import { BalcaoConsultaScreen } from './pages/BalcaoConsultaScreen.js';
 import { LoginModal } from './pages/LoginModal.js';
 import { SelecionarTenantModal } from './pages/SelecionarTenantModal.js';
+import { LoginOperacionalModal } from './components/LoginOperacionalModal.js';
 import { ConfiguracoesOperacionaisModal } from './components/ConfiguracoesOperacionaisModal.js';
 import { AjudaOperacionalModal } from './components/AjudaOperacionalModal.js';
+import {
+  ModalAtalhosOperacionais,
+  TipoAtalhoOperacional,
+} from './components/ModalAtalhosOperacionais.js';
 import { MenuLateral, ModuloNavegacao } from './components/MenuLateral.js';
 
 export const App: React.FC = () => {
-  const {
-    temPermissao,
-  } = useAuth();
+  const { temPermissao, usuario, logout } = useAuth();
 
   // Navegação Global FarmaPro — Exclusivamente os dois ambientes operacionais
   const [moduloAtivo, setModuloAtivo] = useState<ModuloNavegacao>('portal-operacional');
-  const [menuAbertoMobile, setMenuAbertoMobile] = useState<boolean>(false);
+  const [menuAberto, setMenuAberto] = useState<boolean>(true);
 
-  // Modais de Sessão, Configurações e Ajuda
+  // Modais de Autenticação Operacional (Matrícula + Senha Numérica 6 Dígitos)
+  const [loginOperacional, setLoginOperacional] = useState<{
+    aberto: boolean;
+    estacao: 'CAIXA' | 'BALCAO';
+  }>({
+    aberto: false,
+    estacao: 'CAIXA',
+  });
+
+  // Modal de Atalhos Operacionais (Medicamentos, Estoque, Pré-vendas, Clientes, Relatórios)
+  const [atalhoAtivo, setAtalhoAtivo] = useState<TipoAtalhoOperacional>(null);
+
+  // Modais de Sessão Geral, Filiais, Configurações e Ajuda
   const [modalLoginAberto, setModalLoginAberto] = useState(false);
   const [modalTenantAberto, setModalTenantAberto] = useState(false);
   const [modalConfiguracoesAberto, setModalConfiguracoesAberto] = useState(false);
   const [modalAjudaAberto, setModalAjudaAberto] = useState(false);
 
+  // Acesso ao Caixa (F2): se já autenticado com permissão, vai direto; caso contrário, abre login operacional
+  const handleAcessarCaixa = () => {
+    if (usuario && temPermissao('pdv:acesso')) {
+      setModuloAtivo('pdv-caixa');
+      setMenuAberto(false);
+    } else {
+      setLoginOperacional({ aberto: true, estacao: 'CAIXA' });
+    }
+  };
+
+  // Acesso ao Balcão (F3): se já autenticado com permissão, vai direto; caso contrário, abre login operacional
+  const handleAcessarBalcao = () => {
+    if (
+      usuario &&
+      (temPermissao('balcao:consultar') ||
+        temPermissao('pre_venda:criar') ||
+        temPermissao('pdv:acesso'))
+    ) {
+      setModuloAtivo('balcao-consulta');
+      setMenuAberto(false);
+    } else {
+      setLoginOperacional({ aberto: true, estacao: 'BALCAO' });
+    }
+  };
+
+  // Sucesso na Autenticação por Matrícula
+  const handleSucessoLoginOperacional = (dados: {
+    estacao: 'CAIXA' | 'BALCAO';
+    usuario: { id: string; nome: string; matricula: string };
+  }) => {
+    setLoginOperacional({ aberto: false, estacao: 'CAIXA' });
+    if (dados.estacao === 'CAIXA') {
+      setModuloAtivo('pdv-caixa');
+    } else {
+      setModuloAtivo('balcao-consulta');
+    }
+    setMenuAberto(false);
+  };
+
   return (
     <>
-      {/* 1. TELA INICIAL: PORTAL OPERACIONAL (SOMENTE OS DOIS ACESSOS OPERACIONAIS) */}
+      {/* 1. TELA INICIAL: PORTAL OPERACIONAL (EXATO À REFERÊNCIA VISUAL) */}
       {moduloAtivo === 'portal-operacional' && (
         <PortalOperacionalScreen
-          aoNavegarCaixa={() => {
-            if (temPermissao('pdv:acesso')) {
-              setModuloAtivo('pdv-caixa');
-            } else {
-              alert('Acesso negado: Seu usuário não possui a permissão de Caixa (pdv:acesso).');
+          aoAcessarCaixa={handleAcessarCaixa}
+          aoAcessarBalcao={handleAcessarBalcao}
+          aoAbrirMenu={() => setMenuAberto(true)}
+          aoTrocarFilial={() => setModalTenantAberto(true)}
+          aoSair={() => {
+            if (confirm('Deseja realmente sair do sistema FarmaPro?')) {
+              logout();
             }
           }}
-          aoNavegarBalcao={() => {
-            if (
-              temPermissao('balcao:consultar') ||
-              temPermissao('pdv:acesso') ||
-              temPermissao('pre_venda:criar')
-            ) {
-              setModuloAtivo('balcao-consulta');
-            } else {
-              alert('Acesso negado: Seu usuário não possui permissão de Balcão (balcao:consultar).');
-            }
-          }}
-          aoAbrirLogin={() => setModalLoginAberto(true)}
-          aoAbrirMenu={() => setMenuAbertoMobile(true)}
-          aoAbrirConfiguracoes={() => setModalConfiguracoesAberto(true)}
-          aoAbrirAjuda={() => setModalAjudaAberto(true)}
+          aoClicarMedicamentos={() => setAtalhoAtivo('medicamentos')}
+          aoClicarEstoque={() => setAtalhoAtivo('estoque')}
+          aoClicarPreVendas={() => setAtalhoAtivo('prevendas')}
+          aoClicarClientes={() => setAtalhoAtivo('clientes')}
+          aoClicarRelatorios={() => setAtalhoAtivo('relatorios')}
         />
       )}
 
@@ -58,7 +104,7 @@ export const App: React.FC = () => {
       {moduloAtivo === 'pdv-caixa' && (
         <PdvCaixaScreen
           aoVoltarPortal={() => setModuloAtivo('portal-operacional')}
-          aoAbrirMenu={() => setMenuAbertoMobile(true)}
+          aoAbrirMenu={() => setMenuAberto(true)}
         />
       )}
 
@@ -66,22 +112,39 @@ export const App: React.FC = () => {
       {moduloAtivo === 'balcao-consulta' && (
         <BalcaoConsultaScreen
           aoVoltarPortal={() => setModuloAtivo('portal-operacional')}
-          aoAbrirMenu={() => setMenuAbertoMobile(true)}
+          aoAbrirMenu={() => setMenuAberto(true)}
         />
       )}
 
-      {/* 4. MENU HAMBÚRGUER OPERACIONAL (CANTO SUPERIOR ESQUERDO) */}
+      {/* 4. MENU LATERAL FLUTUANTE (EXATO À IMAGEM DE REFERÊNCIA) */}
       <MenuLateral
         moduloAtivo={moduloAtivo}
         aoSelecionarModulo={(mod) => setModuloAtivo(mod)}
-        abertoMobile={menuAbertoMobile}
-        aoFecharMobile={() => setMenuAbertoMobile(false)}
-        aoAbrirConfiguracoes={() => setModalConfiguracoesAberto(true)}
-        aoAbrirAjuda={() => setModalAjudaAberto(true)}
-        aoAbrirLogin={() => setModalLoginAberto(true)}
+        abertoMobile={menuAberto}
+        aoFecharMobile={() => setMenuAberto(false)}
+        aoAcessarCaixa={handleAcessarCaixa}
+        aoAcessarBalcao={handleAcessarBalcao}
+        aoAbrirConfiguracoes={(_subitem) => setModalConfiguracoesAberto(true)}
+        aoAbrirAjuda={(_subitem) => setModalAjudaAberto(true)}
       />
 
-      {/* 5. MODAIS DE SESSÃO, FILIAIS, CONFIGURAÇÕES E AJUDA */}
+      {/* 5. MODAL DE LOGIN OPERACIONAL (MATRÍCULA + SENHA NUMÉRICA 6 DÍGITOS) */}
+      <LoginOperacionalModal
+        aberto={loginOperacional.aberto}
+        estacao={loginOperacional.estacao}
+        aoFechar={() => setLoginOperacional({ aberto: false, estacao: 'CAIXA' })}
+        aoSucesso={handleSucessoLoginOperacional}
+      />
+
+      {/* 6. MODAL DE ATALHOS OPERACIONAIS (BARRA INFERIOR) */}
+      <ModalAtalhosOperacionais
+        tipo={atalhoAtivo}
+        aoFechar={() => setAtalhoAtivo(null)}
+        aoAcessarCaixa={handleAcessarCaixa}
+        aoAcessarBalcao={handleAcessarBalcao}
+      />
+
+      {/* 7. MODAIS DE SESSÃO GERAL, FILIAIS, CONFIGURAÇÕES E AJUDA */}
       <LoginModal
         aberto={modalLoginAberto}
         aoFechar={() => setModalLoginAberto(false)}

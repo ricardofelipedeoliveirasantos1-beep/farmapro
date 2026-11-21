@@ -338,6 +338,280 @@ export class AuthService {
   }
 
   /**
+   * Autenticação operacional independente por Matrícula e Senha Numérica de 6 dígitos.
+   * Utilizada exclusivamente para entrada direta no PDV (Caixa) ou Painel de Venda (Balcão).
+   */
+  static async autenticarPorMatricula(
+    client: pg.PoolClient | pg.Pool,
+    params: {
+      matricula: string;
+      senhaNumerica: string;
+      estacao: 'CAIXA' | 'BALCAO';
+      empresaId?: string;
+      filialId?: string;
+      ip?: string;
+    },
+  ) {
+    const matriculaLimpa = (params.matricula || '').trim();
+    const senhaLimpa = (params.senhaNumerica || '').trim();
+
+    if (!matriculaLimpa) {
+      throw new Error('Matrícula é obrigatória.');
+    }
+
+    if (!/^\d{6}$/.test(senhaLimpa)) {
+      throw new Error('A senha operacional deve conter exclusivamente 6 dígitos numéricos.');
+    }
+
+    // 1. Localizar vínculo do colaborador por matrícula
+    const resColab = await client.query<{
+      usuario_empresa_id: string;
+      usuario_id: string;
+      empresa_id: string;
+      matricula: string;
+      senha_operacional_hash: string | null;
+      tentativas_falhas_operacional: number;
+      bloqueado_operacional_ate: Date | null;
+      papel_empresa: 'PROPRIETARIO' | 'ADMINISTRADOR' | 'COLABORADOR';
+      usuario_empresa_status: string;
+      nome: string;
+      email: string;
+      cpf: string;
+      usuario_status: string;
+      empresa_nome: string;
+    }>(`
+      SELECT 
+        ue.id as usuario_empresa_id,
+        ue.usuario_id,
+        ue.empresa_id,
+        ue.matricula,
+        ue.senha_operacional_hash,
+        ue.tentativas_falhas_operacional,
+        ue.bloqueado_operacional_ate,
+        ue.papel_empresa,
+        ue.status as usuario_empresa_status,
+        u.nome,
+        u.email,
+        u.cpf,
+        u.status as usuario_status,
+        e.nome_fantasia as empresa_nome
+      FROM usuarios_empresas ue
+      JOIN usuarios u ON u.id = ue.usuario_id
+      JOIN empresas e ON e.id = ue.empresa_id
+      WHERE (UPPER(TRIM(ue.matricula)) = UPPER(TRIM($1)) OR u.cpf = $1)
+        AND ($2::UUID IS NULL OR ue.empresa_id = $2::UUID)
+      ORDER BY ue.criado_em ASC
+      LIMIT 1;
+    `, [matriculaLimpa, params.empresaId || null]);
+
+    const colab = resColab.rows[0];
+    if (!colab) {
+      await client.query(`
+        INSERT INTO tentativas_acesso_operacional (empresa_id, filial_id, matricula, estacao, sucesso, motivo_falha, ip_origem)
+        VALUES ($1, $2, $3, $4, false, 'MATRICULA_INEXISTENTE', $5);
+      `, [params.empresaId || null, params.filialId || null, matriculaLimpa, params.estacao, params.ip || null]);
+      throw new Error('Matrícula não encontrada.');
+    }
+
+    // 2. Validar Status do Colaborador
+    if (colab.usuario_status === 'BLOQUEADO' || colab.usuario_empresa_status === 'BLOQUEADO') {
+      await client.query(`
+        INSERT INTO tentativas_acesso_operacional (empresa_id, filial_id, matricula, estacao, sucesso, motivo_falha, ip_origem)
+        VALUES ($1, $2, $3, $4, false, 'COLABORADOR_BLOQUEADO', $5);
+      `, [colab.empresa_id, params.filialId || null, matriculaLimpa, params.estacao, params.ip || null]);
+      throw new Error('Colaborador bloqueado pelo administrador da farmácia.');
+    }
+
+    if (colab.usuario_status === 'INATIVO' || colab.usuario_empresa_status === 'INATIVO') {
+      await client.query(`
+        INSERT INTO tentativas_acesso_operacional (empresa_id, filial_id, matricula, estacao, sucesso, motivo_falha, ip_origem)
+        VALUES ($1, $2, $3, $4, false, 'COLABORADOR_INATIVO', $5);
+      `, [colab.empresa_id, params.filialId || null, matriculaLimpa, params.estacao, params.ip || null]);
+      throw new Error('Colaborador inativo. Entre em contato com seu gestor.');
+    }
+
+    // 3. Verificar Bloqueio Temporário por Tentativas Excessivas
+    if (colab.bloqueado_operacional_ate && new Date(colab.bloqueado_operacional_ate) > new Date()) {
+      const segundosRestantes = Math.ceil(
+        (new Date(colab.bloqueado_operacional_ate).getTime() - Date.now()) / 1000
+      );
+      await client.query(`
+        INSERT INTO tentativas_acesso_operacional (empresa_id, filial_id, matricula, estacao, sucesso, motivo_falha, ip_origem)
+        VALUES ($1, $2, $3, $4, false, 'BLOQUEIO_TEMPORARIO', $5);
+      `, [colab.empresa_id, params.filialId || null, matriculaLimpa, params.estacao, params.ip || null]);
+      throw new Error(`Acesso bloqueado por tentativas consecutivas inválidas. Aguarde ${segundosRestantes} segundos.`);
+    }
+
+    // 4. Validar Senha de 6 Dígitos com Argon2id
+    let senhaCorreta = false;
+    if (colab.senha_operacional_hash) {
+      senhaCorreta = await CryptoService.verificarPin(colab.senha_operacional_hash, senhaLimpa);
+    } else {
+      // Fallback para PIN existente em usuarios_pins ou senha padrão de demonstração
+      const resPin = await client.query<{ pin_hash: string }>(`
+        SELECT pin_hash FROM usuarios_pins 
+        WHERE usuario_id = $1 AND empresa_id = $2 
+        LIMIT 1;
+      `, [colab.usuario_id, colab.empresa_id]);
+
+      if (resPin.rows.length > 0 && resPin.rows[0]?.pin_hash) {
+        senhaCorreta = await CryptoService.verificarPin(resPin.rows[0].pin_hash, senhaLimpa);
+      } else if (senhaLimpa === '123456') {
+        senhaCorreta = true;
+      }
+    }
+
+    if (!senhaCorreta) {
+      const novasFalhas = (colab.tentativas_falhas_operacional || 0) + 1;
+      let bloqueio: Date | null = null;
+
+      if (novasFalhas >= 3) {
+        bloqueio = new Date(Date.now() + 15 * 60 * 1000); // Bloqueio por 15 minutos
+      }
+
+      await client.query(`
+        UPDATE usuarios_empresas
+        SET tentativas_falhas_operacional = $1, bloqueado_operacional_ate = $2, atualizado_em = NOW()
+        WHERE id = $3;
+      `, [novasFalhas, bloqueio, colab.usuario_empresa_id]);
+
+      await client.query(`
+        INSERT INTO tentativas_acesso_operacional (empresa_id, filial_id, matricula, estacao, sucesso, motivo_falha, ip_origem)
+        VALUES ($1, $2, $3, $4, false, 'SENHA_INCORRETA', $5);
+      `, [colab.empresa_id, params.filialId || null, matriculaLimpa, params.estacao, params.ip || null]);
+
+      if (bloqueio) {
+        throw new Error('Acesso bloqueado por 15 minutos devido a 3 tentativas incorretas.');
+      }
+
+      throw new Error(`Senha incorreta. Tentativa ${novasFalhas} de 3.`);
+    }
+
+    // 5. Sucesso na senha: resetar contador de falhas
+    await client.query(`
+      UPDATE usuarios_empresas
+      SET tentativas_falhas_operacional = 0, bloqueado_operacional_ate = NULL, atualizado_em = NOW()
+      WHERE id = $1;
+    `, [colab.usuario_empresa_id]);
+
+    // 6. Determinar filial de operação autorizada
+    let filialAlvoId = params.filialId;
+    if (!filialAlvoId) {
+      const resFilPadrao = await client.query<{ filial_id: string }>(`
+        SELECT filial_id FROM usuarios_filiais
+        WHERE usuario_id = $1 AND empresa_id = $2 AND status = 'ATIVO'
+        ORDER BY e_filial_padrao DESC LIMIT 1;
+      `, [colab.usuario_id, colab.empresa_id]);
+      filialAlvoId = resFilPadrao.rows[0]?.filial_id;
+    }
+
+    if (!filialAlvoId) {
+      throw new Error('Colaborador não possui filial ativa autorizada para operação.');
+    }
+
+    // Verificar se o usuário está associado à filial selecionada
+    const resFilial = await client.query<{ id: string; nome: string }>(`
+      SELECT f.id, f.nome 
+      FROM filiais f
+      JOIN usuarios_filiais uf ON uf.filial_id = f.id
+      WHERE uf.usuario_id = $1 AND f.id = $2 AND f.empresa_id = $3 AND uf.status = 'ATIVO' AND f.status = 'ATIVO';
+    `, [colab.usuario_id, filialAlvoId, colab.empresa_id]);
+
+    if (resFilial.rows.length === 0) {
+      await client.query(`
+        INSERT INTO tentativas_acesso_operacional (empresa_id, filial_id, matricula, estacao, sucesso, motivo_falha, ip_origem)
+        VALUES ($1, $2, $3, $4, false, 'FILIAL_NAO_AUTORIZADA', $5);
+      `, [colab.empresa_id, filialAlvoId, matriculaLimpa, params.estacao, params.ip || null]);
+      throw new Error('Colaborador não autorizado para operar nesta filial.');
+    }
+
+    const filialNome = resFilial.rows[0]?.nome || 'Filial Operacional';
+
+    // 7. Calcular permissões atômicas efetivas
+    const perms = await PermissoesService.calcularPermissoesEfetivas(client, {
+      usuarioId: colab.usuario_id,
+      empresaId: colab.empresa_id,
+      filialId: filialAlvoId,
+    });
+
+    if (!perms) {
+      throw new Error('Não foi possível calcular as permissões para este colaborador.');
+    }
+
+    // 8. Validação de alçada por Estação Operacional
+    if (params.estacao === 'CAIXA') {
+      const podeCaixa =
+        perms.permissoesEfetivas.includes('pdv:acesso') ||
+        perms.permissoesEfetivas.includes('pdv:vender');
+
+      if (!podeCaixa) {
+        await client.query(`
+          INSERT INTO tentativas_acesso_operacional (empresa_id, filial_id, matricula, estacao, sucesso, motivo_falha, ip_origem)
+          VALUES ($1, $2, $3, $4, false, 'SEM_PERMISSAO_CAIXA', $5);
+        `, [colab.empresa_id, filialAlvoId, matriculaLimpa, params.estacao, params.ip || null]);
+        throw new Error(`Acesso negado: O colaborador ${colab.nome} não possui permissão de Operador de Caixa (pdv:acesso).`);
+      }
+    } else if (params.estacao === 'BALCAO') {
+      const podeBalcao =
+        perms.permissoesEfetivas.includes('balcao:consultar') ||
+        perms.permissoesEfetivas.includes('pre_venda:criar') ||
+        perms.permissoesEfetivas.includes('pdv:acesso');
+
+      if (!podeBalcao) {
+        await client.query(`
+          INSERT INTO tentativas_acesso_operacional (empresa_id, filial_id, matricula, estacao, sucesso, motivo_falha, ip_origem)
+          VALUES ($1, $2, $3, $4, false, 'SEM_PERMISSAO_BALCAO', $5);
+        `, [colab.empresa_id, filialAlvoId, matriculaLimpa, params.estacao, params.ip || null]);
+        throw new Error(`Acesso negado: O colaborador ${colab.nome} não possui permissão de Atendimento no Balcão (balcao:consultar).`);
+      }
+    }
+
+    // 9. Registrar auditoria de sucesso
+    await client.query(`
+      INSERT INTO tentativas_acesso_operacional (empresa_id, filial_id, matricula, estacao, sucesso, ip_origem)
+      VALUES ($1, $2, $3, $4, true, $5);
+    `, [colab.empresa_id, filialAlvoId, matriculaLimpa, params.estacao, params.ip || null]);
+
+    // 10. Emitir token JWT operacional
+    const payloadJwt: PayloadAccessToken = {
+      sub: colab.usuario_id,
+      nome: colab.nome,
+      email: colab.email,
+      empresaId: colab.empresa_id,
+      filialId: filialAlvoId,
+      papelEmpresa: perms.papelEmpresa,
+      cargoNome: perms.cargoNome,
+      nivelAcesso: perms.nivelAcesso,
+      permissoes: perms.permissoesEfetivas,
+      origemPin: true,
+    };
+
+    const accessToken = JwtService.gerarAccessToken(payloadJwt);
+
+    return {
+      accessToken,
+      estacao: params.estacao,
+      usuario: {
+        id: colab.usuario_id,
+        nome: colab.nome,
+        email: colab.email,
+        cpf: colab.cpf,
+        matricula: colab.matricula || matriculaLimpa,
+        cargoNome: perms.cargoNome,
+      },
+      empresa: {
+        id: colab.empresa_id,
+        nomeFantasia: colab.empresa_nome,
+      },
+      filial: {
+        id: filialAlvoId,
+        nome: filialNome,
+      },
+      permissoes: perms.permissoesEfetivas,
+    };
+  }
+
+  /**
    * Renovação segura de Access Token através de Refresh Token.
    */
   static async renovarSessao(client: pg.PoolClient | pg.Pool, refreshToken: string) {

@@ -82,6 +82,59 @@ export async function rotasAutenticacao(fastify: FastifyInstance): Promise<void>
   });
 
   /**
+   * POST /api/auth/login-operacional
+   * Autenticação independente por Matrícula e Senha Numérica de 6 dígitos para Caixa ou Balcão.
+   */
+  fastify.post('/api/auth/login-operacional', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { matricula, senhaNumerica, estacao, empresaId, filialId } = request.body as {
+      matricula?: string;
+      senhaNumerica?: string;
+      estacao?: 'CAIXA' | 'BALCAO';
+      empresaId?: string;
+      filialId?: string;
+    };
+
+    if (!matricula || !senhaNumerica || !estacao) {
+      return reply.status(400).send({
+        sucesso: false,
+        erro: 'DADOS_INCOMPLETOS',
+        mensagem: 'Matrícula, senha de 6 dígitos e estação operacional são obrigatórios.',
+      });
+    }
+
+    try {
+      const resultado = await AuthService.autenticarPorMatricula(pool, {
+        matricula,
+        senhaNumerica,
+        estacao,
+        empresaId,
+        filialId,
+        ip: request.ip,
+      });
+
+      return reply.send({
+        sucesso: true,
+        dados: resultado,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Falha na autenticação operacional';
+      const statusCode = msg.includes('bloqueado')
+        ? 403
+        : msg.includes('negado')
+        ? 403
+        : msg.includes('autorizado')
+        ? 403
+        : 401;
+
+      return reply.status(statusCode).send({
+        sucesso: false,
+        erro: 'FALHA_AUTENTICACAO_OPERACIONAL',
+        mensagem: msg,
+      });
+    }
+  });
+
+  /**
    * POST /api/auth/login-pin
    * Autenticação rápida por PIN de 6 dígitos em terminal previamente autorizado.
    */

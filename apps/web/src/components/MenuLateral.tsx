@@ -1,51 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
+  Home,
   ShoppingCart,
-  Pill,
-  LayoutDashboard,
+  Tag,
   Settings,
   HelpCircle,
+  Power,
+  ChevronDown,
+  ChevronUp,
   X,
-  User,
-  LogOut,
-  KeyRound,
 } from 'lucide-react';
-import { Badge } from '@farmapro/ui';
 import { useAuth } from '../contexts/AuthContext.js';
 
 export type ModuloNavegacao =
   | 'portal-operacional'
   | 'balcao-consulta'
-  | 'pdv-caixa'
-  | 'configuracoes-operacionais'
-  | 'ajuda-operacional';
+  | 'pdv-caixa';
 
 interface MenuLateralProps {
   moduloAtivo: ModuloNavegacao;
   aoSelecionarModulo: (modulo: ModuloNavegacao) => void;
   abertoMobile: boolean;
   aoFecharMobile: () => void;
-  recolhidoDesktop?: boolean;
-  aoAlternarRecolhidoDesktop?: () => void;
-  aoAbrirConfiguracoes?: () => void;
-  aoAbrirAjuda?: () => void;
-  aoAbrirLogin?: () => void;
-}
-
-interface ItemMenu {
-  id: ModuloNavegacao;
-  titulo: string;
-  descricao?: string;
-  icone: React.ComponentType<{ className?: string }>;
-  permissao?: string;
-  badge?: string;
-  destaque?: boolean;
-  acaoEspecial?: 'configuracoes' | 'ajuda';
-}
-
-interface GrupoMenu {
-  titulo: string;
-  itens: ItemMenu[];
+  aoAcessarCaixa: () => void;
+  aoAcessarBalcao: () => void;
+  aoAbrirConfiguracoes?: (subitem?: string) => void;
+  aoAbrirAjuda?: (subitem?: string) => void;
 }
 
 export const MenuLateral: React.FC<MenuLateralProps> = ({
@@ -53,234 +33,227 @@ export const MenuLateral: React.FC<MenuLateralProps> = ({
   aoSelecionarModulo,
   abertoMobile,
   aoFecharMobile,
+  aoAcessarCaixa,
+  aoAcessarBalcao,
   aoAbrirConfiguracoes,
   aoAbrirAjuda,
-  aoAbrirLogin,
 }) => {
-  const { usuario, cargoAtual, filialAtiva, logout, temPermissao } = useAuth();
+  const { logout } = useAuth();
 
-  const grupos: GrupoMenu[] = [
-    {
-      titulo: 'Terminais Operacionais',
-      itens: [
-        {
-          id: 'portal-operacional',
-          titulo: 'Início / Seleção Operacional',
-          descricao: 'Portal com os dois acessos de trabalho',
-          icone: LayoutDashboard,
-          destaque: true,
-        },
-        {
-          id: 'balcao-consulta',
-          titulo: 'Painel de Venda (Balcão)',
-          descricao: 'Consulta, preços, FEFO e emissão de comanda',
-          icone: Pill,
-          permissao: 'balcao:consultar',
-          badge: 'Balcão',
-          destaque: true,
-        },
-        {
-          id: 'pdv-caixa',
-          titulo: 'PDV (Caixa)',
-          descricao: 'Frente de caixa, leitura de comanda e troco dinâmico',
-          icone: ShoppingCart,
-          permissao: 'pdv:acesso',
-          badge: 'Caixa',
-          destaque: true,
-        },
-      ],
-    },
-    {
-      titulo: 'Operação & Suporte',
-      itens: [
-        {
-          id: 'configuracoes-operacionais',
-          titulo: 'Configurações Essenciais',
-          descricao: 'Filial, terminal, impressora e modo local',
-          icone: Settings,
-          acaoEspecial: 'configuracoes',
-        },
-        {
-          id: 'ajuda-operacional',
-          titulo: 'Ajuda & Atalhos (F1-F10)',
-          descricao: 'Guia rápido de atendimento e teclas de atalho',
-          icone: HelpCircle,
-          acaoEspecial: 'ajuda',
-        },
-      ],
-    },
+  // Estados de expansão das seções do menu (conforme imagem de referência)
+  const [configuracoesAberto, setConfiguracoesAberto] = useState<boolean>(true);
+  const [ajudaAberto, setAjudaAberto] = useState<boolean>(true);
+
+  const subitensConfiguracoes = [
+    'Parâmetros da Loja',
+    'Usuários e Permissões',
+    'Dispositivos / Terminais',
+    'Impressoras',
+    'Operação de Caixa',
   ];
 
-  // Filtra itens autorizados com base nas permissões efetivas do usuário
-  const gruposFiltrados = grupos
-    .map((grupo) => ({
-      ...grupo,
-      itens: grupo.itens.filter((item) => {
-        if (!item.permissao) return true;
-        return temPermissao(item.permissao);
-      }),
-    }))
-    .filter((grupo) => grupo.itens.length > 0);
+  const subitensAjuda = [
+    'Manual do Sistema',
+    'Atalhos do Teclado',
+    'Suporte Online',
+    'Sobre o FarmaPro',
+  ];
 
-  const renderItem = (item: ItemMenu) => {
-    const ativo = moduloAtivo === item.id;
-    const Icone = item.icone;
-
-    return (
-      <button
-        key={item.id}
-        type="button"
-        onClick={() => {
-          if (item.acaoEspecial === 'configuracoes' && aoAbrirConfiguracoes) {
-            aoAbrirConfiguracoes();
-            aoFecharMobile();
-            return;
-          }
-          if (item.acaoEspecial === 'ajuda' && aoAbrirAjuda) {
-            aoAbrirAjuda();
-            aoFecharMobile();
-            return;
-          }
-          aoSelecionarModulo(item.id);
-          aoFecharMobile();
-        }}
-        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
-          ativo
-            ? 'bg-blue-600 text-white shadow-xs font-semibold'
-            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 font-medium'
-        }`}
-      >
-        <Icone
-          className={`shrink-0 w-5 h-5 ${
-            ativo
-              ? 'text-white'
-              : item.id === 'balcao-consulta'
-              ? 'text-emerald-600'
-              : item.id === 'pdv-caixa'
-              ? 'text-blue-600'
-              : 'text-slate-500'
-          }`}
-        />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-xs truncate">{item.titulo}</span>
-            {item.badge && (
-              <Badge
-                variante={item.id === 'balcao-consulta' ? 'sucesso' : 'info'}
-                tamanho="sm"
-              >
-                {item.badge}
-              </Badge>
-            )}
-          </div>
-          {item.descricao && (
-            <p className={`text-[10px] truncate ${ativo ? 'text-blue-100' : 'text-slate-400'}`}>
-              {item.descricao}
-            </p>
-          )}
-        </div>
-      </button>
-    );
+  const handleSair = () => {
+    if (confirm('Deseja realmente sair do sistema FarmaPro?')) {
+      logout();
+    }
   };
 
   const conteudoMenu = (
-    <div className="flex flex-col h-full bg-white select-none">
-      {/* Cabeçalho do Menu */}
-      <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+    <div className="flex flex-col h-full bg-white rounded-2xl shadow-2xl border border-slate-200 select-none overflow-hidden text-slate-800">
+      {/* 1. TOPO AZUL COM LOGOMARCA E BOTÃO FECHAR (EXATO À REFERÊNCIA) */}
+      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700 p-3.5 text-white flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-lg shadow-xs">
+          <div className="w-8 h-8 rounded-lg bg-blue-500/60 border border-white/20 text-white flex items-center justify-center font-black text-lg shadow-2xs">
             +
           </div>
           <div>
             <div className="flex items-center gap-1.5 leading-none">
-              <span className="text-base font-black text-slate-900 tracking-tight">FarmaPro</span>
-              <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.2 rounded">
+              <span className="text-base font-black tracking-tight">FarmaPro</span>
+              <span className="text-[10px] bg-white/20 text-white font-bold px-1.5 py-0.5 rounded">
                 SaaS
               </span>
             </div>
-            <span className="text-[10px] text-slate-500 font-medium block truncate max-w-[160px]">
-              {filialAtiva?.nome || 'Operação Farmacêutica'}
+            <span className="text-[10px] text-blue-100 font-medium block">
+              Gestão Farmacêutica Inteligente
             </span>
           </div>
         </div>
 
-        {/* Botão Fechar no Mobile */}
         <button
           type="button"
           onClick={aoFecharMobile}
-          className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
           title="Fechar Menu"
         >
           <X className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Lista de Módulos Operacionais */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-5">
-        {gruposFiltrados.map((grupo) => (
-          <div key={grupo.titulo} className="space-y-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 block">
-              {grupo.titulo}
-            </span>
-            <div className="space-y-0.5">{grupo.itens.map(renderItem)}</div>
-          </div>
-        ))}
-      </div>
+      {/* 2. ITENS PRINCIPAIS DE NAVEGAÇÃO */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-1.5 text-xs">
+        {/* Item: Início */}
+        <button
+          type="button"
+          onClick={() => {
+            aoSelecionarModulo('portal-operacional');
+            aoFecharMobile();
+          }}
+          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl font-bold transition-all ${
+            moduloAtivo === 'portal-operacional'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          <Home className="w-4 h-4" />
+          <span>Início</span>
+        </button>
 
-      {/* Rodapé do Menu com Usuário Conectado */}
-      <div className="p-3 border-t border-slate-200 bg-slate-50/70 space-y-2">
-        <div className="px-2 py-1.5 rounded-lg bg-white border border-slate-200 flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
-            <User className="w-3.5 h-3.5" />
+        {/* Item: PDV – Caixa (F2) */}
+        <button
+          type="button"
+          onClick={() => {
+            aoAcessarCaixa();
+            aoFecharMobile();
+          }}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-slate-800 hover:bg-slate-100 transition-all group"
+        >
+          <div className="flex items-center gap-2.5">
+            <ShoppingCart className="w-4 h-4 text-slate-700 group-hover:text-blue-600 transition-colors" />
+            <span>PDV – Caixa</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <span className="font-bold text-slate-800 text-xs block truncate">
-              {usuario?.nome || 'Operador'}
-            </span>
-            <span className="text-[10px] text-slate-500 block truncate">
-              {cargoAtual?.nome || 'Colaborador'}
-            </span>
+          <span className="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-md font-mono">
+            F2
+          </span>
+        </button>
+
+        {/* Item: Painel de Venda (F3) */}
+        <button
+          type="button"
+          onClick={() => {
+            aoAcessarBalcao();
+            aoFecharMobile();
+          }}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-slate-800 hover:bg-slate-100 transition-all group"
+        >
+          <div className="flex items-center gap-2.5">
+            <Tag className="w-4 h-4 text-slate-700 group-hover:text-emerald-600 transition-colors" />
+            <span>Painel de Venda</span>
           </div>
-        </div>
+          <span className="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-md font-mono">
+            F3
+          </span>
+        </button>
 
-        <div className="grid grid-cols-2 gap-1.5 pt-1">
-          {aoAbrirLogin && (
-            <button
-              type="button"
-              onClick={() => {
-                aoAbrirLogin();
-                aoFecharMobile();
-              }}
-              className="py-1.5 px-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] flex items-center justify-center gap-1 transition-colors"
-            >
-              <KeyRound className="w-3 h-3 text-blue-600" />
-              <span>Trocar</span>
-            </button>
-          )}
-
+        {/* Seção Expansível: Configurações */}
+        <div className="pt-2">
           <button
             type="button"
-            onClick={logout}
-            className="py-1.5 px-2 rounded-lg border border-red-200 bg-white hover:bg-red-50 text-red-600 font-bold text-[11px] flex items-center justify-center gap-1 transition-colors"
+            onClick={() => setConfiguracoesAberto((prev) => !prev)}
+            className="w-full flex items-center justify-between px-3 py-2 text-slate-800 font-bold hover:bg-slate-100 rounded-lg transition-colors"
           >
-            <LogOut className="w-3 h-3" />
-            <span>Sair</span>
+            <div className="flex items-center gap-2">
+              <Settings className="w-4 h-4 text-slate-700" />
+              <span>Configurações</span>
+            </div>
+            {configuracoesAberto ? (
+              <ChevronUp className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            )}
           </button>
+
+          {configuracoesAberto && (
+            <div className="pl-6 pr-2 py-1 space-y-1">
+              {subitensConfiguracoes.map((sub) => (
+                <button
+                  key={sub}
+                  type="button"
+                  onClick={() => {
+                    if (aoAbrirConfiguracoes) aoAbrirConfiguracoes(sub);
+                    aoFecharMobile();
+                  }}
+                  className="w-full flex items-center gap-2 py-1 px-2 text-[11px] text-slate-600 hover:text-blue-600 hover:bg-slate-50 rounded transition-colors text-left"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
+                  <span>{sub}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Seção Expansível: Ajuda e Suporte */}
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => setAjudaAberto((prev) => !prev)}
+            className="w-full flex items-center justify-between px-3 py-2 text-slate-800 font-bold hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <HelpCircle className="w-4 h-4 text-slate-700" />
+              <span>Ajuda e Suporte</span>
+            </div>
+            {ajudaAberto ? (
+              <ChevronUp className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+
+          {ajudaAberto && (
+            <div className="pl-6 pr-2 py-1 space-y-1">
+              {subitensAjuda.map((sub) => (
+                <button
+                  key={sub}
+                  type="button"
+                  onClick={() => {
+                    if (aoAbrirAjuda) aoAbrirAjuda(sub);
+                    aoFecharMobile();
+                  }}
+                  className="w-full flex items-center gap-2 py-1 px-2 text-[11px] text-slate-600 hover:text-blue-600 hover:bg-slate-50 rounded transition-colors text-left"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
+                  <span>{sub}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 3. RODAPÉ: SAIR DO SISTEMA (EM VERMELHO COM ÍCONE POWER) */}
+      <div className="p-3 border-t border-slate-200 bg-slate-50/50">
+        <button
+          type="button"
+          onClick={handleSair}
+          className="w-full flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-xl font-bold text-xs transition-colors"
+        >
+          <Power className="w-4 h-4 text-red-600" />
+          <span>Sair do Sistema</span>
+        </button>
       </div>
     </div>
   );
 
   return (
     <>
-      {/* Drawer Gaveta Mobile / Modal */}
+      {/* Menu Drawer Sobreposto (Posicionado exatamente à esquerda) */}
       {abertoMobile && (
-        <div className="fixed inset-0 z-50 flex">
+        <div className="fixed inset-0 z-50 flex pointer-events-auto">
+          {/* Fundo escuro sutil para fechar ao clicar fora */}
           <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-2xs transition-opacity"
             onClick={aoFecharMobile}
           />
-          <div className="relative z-10 w-72 max-w-[85vw] h-full shadow-2xl animate-in slide-in-from-left duration-200">
+          {/* Caixa do Menu */}
+          <div className="relative z-10 w-72 max-w-[85vw] h-[calc(100vh-2rem)] my-auto ml-4 shadow-2xl animate-in slide-in-from-left duration-200">
             {conteudoMenu}
           </div>
         </div>
