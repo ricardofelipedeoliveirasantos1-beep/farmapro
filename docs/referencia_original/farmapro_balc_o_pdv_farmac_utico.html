@@ -1,0 +1,2032 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FarmaPro PDV | Terminal de Balcão &amp; Pré-Venda</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @keyframes bagPulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); border-color: #10b981; }
+      100% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+    }
+    .bag-flash {
+      animation: bagPulse 0.45s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-900 font-sans antialiased selection:bg-blue-600 selection:text-white h-screen max-h-screen overflow-hidden flex flex-col">
+
+  <!-- NOTIFICAÇÕES TOAST -->
+  <div id="toastContainer" class="fixed top-16 right-4 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full"></div>
+
+  <!-- CABEÇALHO SUPERIOR (AZUL-MARINHO #1E3A8A) -->
+  <header class="bg-[#1E3A8A] text-white border-b border-blue-950 px-3 sm:px-5 py-2 flex items-center justify-between gap-2 shrink-0 z-30 shadow-md">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <div class="w-8 h-8 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
+        <svg class="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+      </div>
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <h1 class="font-extrabold text-sm sm:text-base tracking-tight text-white truncate">
+            Farma<span class="text-emerald-300">Pro</span> <span class="text-xs font-mono font-normal text-blue-200 hidden sm:inline">PDV &amp; Balcão</span>
+          </h1>
+          <span id="terminalStatusBadge" class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-emerald-500 text-white shadow-sm shrink-0">
+            TERMINAL LIVRE
+          </span>
+        </div>
+        <p class="text-[11px] text-blue-200 flex items-center gap-1.5 truncate">
+          <span>Operador: <strong class="text-white">JORGE MELO</strong></span>
+          <span>•</span>
+          <span class="hidden sm:inline">Loja 01 - Matriz</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- INDICADORES, TELA CHEIA, CLIENTE E RELÓGIO -->
+    <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+      <button onclick="openModal('modalPreVendas')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-blue-950/60 hover:bg-blue-950 border border-blue-700/70 text-xs font-semibold text-white transition">
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span class="hidden sm:inline">Pré-Vendas (F4):</span>
+        <span class="sm:hidden">F4:</span>
+        <span id="headerPreVendaCount" class="font-mono font-bold text-amber-300">0</span>
+      </button>
+
+      <div class="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-950/60 border border-blue-700/70 text-xs">
+        <span class="text-blue-200">Cliente:</span>
+        <span id="headerCustomerName" class="font-bold text-white truncate max-w-[150px]">CONSUMIDOR FINAL</span>
+      </div>
+
+      <!-- BOTÃO TELA CHEIA (SEM CONFLITAR COM F11 DO SISTEMA) -->
+      <button id="fullscreenBtn" onclick="toggleFullScreen()" title="Alternar Tela Cheia do Navegador (sem conflitar com F11)" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-blue-950/60 hover:bg-emerald-600 border border-blue-700/70 hover:border-emerald-400 text-xs font-semibold text-white transition">
+        <svg id="fullscreenIconExpand" class="w-3.5 h-3.5 text-emerald-300" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+        </svg>
+        <svg id="fullscreenIconCompress" class="w-3.5 h-3.5 text-amber-300 hidden" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+        </svg>
+        <span id="fullscreenBtnLabel" class="hidden md:inline">Tela Cheia</span>
+      </button>
+
+      <div class="text-right font-mono leading-tight bg-blue-950/60 px-2.5 py-1 rounded-xl border border-blue-700/70 hidden sm:block">
+        <div id="clockTime" class="text-xs font-bold text-white">15:44:00</div>
+        <div id="clockDate" class="text-[10px] text-blue-200">21/11/2026</div>
+      </div>
+
+      <button onclick="resetDemoData()" title="Restaurar base inicial de 56 medicamentos" class="p-2 rounded-xl bg-blue-950/60 hover:bg-red-600 border border-blue-700/70 hover:border-red-500 text-blue-200 hover:text-white transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ABAS MOBILE -->
+  <div class="lg:hidden grid grid-cols-2 gap-2 px-2.5 py-2 bg-white border-b border-slate-200 shrink-0">
+    <button id="tabBtnBalcao" onclick="switchMobileTab('balcao')" class="py-1.5 px-3 rounded-xl text-xs font-bold bg-[#1E3A8A] text-white shadow-sm">
+      Consulta &amp; Balcão (F1)
+    </button>
+    <button id="tabBtnCaixa" onclick="switchMobileTab('caixa')" class="py-1.5 px-3 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center gap-2">
+      <span>Sacola / Pré-Venda</span>
+      <span id="mobileCartBadge" class="px-1.5 py-0.5 text-[10px] rounded-full bg-emerald-600 text-white font-mono">0</span>
+    </button>
+  </div>
+
+  <!-- ÁREA PRINCIPAL TRAVADA EM 100VH SEM ROLAGEM NA PÁGINA -->
+  <main class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3 p-2.5 sm:p-3.5 max-w-[1920px] w-full mx-auto overflow-hidden">
+
+    <!-- COLUNA ESQUERDA (8 DE 12 COLUNAS): BUSCA, LISTA DE PESQUISA E PAINEL FIXADO + 3 SUGESTÕES -->
+    <section id="sectionBalcao" class="lg:col-span-8 flex flex-col gap-2.5 min-h-0 min-w-0 h-full overflow-hidden">
+
+      <!-- BARRA DE PESQUISA E FILTROS -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-2.5 sm:p-3 shadow-sm shrink-0">
+        <div class="relative w-full">
+          <div class="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+            </svg>
+          </div>
+          <input
+            id="searchInput"
+            type="text"
+            autocomplete="off"
+            placeholder="Digite 2+ letras (ex: dip, dor, los, 3*ome) • 1º Enter fixa o item e mostra 3 sugestões • 2º Enter envia à sacola..."
+            class="w-full bg-slate-50 border-2 border-slate-300 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/10 rounded-xl pl-10 pr-24 py-2 text-sm sm:text-base font-semibold text-slate-900 placeholder-slate-400 outline-none transition"
+          />
+          <div id="multiplierIndicator" class="hidden absolute right-14 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-800 font-mono text-xs font-extrabold">
+            1x
+          </div>
+          <button onclick="handleEscapeAction()" title="Destravar / Limpar busca (ESC)" class="absolute right-2.5 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-mono font-bold text-slate-500 hover:text-slate-900 bg-slate-200/80 hover:bg-slate-200 rounded-lg transition">
+            ESC
+          </button>
+        </div>
+
+        <!-- FILTROS E LEGENDA -->
+        <div class="mt-2 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button id="filterStockBtn" onclick="toggleStockFilter()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition">
+              <span class="text-emerald-700 font-mono font-bold mr-1">&lt;F2&gt;</span> Apenas Com Saldo
+            </button>
+            <button id="filterModeBtn" onclick="toggleSearchMode()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition">
+              <span class="text-blue-700 font-mono font-bold mr-1">&lt;F3&gt;</span> Busca: <span id="searchModeLabel">Nome do Medicamento</span>
+            </button>
+            <button onclick="openModal('modalPreVendas')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition">
+              <span class="text-amber-700 font-mono font-bold mr-1">&lt;F4&gt;</span> Pré-Vendas Salvas
+            </button>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5 text-[11px] font-medium text-slate-600">
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-fuchsia-600"></span>Portaria 344</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-red-600"></span>Promoção</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-blue-600"></span>PBM / Convênio</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-amber-500"></span>Lote Próx. Vencer</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABELA DE RESULTADOS DA PESQUISA (VISÍVEL ENQUANTO NÃO HÁ ITEM FIXADO, SEM ROLAGEM LATERAL) -->
+      <div id="searchTableWrapper" class="bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col flex-1 min-h-[140px] shadow-sm">
+        <div class="w-full overflow-x-hidden overflow-y-auto flex-1 min-h-0" id="tableScrollContainer">
+          <table class="w-full table-fixed text-left border-collapse">
+            <thead class="bg-[#1E3A8A] text-white sticky top-0 z-10 text-[11px] uppercase tracking-wider font-bold">
+              <tr>
+                <th class="py-2 px-1.5 w-14 text-center">Tipo</th>
+                <th class="py-2 px-1.5 w-14 text-left hidden sm:table-cell">Cód.</th>
+                <th class="py-2 px-2 w-auto">Medicamento / Princípio Ativo</th>
+                <th class="py-2 px-2 w-28 text-left hidden md:table-cell">Fabricante</th>
+                <th class="py-2 px-2 w-14 text-right">Saldo</th>
+                <th class="py-2 px-2 w-20 text-right">Preço R$</th>
+                <th class="py-2 px-2 w-16 text-right hidden sm:table-cell">Rent.%</th>
+              </tr>
+            </thead>
+            <tbody id="productTableBody" class="divide-y divide-slate-100 text-xs sm:text-[13px]">
+              <!-- Preenchido via JS -->
+            </tbody>
+          </table>
+        </div>
+        <div class="bg-slate-50 px-3.5 py-1.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 shrink-0">
+          <span id="resultsCounter" class="font-medium">Aguardando digitação (mínimo 2 letras) • Base com 56 medicamentos</span>
+          <span class="font-mono font-semibold text-blue-800">
+            Passo 1: <kbd class="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-slate-800">1º Enter</kbd> fixa o medicamento e mostra 3 sugestões
+          </span>
+        </div>
+      </div>
+
+      <!-- PAINEL DO MEDICAMENTO FIXADO + BLOCO DE 3 SUGESTÕES NA ORDEM: REFERÊNCIA -> SIMILAR -> GENÉRICO -->
+      <div id="selectedDetailsPanel" class="hidden bg-white border-2 border-blue-600/35 rounded-2xl p-3 shadow-md flex-col justify-between gap-2.5 flex-1 min-h-0 overflow-hidden">
+
+        <!-- CARD SUPERIOR: MEDICAMENTO ESCOLHIDO (FIXADO) -->
+        <div class="bg-gradient-to-r from-[#1E3A8A] to-blue-800 text-white rounded-xl p-3 flex flex-wrap items-center justify-between gap-2.5 shrink-0 shadow-xs">
+          <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <span id="pinnedTypeBadge" class="px-2 py-1 rounded-lg bg-emerald-400 text-slate-950 font-mono text-xs font-extrabold uppercase shrink-0">R</span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-mono text-[10px] font-extrabold uppercase tracking-wider">MEDICAMENTO ESCOLHIDO (FIXADO)</span>
+                <span id="pinnedLabBadge" class="text-[11px] font-mono text-blue-200 truncate">LABORATÓRIO</span>
+              </div>
+              <h2 id="pinnedMedTitle" class="text-sm sm:text-base font-extrabold text-white truncate mt-0.5">-</h2>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 shrink-0">
+            <div class="text-right">
+              <div class="text-[10px] uppercase font-mono text-blue-200">Preço Unitário</div>
+              <div id="pinnedMedPrice" class="font-mono text-lg sm:text-xl font-extrabold text-emerald-300 leading-tight">R$ 0,00</div>
+            </div>
+            <div class="flex flex-col sm:flex-row items-center gap-1.5">
+              <button onclick="confirmPinnedToCart()" class="px-3 py-2 rounded-xl bg-[#047857] hover:bg-emerald-600 border border-emerald-400/50 text-white text-xs font-extrabold shadow-sm transition">
+                Enviar à Sacola (2º Enter)
+              </button>
+              <button onclick="unlockPinnedProduct()" class="px-2.5 py-2 rounded-xl bg-blue-950/70 hover:bg-blue-950 border border-blue-400/30 text-[11px] font-mono font-bold text-blue-100 transition">
+                ESC Voltar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAIXA DE METADADOS TÉCNICOS -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 shrink-0">
+          <div class="col-span-2 bg-slate-50 border border-slate-200 rounded-xl p-2">
+            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Princípio Ativo (Molécula)</div>
+            <div id="detailPrincipio" class="text-xs font-extrabold text-[#1E3A8A] truncate mt-0.5">-</div>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-2">
+            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Seção / Local</div>
+            <div id="detailArmazenamento" class="text-xs font-semibold text-slate-800 truncate mt-0.5">-</div>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-2">
+            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">PMC Máximo</div>
+            <div id="detailPmc" class="text-xs font-mono font-bold text-slate-800 mt-0.5">R$ 0,00</div>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-2">
+            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Convênios / PBM</div>
+            <div id="detailProgramas" class="text-xs font-bold text-emerald-700 truncate mt-0.5">-</div>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-2">
+            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Lote / Validade</div>
+            <div id="detailLote" class="text-xs font-mono text-slate-700 truncate mt-0.5">-</div>
+          </div>
+        </div>
+
+        <!-- BLOCO DE 3 SUGESTÕES DO MESMO PRINCÍPIO ATIVO (1º REFERÊNCIA -> 2º SIMILAR -> 3º GENÉRICO) -->
+        <div id="interchangeablesSection" class="bg-slate-50/90 border border-slate-200 rounded-2xl p-2.5 flex-1 min-h-0 flex flex-col justify-between">
+          <div class="flex flex-wrap items-center justify-between gap-1 mb-2 shrink-0">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+              <h3 class="text-[11px] font-extrabold uppercase tracking-wider text-slate-800">
+                Sugestões da Mesma Molécula &amp; Dosagem (1º Referência → 2º Similar → 3º Genérico)
+              </h3>
+              <span id="interchangeableCount" class="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-blue-100 text-blue-800 border border-blue-200">3 sugestões</span>
+            </div>
+            <span class="text-[11px] text-slate-600 font-mono">Clique em uma sugestão (ou <kbd class="px-1 bg-white border border-slate-300 rounded">←</kbd> <kbd class="px-1 bg-white border border-slate-300 rounded">→</kbd>) para trocar o item fixado</span>
+          </div>
+
+          <!-- 3 CARDS LADO A LADO SEMPRE VISÍVEIS -->
+          <div id="interchangeablesGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 flex-1 min-h-0 items-stretch">
+            <!-- Preenchido dinamicamente com 3 sugestões: Referência -> Similar -> Genérico -->
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- COLUNA DIREITA (4 DE 12 COLUNAS): SACOLA / PRÉ-VENDA 100% FIXA -->
+    <aside id="sectionCaixa" class="hidden lg:flex lg:col-span-4 flex-col gap-2.5 min-h-0 min-w-0 h-full overflow-hidden">
+
+      <!-- CABEÇALHO COMPACTO DO ÚLTIMO ITEM LANÇADO -->
+      <div id="lastAddedCard" class="bg-white border border-slate-200 rounded-2xl p-2.5 shadow-sm shrink-0 transition-all">
+        <div class="flex items-center justify-between text-[10px] text-slate-500 mb-0.5">
+          <span class="font-bold uppercase tracking-wider">Último Item na Sacola</span>
+          <span id="activeItemEan" class="font-mono text-slate-400">EAN: --------------</span>
+        </div>
+        <div id="activeItemName" class="text-xs sm:text-sm font-extrabold text-[#1E3A8A] truncate">
+          AGUARDANDO ITEM...
+        </div>
+        <div class="grid grid-cols-4 gap-1.5 mt-1.5">
+          <div class="bg-slate-50 border border-slate-200 rounded-lg py-1 px-1.5 text-center">
+            <div class="text-[9px] text-slate-500 font-bold uppercase">Qtd</div>
+            <div id="activeItemQty" class="font-mono text-xs font-extrabold text-slate-900">0</div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-lg py-1 px-1.5 text-center">
+            <div class="text-[9px] text-slate-500 font-bold uppercase">Unitário</div>
+            <div id="activeItemUnit" class="font-mono text-xs font-bold text-slate-800">0,00</div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-lg py-1 px-1.5 text-center">
+            <div class="text-[9px] text-slate-500 font-bold uppercase">Desc %</div>
+            <div id="activeItemDisc" class="font-mono text-xs font-bold text-amber-600">0%</div>
+          </div>
+          <div class="bg-emerald-50 border border-emerald-200 rounded-lg py-1 px-1.5 text-center">
+            <div class="text-[9px] text-emerald-700 font-bold uppercase">Subtotal</div>
+            <div id="activeItemSub" class="font-mono text-xs font-extrabold text-emerald-700">0,00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ESPELHO DO CUPOM / SACOLA DO CLIENTE (ROLAGEM INTERNA) -->
+      <div id="bagReceiptBox" class="bg-[#fffef7] border border-slate-300 rounded-2xl flex-1 min-h-0 flex flex-col overflow-hidden shadow-sm">
+        <div class="px-3 py-2 bg-amber-50/90 border-b border-dashed border-amber-300/80 flex items-center justify-between font-mono text-[11px] shrink-0">
+          <span class="font-extrabold text-slate-800">SACOLA / CUPOM PRÉ-VENDA</span>
+          <span id="receiptNumber" class="text-[#1E3A8A] font-extrabold">#PV-0001</span>
+        </div>
+
+        <div class="px-3 py-1 bg-slate-100/90 border-b border-slate-200 grid grid-cols-12 font-mono text-[10px] text-slate-600 font-bold uppercase shrink-0">
+          <div class="col-span-5">Item / Descrição</div>
+          <div class="col-span-3 text-center">Qtd</div>
+          <div class="col-span-2 text-right">Unit</div>
+          <div class="col-span-2 text-right">Total</div>
+        </div>
+
+        <div id="cartItemsList" class="flex-1 min-h-0 overflow-y-auto divide-y divide-amber-200/50 font-mono text-xs p-1">
+          <!-- Itens da sacola via JS -->
+        </div>
+
+        <div id="receiptDiscountRow" class="hidden px-3 py-1 bg-amber-100 border-t border-amber-300 flex items-center justify-between font-mono text-xs font-bold text-amber-900 shrink-0">
+          <span>DESCONTO APLICADO:</span>
+          <span id="receiptDiscountValue">- R$ 0,00</span>
+        </div>
+      </div>
+
+      <!-- TOTALIZADORES E BOTÕES FIXOS NA BASE -->
+      <div class="flex flex-col gap-2 shrink-0">
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-white border border-slate-200 rounded-xl px-3 py-2 flex items-center justify-between shadow-xs">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Itens</span>
+            <span id="totalItemsCount" class="font-mono text-lg font-extrabold text-[#1E3A8A]">0</span>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-xl px-3 py-2 flex items-center justify-between shadow-xs">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Volumes</span>
+            <span id="totalVolumesCount" class="font-mono text-lg font-extrabold text-slate-900">0</span>
+          </div>
+        </div>
+
+        <div class="bg-[#1E3A8A] text-white rounded-2xl px-4 py-2.5 flex items-center justify-between shadow-md">
+          <div>
+            <div class="text-[11px] font-bold uppercase tracking-wider text-blue-200">Total da Sacola</div>
+            <div class="text-[10px] text-blue-300">À vista / Cartão / Pix</div>
+          </div>
+          <div id="totalAmountDisplay" class="font-mono text-2xl font-extrabold text-white tracking-tight">
+            R$ 0,00
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-1.5">
+          <button onclick="openModal('modalDesconto')" class="py-2 px-2.5 rounded-xl bg-white hover:bg-amber-50 border border-slate-300 text-xs font-bold text-amber-700 flex items-center justify-center transition">
+            Desconto (Ctrl+D)
+          </button>
+          <button onclick="removeLastOrSelectedCartItem()" class="py-2 px-2.5 rounded-xl bg-white hover:bg-red-50 border border-slate-300 hover:border-red-300 text-xs font-bold text-red-600 flex items-center justify-center transition">
+            Canc. Item (F8)
+          </button>
+          <button onclick="savePreVenda()" class="py-2.5 px-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center transition shadow-xs">
+            Salvar Pré-Venda (F5)
+          </button>
+          <button onclick="openPaymentModal()" class="py-2.5 px-2.5 rounded-xl bg-[#047857] hover:bg-emerald-600 text-white text-xs font-bold flex items-center justify-center transition shadow-xs">
+            Finalizar / Receber (F9)
+          </button>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- BARRA INFERIOR FIXA DE ATALHOS (VERDE ESMERALDA #047857) -->
+  <footer class="bg-[#047857] text-white border-t border-emerald-900 px-2 sm:px-4 py-1.5 shrink-0 z-30 shadow-lg">
+    <div class="max-w-[1920px] mx-auto flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar">
+      <button onclick="focusSearchInput()" class="px-2.5 py-1 rounded-lg bg-emerald-950/35 hover:bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-mono whitespace-nowrap text-white transition">
+        <span class="text-amber-300 font-bold">&lt;F1&gt;</span> Busca
+      </button>
+      <button onclick="toggleStockFilter()" class="px-2.5 py-1 rounded-lg bg-emerald-950/35 hover:bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-mono whitespace-nowrap text-white transition">
+        <span class="text-amber-300 font-bold">&lt;F2&gt;</span> Com Saldo
+      </button>
+      <button onclick="toggleSearchMode()" class="px-2.5 py-1 rounded-lg bg-emerald-950/35 hover:bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-mono whitespace-nowrap text-white transition">
+        <span class="text-amber-300 font-bold">&lt;F3&gt;</span> Princ. Ativo
+      </button>
+      <button onclick="openModal('modalPreVendas')" class="px-2.5 py-1 rounded-lg bg-emerald-950/35 hover:bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-mono whitespace-nowrap text-white transition">
+        <span class="text-amber-300 font-bold">&lt;F4&gt;</span> Pré-Vendas
+      </button>
+      <button onclick="savePreVenda()" class="px-2.5 py-1 rounded-lg bg-emerald-950/35 hover:bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-mono whitespace-nowrap text-white transition">
+        <span class="text-amber-300 font-bold">&lt;F5&gt;</span> Salvar Pré-Venda
+      </button>
+      <button onclick="removeLastOrSelectedCartItem()" class="px-2.5 py-1 rounded-lg bg-emerald-950/35 hover:bg-red-700 border border-emerald-500/30 text-[11px] font-mono whitespace-nowrap text-white transition">
+        <span class="text-amber-300 font-bold">&lt;F8&gt;</span> Canc. Item
+      </button>
+      <button onclick="openPaymentModal()" class="px-2.5 py-1 rounded-lg bg-white text-[#047857] hover:bg-emerald-50 font-bold text-[11px] font-mono whitespace-nowrap shadow-xs transition">
+        <span>&lt;F9&gt;</span> Pagamento
+      </button>
+      <button onclick="openModal('modalCliente')" class="px-2.5 py-1 rounded-lg bg-emerald-950/35 hover:bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-mono whitespace-nowrap text-white transition">
+        <span class="text-amber-300 font-bold">&lt;F10&gt;</span> Cliente/CPF
+      </button>
+      <button onclick="openModal('modalOpcoes')" class="px-2.5 py-1 rounded-lg bg-emerald-950/35 hover:bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-mono whitespace-nowrap text-white transition">
+        <span class="text-amber-300 font-bold">&lt;F11&gt;</span> Opções
+      </button>
+      <button onclick="openModal('modalDesconto')" class="px-2.5 py-1 rounded-lg bg-emerald-950/35 hover:bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-mono whitespace-nowrap text-white transition">
+        <span class="text-amber-300 font-bold">&lt;Ctrl+D&gt;</span> Desconto
+      </button>
+      <button onclick="handleEscapeAction()" class="px-2.5 py-1 rounded-lg bg-emerald-950/35 hover:bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-mono whitespace-nowrap text-white transition">
+        <span class="text-amber-300 font-bold">&lt;ESC&gt;</span> Limpar
+      </button>
+    </div>
+  </footer>
+
+  <!-- ===================================================================== -->
+  <!-- MODAIS DO SISTEMA                                                     -->
+  <!-- ===================================================================== -->
+
+  <!-- MODAL 1: MENU DE OPÇÕES (<F11>) -->
+  <div id="modalOpcoes" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+      <div class="bg-[#1E3A8A] px-4 py-3 flex items-center justify-between text-white">
+        <h2 class="font-bold text-sm uppercase tracking-wider">Menu de Operações Rápidas (F11)</h2>
+        <button onclick="closeAllModals()" class="text-blue-200 hover:text-white font-mono text-xs px-2 py-1 rounded bg-blue-950">ESC</button>
+      </div>
+      <div class="p-3 bg-slate-50 border-b border-slate-200">
+        <input
+          id="menuOptionInput"
+          type="text"
+          maxlength="2"
+          placeholder="Digite o código numérico (ex: 11, 20, 21, 80)..."
+          class="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-xl px-3 py-2 text-sm font-mono text-slate-900 outline-none"
+        />
+      </div>
+      <div class="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs sm:text-sm">
+        <button onclick="executeMenuOption('01')" class="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center justify-between transition">
+          <span><strong class="font-mono text-blue-700 mr-2">01</strong> Transferência - ENTRADA</span>
+          <span class="text-[11px] text-slate-400">Estoque</span>
+        </button>
+        <button onclick="executeMenuOption('03')" class="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center justify-between transition">
+          <span><strong class="font-mono text-blue-700 mr-2">03</strong> Devolução de Produtos</span>
+          <span class="text-[11px] text-slate-400">Troca</span>
+        </button>
+        <button onclick="executeMenuOption('04')" class="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center justify-between transition">
+          <span><strong class="font-mono text-red-600 mr-2">04</strong> Estorno da Última Venda</span>
+          <span class="text-[11px] text-slate-400">Caixa</span>
+        </button>
+        <button onclick="executeMenuOption('11')" class="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center justify-between transition">
+          <span><strong class="font-mono text-amber-600 mr-2">11</strong> Relação de Pré-Vendas Salvas</span>
+          <span class="text-[11px] text-slate-400">Balcão</span>
+        </button>
+        <button onclick="executeMenuOption('20')" class="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center justify-between transition">
+          <span><strong class="font-mono text-emerald-700 mr-2">20</strong> Suprimento de Caixa (Reforço)</span>
+          <span class="text-[11px] text-slate-400">Financeiro</span>
+        </button>
+        <button onclick="executeMenuOption('21')" class="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center justify-between transition">
+          <span><strong class="font-mono text-red-600 mr-2">21</strong> Sangria de Caixa (Retirada)</span>
+          <span class="text-[11px] text-slate-400">Financeiro</span>
+        </button>
+        <button onclick="executeMenuOption('30')" class="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center justify-between transition">
+          <span><strong class="font-mono text-purple-700 mr-2">30</strong> Encomenda / Falteiro Inteligente</span>
+          <span class="text-[11px] text-slate-400">Demanda</span>
+        </button>
+        <button onclick="executeMenuOption('80')" class="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center justify-between transition">
+          <span><strong class="font-mono text-emerald-700 mr-2">80</strong> Fechamento de Caixa PARCIAL (X)</span>
+          <span class="text-[11px] text-slate-400">Resumo</span>
+        </button>
+        <button onclick="executeMenuOption('81')" class="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center justify-between transition">
+          <span><strong class="font-mono text-red-600 mr-2">81</strong> Fechamento de Caixa GERAL (Z)</span>
+          <span class="text-[11px] text-slate-400">Encerrar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: PAGAMENTO (<F9>) -->
+  <div id="modalPagamento" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+      <div class="bg-[#047857] text-white px-5 py-3.5 flex items-center justify-between">
+        <div>
+          <h2 class="font-bold text-base">Finalização de Pagamento (PDV)</h2>
+          <p class="text-xs text-emerald-100">Confirme a forma de pagamento para baixar estoque e emitir cupom</p>
+        </div>
+        <button onclick="closeAllModals()" class="text-emerald-100 hover:text-white font-mono text-xs px-2.5 py-1 rounded-lg bg-emerald-950/50">ESC</button>
+      </div>
+
+      <div class="p-5 flex flex-col gap-4">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <div class="text-xs text-slate-500 uppercase font-bold">Total Líquido a Receber</div>
+            <div id="payModalCustomer" class="text-xs font-semibold text-[#1E3A8A] mt-0.5">CONSUMIDOR FINAL</div>
+          </div>
+          <div id="payModalTotal" class="font-mono text-2xl sm:text-3xl font-extrabold text-emerald-700">R$ 0,00</div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <button onclick="selectPaymentMethod('PIX')" id="payBtnPIX" class="pay-method-btn p-3 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-left transition">
+            <div class="text-[10px] font-mono text-emerald-700 font-bold">PIX INSTANTÂNEO</div>
+            <div class="text-xs font-extrabold text-slate-900 mt-0.5">QR Code / Chave</div>
+          </button>
+          <button onclick="selectPaymentMethod('CREDITO')" id="payBtnCREDITO" class="pay-method-btn p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition">
+            <div class="text-[10px] font-mono text-blue-700 font-bold">CARTÃO CRÉDITO</div>
+            <div class="text-xs font-extrabold text-slate-900 mt-0.5">À vista / Parcelado</div>
+          </button>
+          <button onclick="selectPaymentMethod('DEBITO')" id="payBtnDEBITO" class="pay-method-btn p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition">
+            <div class="text-[10px] font-mono text-cyan-700 font-bold">CARTÃO DÉBITO</div>
+            <div class="text-xs font-extrabold text-slate-900 mt-0.5">TEF Integrado</div>
+          </button>
+          <button onclick="selectPaymentMethod('DINHEIRO')" id="payBtnDINHEIRO" class="pay-method-btn p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition">
+            <div class="text-[10px] font-mono text-amber-700 font-bold">DINHEIRO (ESPÉCIE)</div>
+            <div class="text-xs font-extrabold text-slate-900 mt-0.5">Cálculo de Troco</div>
+          </button>
+          <button onclick="selectPaymentMethod('CONVENIO')" id="payBtnCONVENIO" class="pay-method-btn p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition sm:col-span-2">
+            <div class="text-[10px] font-mono text-purple-700 font-bold">CONVÊNIO / PBM / FARMÁCIA POPULAR</div>
+            <div class="text-xs font-extrabold text-slate-900 mt-0.5">Autorização Funcional / Epharma / Vidalink</div>
+          </button>
+        </div>
+
+        <div id="cashChangeBox" class="hidden bg-amber-50 border border-amber-300 rounded-xl p-3.5 grid grid-cols-2 gap-3 items-center">
+          <div>
+            <label class="text-[11px] font-bold text-amber-900 block mb-1">Valor Recebido (R$)</label>
+            <input id="cashReceivedInput" type="number" step="0.01" oninput="calculateChange()" class="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 font-mono text-sm font-bold text-slate-900 outline-none focus:border-amber-600" placeholder="0,00" />
+          </div>
+          <div class="text-right">
+            <div class="text-[11px] font-bold text-amber-900">Troco a Devolver</div>
+            <div id="cashChangeDisplay" class="font-mono text-xl font-extrabold text-amber-700">R$ 0,00</div>
+          </div>
+        </div>
+
+        <div id="pixQrBox" class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 flex items-center gap-3">
+          <div class="w-14 h-14 rounded-lg bg-white border border-slate-200 p-1.5 shrink-0 flex items-center justify-center">
+            <svg class="w-full h-full text-slate-900" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 13h6v6H3v-6zm2 2v2h2v-2H5zm10 0h2v2h-2v-2zm-2-2h2v2h-2v-2zm4 0h2v2h-2v-2zm-2 4h2v2h-2v-2zm2 2h2v2h-2v-2zm-4 0h2v2h-2v-2z"/>
+            </svg>
+          </div>
+          <div class="text-xs">
+            <div class="font-extrabold text-emerald-800">QR Code Pix Dinâmico Pronto</div>
+            <div class="text-slate-600 mt-0.5">Aguardando confirmação ou clique abaixo para concluir a NFC-e.</div>
+          </div>
+        </div>
+
+        <button onclick="finalizeSale()" class="w-full py-3.5 rounded-xl bg-[#047857] hover:bg-emerald-600 text-white font-extrabold text-sm uppercase tracking-wider shadow-md transition">
+          Confirmar &amp; Emitir Cupom Fiscal (Enter)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: DESCONTO (Ctrl+D) -->
+  <div id="modalDesconto" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+      <div class="bg-[#1E3A8A] text-white px-4 py-3 flex items-center justify-between">
+        <h3 class="font-bold text-sm">Aplicar Desconto na Sacola</h3>
+        <button onclick="closeAllModals()" class="text-xs font-mono text-blue-200 hover:text-white">ESC</button>
+      </div>
+      <div class="p-4 flex flex-col gap-3">
+        <div class="flex gap-2">
+          <button id="discTypePctBtn" onclick="setDiscountMode('PCT')" class="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#1E3A8A] text-white">Percentual (%)</button>
+          <button id="discTypeValBtn" onclick="setDiscountMode('VAL')" class="flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">Valor Fixo (R$)</button>
+        </div>
+        <div>
+          <label id="discountInputLabel" class="text-xs font-semibold text-slate-600 block mb-1">Percentual de Desconto (%)</label>
+          <input id="discountValueInput" type="number" min="0" step="0.5" placeholder="Ex: 10" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-mono text-base font-bold text-slate-900 outline-none focus:border-blue-600" />
+        </div>
+        <div id="quickPctButtons" class="flex gap-2">
+          <button onclick="applyQuickDiscount(5)" class="flex-1 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-mono font-bold">5%</button>
+          <button onclick="applyQuickDiscount(10)" class="flex-1 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-mono font-bold">10%</button>
+          <button onclick="applyQuickDiscount(15)" class="flex-1 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-mono font-bold">15%</button>
+          <button onclick="applyQuickDiscount(0)" class="flex-1 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-xs font-mono font-bold text-red-600">Zerar</button>
+        </div>
+        <button onclick="confirmDiscount()" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs uppercase tracking-wider transition">
+          Aplicar Desconto
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: CLIENTE / CPF / PBM (<F10>) -->
+  <div id="modalCliente" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+      <div class="bg-[#1E3A8A] text-white px-4 py-3 flex items-center justify-between">
+        <h3 class="font-bold text-sm">Identificar Cliente / Convênio (F10)</h3>
+        <button onclick="closeAllModals()" class="text-xs font-mono text-blue-200 hover:text-white">ESC</button>
+      </div>
+      <div class="p-4 flex flex-col gap-3">
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">CPF / CNPJ na Nota</label>
+          <input id="customerCpfInput" type="text" placeholder="000.000.000-00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-600" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Nome do Cliente</label>
+          <input id="customerNameInput" type="text" placeholder="Ex: Maria da Silva" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-600" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Convênio / Plano PBM</label>
+          <select id="customerConvenioInput" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-600">
+            <option value="À VISTA / PARTICULAR">À VISTA / PARTICULAR</option>
+            <option value="FARMÁCIA POPULAR">FARMÁCIA POPULAR DO BRASIL</option>
+            <option value="FUNCIONAL CARD">FUNCIONAL CARD (PBM)</option>
+            <option value="EPHARMA">EPHARMA DESCONTOS</option>
+            <option value="CONVÊNIO EMPRESA">CONVÊNIO EMPRESA LOCAL</option>
+          </select>
+        </div>
+        <button onclick="saveCustomerInfo()" class="w-full py-2.5 rounded-xl bg-[#1E3A8A] hover:bg-blue-800 text-white font-bold text-xs uppercase tracking-wider transition">
+          Vincular ao Atendimento
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: PRÉ-VENDAS SALVAS (<F4>) -->
+  <div id="modalPreVendas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl">
+      <div class="bg-[#1E3A8A] text-white px-4 py-3 flex items-center justify-between">
+        <h3 class="font-bold text-sm">Relação de Pré-Vendas Salvas (F4)</h3>
+        <button onclick="closeAllModals()" class="text-xs font-mono text-blue-200 hover:text-white">ESC</button>
+      </div>
+      <div id="preVendasListContainer" class="p-4 max-h-96 overflow-y-auto flex flex-col gap-2.5">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6: CAIXA / RELATÓRIO PARCIAL -->
+  <div id="modalCaixaOperacao" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+      <div class="bg-[#1E3A8A] text-white px-4 py-3 flex items-center justify-between">
+        <h3 id="caixaOpTitle" class="font-bold text-sm">Operação de Caixa</h3>
+        <button onclick="closeAllModals()" class="text-xs font-mono text-blue-200 hover:text-white">ESC</button>
+      </div>
+      <div id="caixaOpBody" class="p-4 flex flex-col gap-3">
+        <!-- Dynamic content -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- JAVASCRIPT APPLICATION LOGIC & 56 MEDICATIONS (R + S + G COMPLETE)    -->
+  <!-- ===================================================================== -->
+  <script>
+    // 1. BASE DE 56 MEDICAMENTOS BRASILEIROS REAIS ONDE CADA PRINCÍPIO ATIVO POSSUI R, S E G
+    const INITIAL_MEDICATIONS = [
+      // GRUPO 1: DIPIRONA MONOIDRATADA (R + R + S + G)
+      { id: 1, codigoInterno: '10110', ean: '7891058017422', tipo: 'R', descricao: 'NOVALGINA 500MG/ML GTS 20ML', principioAtivo: 'DIPIRONA MONOIDRATADA', laboratorio: 'SANOFI AVENTIS', classificacao: 'MED - OTC', saldo: 42, preco: 26.90, pmc: 31.50, rentabilidade: 32.0, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Balcão OTC 01', lote: 'NV9021', validade: '09/2027' },
+      { id: 2, codigoInterno: '10114', ean: '7891058017484', tipo: 'R', descricao: 'NOVALGINA 1G 10CPR', principioAtivo: 'DIPIRONA MONOIDRATADA', laboratorio: 'SANOFI AVENTIS', classificacao: 'MED - OTC', saldo: 31, preco: 28.50, pmc: 33.00, rentabilidade: 30.5, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Balcão OTC 01', lote: 'NV3321', validade: '12/2027' },
+      { id: 3, codigoInterno: '10113', ean: '7896523201140', tipo: 'S', descricao: 'LISADOR DIP 500MG/ML GTS 20ML', principioAtivo: 'DIPIRONA MONOIDRATADA', laboratorio: 'HYPERA PHARMA', classificacao: 'MED - OTC', saldo: 27, preco: 16.90, pmc: 23.80, rentabilidade: 61.2, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Balcão OTC 01', lote: 'HY1029', validade: '07/2027' },
+      { id: 4, codigoInterno: '10111', ean: '7896004712031', tipo: 'G', descricao: 'DIPIRONA SODICA 500MG/ML GTS 20ML GEN', principioAtivo: 'DIPIRONA MONOIDRATADA', laboratorio: 'EMS', classificacao: 'MED - CHAMARIZ', saldo: 118, preco: 7.99, pmc: 18.40, rentabilidade: 84.5, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: true, armazenamento: 'Balcão OTC 01', lote: 'EM7712', validade: '05/2028' },
+      { id: 5, codigoInterno: '10112', ean: '7896422501194', tipo: 'G', descricao: 'DIPIRONA MONOIDRATADA 1G 10CPR GEN', principioAtivo: 'DIPIRONA MONOIDRATADA', laboratorio: 'MEDLEY', classificacao: 'MED - OTC', saldo: 84, preco: 11.90, pmc: 21.50, rentabilidade: 81.0, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Balcão OTC 01', lote: 'MD9901', validade: '01/2028' },
+
+      // GRUPO 2: DIPIRONA + ORFENADRINA + CAFEINA (R + R + S + G)
+      { id: 6, codigoInterno: '11101', ean: '7891058001193', tipo: 'R', descricao: 'DORFLEX 36CPR (3 BLISTERS)', principioAtivo: 'DIPIRONA + ORFENADRINA + CAFEINA', laboratorio: 'SANOFI AVENTIS', classificacao: 'MED - OTC', saldo: 53, preco: 26.90, pmc: 31.50, rentabilidade: 34.5, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Balcão OTC 01', lote: 'SN6612', validade: '08/2027' },
+      { id: 7, codigoInterno: '11104', ean: '7891058001209', tipo: 'R', descricao: 'DORFLEX UNO 1G 10CPR', principioAtivo: 'DIPIRONA + ORFENADRINA + CAFEINA', laboratorio: 'SANOFI AVENTIS', classificacao: 'MED - OTC', saldo: 34, preco: 24.50, pmc: 29.00, rentabilidade: 35.0, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Balcão OTC 01', lote: 'SN6690', validade: '10/2027' },
+      { id: 8, codigoInterno: '11102', ean: '7896523202291', tipo: 'S', descricao: 'DORSAY 30CPR RELAXANTE MUSCULAR', principioAtivo: 'DIPIRONA + ORFENADRINA + CAFEINA', laboratorio: 'CIMED', classificacao: 'MED - CHAMARIZ', saldo: 84, preco: 12.90, pmc: 24.90, rentabilidade: 81.4, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: true, armazenamento: 'Balcão OTC 01', lote: 'CM4418', validade: '05/2028' },
+      { id: 9, codigoInterno: '11105', ean: '7896004799102', tipo: 'G', descricao: 'DIPIRONA+ORFENADRINA+CAFEINA 30CPR GEN', principioAtivo: 'DIPIRONA + ORFENADRINA + CAFEINA', laboratorio: 'EMS', classificacao: 'MED - OTC', saldo: 68, preco: 9.90, pmc: 21.80, rentabilidade: 83.2, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: true, armazenamento: 'Gaveta Genéricos G1', lote: 'EM4410', validade: '06/2028' },
+
+      // GRUPO 3: LOSARTANA POTASSICA (R + R + S + G)
+      { id: 10, codigoInterno: '10201', ean: '7896658004120', tipo: 'R', descricao: 'ARADOIS 50MG 30CPR', principioAtivo: 'LOSARTANA POTASSICA', laboratorio: 'BIOLAB', classificacao: 'MED - TARJADOS', saldo: 18, preco: 49.90, pmc: 58.90, rentabilidade: 34.0, pbm: true, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira A1', lote: 'BL5022', validade: '10/2027' },
+      { id: 11, codigoInterno: '10205', ean: '7896006209911', tipo: 'R', descricao: 'COZAAR 50MG 30CPR', principioAtivo: 'LOSARTANA POTASSICA', laboratorio: 'ORGANON', classificacao: 'MED - TARJADOS', saldo: 14, preco: 54.90, pmc: 63.40, rentabilidade: 29.8, pbm: true, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira A1', lote: 'OR1120', validade: '11/2027' },
+      { id: 12, codigoInterno: '10204', ean: '7896523209870', tipo: 'S', descricao: 'CORUS 50MG 30CPR', principioAtivo: 'LOSARTANA POTASSICA', laboratorio: 'BIOSINTETICA', classificacao: 'MED - TARJADOS', saldo: 22, preco: 26.40, pmc: 44.10, rentabilidade: 63.8, pbm: true, farmaciaPopular: false, loteProximoVencer: true, promocao: false, armazenamento: 'Prateleira A1', lote: 'BS0091', validade: '01/2027' },
+      { id: 13, codigoInterno: '10202', ean: '7896422506182', tipo: 'G', descricao: 'LOSARTANA POTASSICA 50MG 30CPR GEN', principioAtivo: 'LOSARTANA POTASSICA', laboratorio: 'MEDLEY', classificacao: 'MED - CHAMARIZ', saldo: 140, preco: 6.50, pmc: 19.90, rentabilidade: 88.4, pbm: false, farmaciaPopular: true, loteProximoVencer: false, promocao: true, armazenamento: 'Gaveta Genéricos G2', lote: 'MD7120', validade: '06/2028' },
+
+      // GRUPO 4: GLIMEPIRIDA (R + R + S + G)
+      { id: 14, codigoInterno: '22040', ean: '7891058003128', tipo: 'R', descricao: 'AMARYL 2MG 30CPR', principioAtivo: 'GLIMEPIRIDA', laboratorio: 'SANOFI AVENTIS', classificacao: 'MED - TARJADOS', saldo: 12, preco: 64.50, pmc: 72.10, rentabilidade: 28.4, pbm: true, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira B4', lote: 'SN8841', validade: '08/2027' },
+      { id: 15, codigoInterno: '22039', ean: '7896112170495', tipo: 'R', descricao: 'AMARYL 4MG 30CPR', principioAtivo: 'GLIMEPIRIDA', laboratorio: 'SANOFI AVENTIS', classificacao: 'MED - TARJADOS', saldo: 9, preco: 98.90, pmc: 109.07, rentabilidade: 29.0, pbm: true, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira B4', lote: 'SN8899', validade: '10/2027' },
+      { id: 16, codigoInterno: '22038', ean: '7896112170433', tipo: 'S', descricao: 'AMAGLYN 2MG 30CPR', principioAtivo: 'GLIMEPIRIDA', laboratorio: 'TEUTO BRASILEIRO', classificacao: 'MED - TARJADOS', saldo: 19, preco: 38.90, pmc: 61.06, rentabilidade: 68.5, pbm: true, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira B4', lote: 'L2509A', validade: '11/2027' },
+      { id: 17, codigoInterno: '22041', ean: '7896422519021', tipo: 'G', descricao: 'GLIMEPIRIDA 2MG 30CPR GEN', principioAtivo: 'GLIMEPIRIDA', laboratorio: 'MEDLEY', classificacao: 'MED - TARJADOS', saldo: 29, preco: 22.90, pmc: 44.20, rentabilidade: 79.2, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: true, armazenamento: 'Gaveta Genéricos G1', lote: 'MD4410', validade: '03/2028' },
+
+      // GRUPO 5: AMOXICILINA TRI-HIDRATADA (R + R + S + G)
+      { id: 18, codigoInterno: '10301', ean: '7896015519827', tipo: 'R', descricao: 'AMOXIL 500MG 21CAPS', principioAtivo: 'AMOXICILINA TRI-HIDRATADA', laboratorio: 'GSK', classificacao: 'MED - ANTIMICROBIANO', saldo: 11, preco: 54.90, pmc: 64.20, rentabilidade: 29.0, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira C2', lote: 'GS4012', validade: '09/2027' },
+      { id: 19, codigoInterno: '10304', ean: '7896015519902', tipo: 'R', descricao: 'AMOXIL BD 875MG 14CPR', principioAtivo: 'AMOXICILINA TRI-HIDRATADA', laboratorio: 'GSK', classificacao: 'MED - ANTIMICROBIANO', saldo: 9, preco: 68.90, pmc: 79.50, rentabilidade: 28.5, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira C2', lote: 'GS4099', validade: '11/2027' },
+      { id: 20, codigoInterno: '10305', ean: '7896523214591', tipo: 'S', descricao: 'VELAMOX 500MG 21CAPS', principioAtivo: 'AMOXICILINA TRI-HIDRATADA', laboratorio: 'EMS SIGMA', classificacao: 'MED - ANTIMICROBIANO', saldo: 24, preco: 34.90, pmc: 49.80, rentabilidade: 66.0, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira C2', lote: 'EM3011', validade: '03/2028' },
+      { id: 21, codigoInterno: '10302', ean: '7891317440121', tipo: 'G', descricao: 'AMOXICILINA 500MG 21CAPS GEN', principioAtivo: 'AMOXICILINA TRI-HIDRATADA', laboratorio: 'EUROFARMA', classificacao: 'MED - ANTIMICROBIANO', saldo: 47, preco: 19.90, pmc: 39.80, rentabilidade: 79.4, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: true, armazenamento: 'Gaveta Genéricos G3', lote: 'EU5590', validade: '02/2028' },
+
+      // GRUPO 6: CLONAZEPAM (R + R + S + G - PORTARIA 344)
+      { id: 22, codigoInterno: '10401', ean: '7896226501129', tipo: 'R', descricao: 'RIVOTRIL 2,5MG/ML GTS 20ML', principioAtivo: 'CLONAZEPAM', laboratorio: 'ROCHE', classificacao: 'MED - PSICOTROPICO', saldo: 15, preco: 34.50, pmc: 41.20, rentabilidade: 31.0, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Armário Controlados 01', lote: 'RC7741', validade: '10/2027' },
+      { id: 23, codigoInterno: '10404', ean: '7896226501181', tipo: 'R', descricao: 'RIVOTRIL 2MG 30CPR', principioAtivo: 'CLONAZEPAM', laboratorio: 'ROCHE', classificacao: 'MED - PSICOTROPICO', saldo: 12, preco: 38.90, pmc: 45.60, rentabilidade: 30.2, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Armário Controlados 01', lote: 'RC7790', validade: '12/2027' },
+      { id: 24, codigoInterno: '10405', ean: '7896523211903', tipo: 'S', descricao: 'CLONOTRIL 2,5MG/ML GTS 20ML', principioAtivo: 'CLONAZEPAM', laboratorio: 'ACHE', classificacao: 'MED - PSICOTROPICO', saldo: 21, preco: 22.90, pmc: 32.40, rentabilidade: 64.5, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Armário Controlados 01', lote: 'AC2210', validade: '02/2028' },
+      { id: 25, codigoInterno: '10402', ean: '7896422511094', tipo: 'G', descricao: 'CLONAZEPAM 2,5MG/ML GTS 20ML GEN', principioAtivo: 'CLONAZEPAM', laboratorio: 'MEDLEY', classificacao: 'MED - PSICOTROPICO', saldo: 38, preco: 13.90, pmc: 26.80, rentabilidade: 79.5, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Armário Controlados 01', lote: 'MD3102', validade: '04/2028' },
+
+      // GRUPO 7: OMEPRAZOL (R + R + S + G)
+      { id: 26, codigoInterno: '10501', ean: '7896206401197', tipo: 'R', descricao: 'LOSEC MUPS 20MG 28CPR', principioAtivo: 'OMEPRAZOL', laboratorio: 'ASTRAZENECA', classificacao: 'MED - TARJADOS', saldo: 8, preco: 78.90, pmc: 92.40, rentabilidade: 26.0, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira D1', lote: 'AZ1902', validade: '07/2027' },
+      { id: 27, codigoInterno: '10504', ean: '7896206401227', tipo: 'R', descricao: 'LOSEC MUPS 40MG 14CPR', principioAtivo: 'OMEPRAZOL', laboratorio: 'ASTRAZENECA', classificacao: 'MED - TARJADOS', saldo: 6, preco: 84.50, pmc: 98.10, rentabilidade: 25.5, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira D1', lote: 'AZ1945', validade: '09/2027' },
+      { id: 28, codigoInterno: '10505', ean: '7896523204493', tipo: 'S', descricao: 'PEPRAZOL 20MG 28CAPS', principioAtivo: 'OMEPRAZOL', laboratorio: 'LIBBS', classificacao: 'MED - TARJADOS', saldo: 29, preco: 28.90, pmc: 46.50, rentabilidade: 68.0, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira D1', lote: 'LB4410', validade: '04/2028' },
+      { id: 29, codigoInterno: '10502', ean: '7896523204417', tipo: 'G', descricao: 'OMEPRAZOL 20MG 28CAPS GEN', principioAtivo: 'OMEPRAZOL', laboratorio: 'CIMED', classificacao: 'MED - CHAMARIZ', saldo: 165, preco: 9.90, pmc: 29.90, rentabilidade: 86.7, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: true, armazenamento: 'Gaveta Genéricos G4', lote: 'CM9182', validade: '07/2028' },
+
+      // GRUPO 8: PARACETAMOL (R + R + S + G)
+      { id: 30, codigoInterno: '10601', ean: '7896212412019', tipo: 'R', descricao: 'TYLENOL 750MG 20CPR', principioAtivo: 'PARACETAMOL', laboratorio: 'JANSSEN', classificacao: 'MED - OTC', saldo: 27, preco: 32.90, pmc: 38.50, rentabilidade: 31.4, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Balcão OTC 02', lote: 'JN5512', validade: '11/2027' },
+      { id: 31, codigoInterno: '10603', ean: '7896212412088', tipo: 'R', descricao: 'TYLENOL DC 500MG 20CPR', principioAtivo: 'PARACETAMOL', laboratorio: 'JANSSEN', classificacao: 'MED - OTC', saldo: 19, preco: 34.50, pmc: 40.20, rentabilidade: 30.8, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Balcão OTC 02', lote: 'JN5588', validade: '12/2027' },
+      { id: 32, codigoInterno: '10604', ean: '7896006208815', tipo: 'S', descricao: 'DORICO 750MG 20CPR', principioAtivo: 'PARACETAMOL', laboratorio: 'SANOFI', classificacao: 'MED - OTC', saldo: 35, preco: 18.90, pmc: 26.80, rentabilidade: 62.5, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Balcão OTC 02', lote: 'SN3310', validade: '05/2028' },
+      { id: 33, codigoInterno: '10602', ean: '7896004708829', tipo: 'G', descricao: 'PARACETAMOL 750MG 20CPR GEN', principioAtivo: 'PARACETAMOL', laboratorio: 'EMS', classificacao: 'MED - CHAMARIZ', saldo: 92, preco: 9.90, pmc: 21.00, rentabilidade: 83.0, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: true, armazenamento: 'Balcão OTC 02', lote: 'EM1120', validade: '06/2028' },
+
+      // GRUPO 9: IBUPROFENO (R + R + S + G)
+      { id: 34, codigoInterno: '10701', ean: '7891045032117', tipo: 'R', descricao: 'ADVIL 600MG 20CAPS GEL', principioAtivo: 'IBUPROFENO', laboratorio: 'HALEON', classificacao: 'MED - TARJADOS', saldo: 16, preco: 39.90, pmc: 46.80, rentabilidade: 33.8, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira A4', lote: 'HL3011', validade: '09/2027' },
+      { id: 35, codigoInterno: '10704', ean: '7891045032193', tipo: 'R', descricao: 'ADVIL 400MG 10CAPS LIQ', principioAtivo: 'IBUPROFENO', laboratorio: 'HALEON', classificacao: 'MED - OTC', saldo: 24, preco: 26.90, pmc: 31.40, rentabilidade: 34.2, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Balcão OTC 03', lote: 'HL3089', validade: '11/2027' },
+      { id: 36, codigoInterno: '10703', ean: '7896658019926', tipo: 'S', descricao: 'ALIVIUM 600MG 20CPR', principioAtivo: 'IBUPROFENO', laboratorio: 'MANTECORP', classificacao: 'MED - TARJADOS', saldo: 28, preco: 25.90, pmc: 37.90, rentabilidade: 61.2, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Balcão OTC 03', lote: 'MT4409', validade: '10/2027' },
+      { id: 37, codigoInterno: '10702', ean: '7898148291106', tipo: 'G', descricao: 'IBUPROFENO 600MG 20CPR GEN', principioAtivo: 'IBUPROFENO', laboratorio: 'PRATI-DONADUZZI', classificacao: 'MED - TARJADOS', saldo: 58, preco: 13.90, pmc: 27.40, rentabilidade: 78.9, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Gaveta Genéricos G1', lote: 'PD8821', validade: '05/2028' },
+
+      // GRUPO 10: CLORIDRATO DE AMBROXOL (R + R + S + G)
+      { id: 38, codigoInterno: '12210', ean: '7896026301121', tipo: 'R', descricao: 'MUCOSOLVAN XPE ADT 120ML', principioAtivo: 'CLORIDRATO DE AMBROXOL', laboratorio: 'SANOFI', classificacao: 'MED - OTC', saldo: 14, preco: 34.90, pmc: 41.20, rentabilidade: 31.5, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Balcão OTC 04', lote: 'SN2210', validade: '09/2027' },
+      { id: 39, codigoInterno: '12211', ean: '7896026301183', tipo: 'R', descricao: 'MUCOSOLVAN XPE PED 120ML', principioAtivo: 'CLORIDRATO DE AMBROXOL', laboratorio: 'SANOFI', classificacao: 'MED - OTC', saldo: 18, preco: 31.90, pmc: 37.80, rentabilidade: 32.0, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Balcão OTC 04', lote: 'SN2290', validade: '10/2027' },
+      { id: 40, codigoInterno: '1192', ean: '7896523207681', tipo: 'S', descricao: 'AMBROXMEL XPE ADT 120ML', principioAtivo: 'CLORIDRATO DE AMBROXOL', laboratorio: 'CIMED', classificacao: 'MED - CHAMARIZ', saldo: 32, preco: 19.99, pmc: 28.50, rentabilidade: 75.2, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: true, armazenamento: 'Balcão OTC 04', lote: 'CM1099', validade: '04/2028' },
+      { id: 41, codigoInterno: '3495', ean: '7898148293810', tipo: 'G', descricao: 'AMBROXOL XPE ADT 120ML GEN', principioAtivo: 'CLORIDRATO DE AMBROXOL', laboratorio: 'PRATI-DONADUZZI', classificacao: 'MED - OTC', saldo: 41, preco: 12.90, pmc: 24.56, rentabilidade: 79.5, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Gaveta Genéricos G5', lote: 'PD3301', validade: '01/2028' },
+
+      // GRUPO 11: AZITROMICINA DI-HIDRATADA (R + R + S + G)
+      { id: 42, codigoInterno: '10801', ean: '7891268104417', tipo: 'R', descricao: 'ZITROMAX 500MG 5CPR', principioAtivo: 'AZITROMICINA DI-HIDRATADA', laboratorio: 'PFIZER', classificacao: 'MED - ANTIMICROBIANO', saldo: 9, preco: 69.90, pmc: 82.00, rentabilidade: 28.0, pbm: true, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira C3', lote: 'PF9012', validade: '11/2027' },
+      { id: 43, codigoInterno: '10804', ean: '7891268104493', tipo: 'R', descricao: 'ZITROMAX 500MG 3CPR', principioAtivo: 'AZITROMICINA DI-HIDRATADA', laboratorio: 'PFIZER', classificacao: 'MED - ANTIMICROBIANO', saldo: 11, preco: 48.90, pmc: 57.40, rentabilidade: 29.0, pbm: true, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira C3', lote: 'PF9088', validade: '12/2027' },
+      { id: 44, codigoInterno: '10803', ean: '7896523211026', tipo: 'S', descricao: 'ASTRO 500MG 5CPR', principioAtivo: 'AZITROMICINA DI-HIDRATADA', laboratorio: 'EUROFARMA', classificacao: 'MED - ANTIMICROBIANO', saldo: 17, preco: 34.90, pmc: 48.50, rentabilidade: 61.5, pbm: true, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira C3', lote: 'EU1209', validade: '09/2027' },
+      { id: 45, codigoInterno: '10802', ean: '7896422508919', tipo: 'G', descricao: 'AZITROMICINA 500MG 5CPR GEN', principioAtivo: 'AZITROMICINA DI-HIDRATADA', laboratorio: 'MEDLEY', classificacao: 'MED - ANTIMICROBIANO', saldo: 49, preco: 19.90, pmc: 38.90, rentabilidade: 79.0, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: true, armazenamento: 'Gaveta Genéricos G3', lote: 'MD6610', validade: '05/2028' },
+
+      // GRUPO 12: CLORIDRATO DE METFORMINA (R + R + S + G)
+      { id: 46, codigoInterno: '10901', ean: '7891721004129', tipo: 'R', descricao: 'GLIFAGE XR 500MG 30CPR', principioAtivo: 'CLORIDRATO DE METFORMINA', laboratorio: 'MERCK', classificacao: 'MED - TARJADOS', saldo: 28, preco: 26.90, pmc: 32.80, rentabilidade: 36.5, pbm: true, farmaciaPopular: true, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira B2', lote: 'MK5520', validade: '12/2027' },
+      { id: 47, codigoInterno: '10904', ean: '7891721004181', tipo: 'R', descricao: 'GLIFAGE 850MG 30CPR', principioAtivo: 'CLORIDRATO DE METFORMINA', laboratorio: 'MERCK', classificacao: 'MED - TARJADOS', saldo: 21, preco: 24.90, pmc: 29.80, rentabilidade: 35.8, pbm: true, farmaciaPopular: true, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira B2', lote: 'MK5599', validade: '11/2027' },
+      { id: 48, codigoInterno: '10905', ean: '7896523203311', tipo: 'S', descricao: 'DIMEFOR 850MG 30CPR', principioAtivo: 'CLORIDRATO DE METFORMINA', laboratorio: 'FARMASA', classificacao: 'MED - TARJADOS', saldo: 34, preco: 14.90, pmc: 23.40, rentabilidade: 64.0, pbm: true, farmaciaPopular: true, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira B2', lote: 'FM3310', validade: '04/2028' },
+      { id: 49, codigoInterno: '10902', ean: '7896422503396', tipo: 'G', descricao: 'METFORMINA 850MG 30CPR GEN', principioAtivo: 'CLORIDRATO DE METFORMINA', laboratorio: 'MEDLEY', classificacao: 'MED - TARJADOS', saldo: 85, preco: 7.90, pmc: 19.50, rentabilidade: 84.0, pbm: false, farmaciaPopular: true, loteProximoVencer: false, promocao: true, armazenamento: 'Gaveta Genéricos G2', lote: 'MD9011', validade: '06/2028' },
+
+      // GRUPO 13: SINVASTATINA (R + R + S + G)
+      { id: 50, codigoInterno: '11001', ean: '7896006207719', tipo: 'R', descricao: 'ZOCOR 20MG 30CPR', principioAtivo: 'SINVASTATINA', laboratorio: 'ORGANON', classificacao: 'MED - TARJADOS', saldo: 12, preco: 58.90, pmc: 68.40, rentabilidade: 29.2, pbm: true, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira A2', lote: 'OR4410', validade: '10/2027' },
+      { id: 51, codigoInterno: '11003', ean: '7896523207711', tipo: 'S', descricao: 'SINVASCOR 20MG 30CPR', principioAtivo: 'SINVASTATINA', laboratorio: 'BALDACCI', classificacao: 'MED - TARJADOS', saldo: 26, preco: 24.90, pmc: 39.80, rentabilidade: 66.5, pbm: true, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Prateleira A2', lote: 'BD2210', validade: '03/2028' },
+      { id: 52, codigoInterno: '11002', ean: '7896422507714', tipo: 'G', descricao: 'SINVASTATINA 20MG 30CPR GEN', principioAtivo: 'SINVASTATINA', laboratorio: 'MEDLEY', classificacao: 'MED - TARJADOS', saldo: 67, preco: 10.90, pmc: 28.40, rentabilidade: 83.2, pbm: false, farmaciaPopular: true, loteProximoVencer: false, promocao: false, armazenamento: 'Gaveta Genéricos G2', lote: 'MD2298', validade: '07/2028' },
+
+      // GRUPO 14: ACIDO ASCORBICO / VITAMINA C (R + R + S + G)
+      { id: 53, codigoInterno: '11401', ean: '7891106001120', tipo: 'R', descricao: 'REDOXON 1G 30CPR EFERV', principioAtivo: 'ACIDO ASCORBICO (VITAMINA C)', laboratorio: 'BAYER', classificacao: 'MED - OTC', saldo: 34, preco: 42.90, pmc: 49.80, rentabilidade: 34.0, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Gôndola Vitaminas 01', lote: 'BY1190', validade: '12/2027' },
+      { id: 54, codigoInterno: '11404', ean: '7891058009911', tipo: 'R', descricao: 'CEWIN 500MG 30CPR LIB PROL', principioAtivo: 'ACIDO ASCORBICO (VITAMINA C)', laboratorio: 'SANOFI', classificacao: 'MED - OTC', saldo: 29, preco: 38.90, pmc: 45.20, rentabilidade: 35.2, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: false, armazenamento: 'Gôndola Vitaminas 01', lote: 'SN9910', validade: '11/2027' },
+      { id: 55, codigoInterno: '11402', ean: '7896523219909', tipo: 'S', descricao: 'BIO-C 1G 30CPR EFERV', principioAtivo: 'ACIDO ASCORBICO (VITAMINA C)', laboratorio: 'UNIAO QUIMICA', classificacao: 'MED - CHAMARIZ', saldo: 64, preco: 21.90, pmc: 34.90, rentabilidade: 74.5, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: true, armazenamento: 'Gôndola Vitaminas 01', lote: 'UQ8812', validade: '07/2028' },
+      { id: 56, codigoInterno: '11405', ean: '7896004719900', tipo: 'G', descricao: 'ACIDO ASCORBICO 1G 30CPR EFERV GEN', principioAtivo: 'ACIDO ASCORBICO (VITAMINA C)', laboratorio: 'EMS', classificacao: 'MED - OTC', saldo: 78, preco: 14.90, pmc: 28.40, rentabilidade: 81.0, pbm: false, farmaciaPopular: false, loteProximoVencer: false, promocao: true, armazenamento: 'Gôndola Vitaminas 01', lote: 'EM7719', validade: '08/2028' }
+    ];
+
+    // 2. CHAVES DE ARMAZENAMENTO LOCAL E ESTADO GLOBAL
+    const STORAGE_KEYS = {
+      MEDS: 'farmapro_light_meds_v4',
+      PRE_VENDAS: 'farmapro_light_prevendas_v4',
+      SALES_HISTORY: 'farmapro_light_sales_v4',
+      CASH_MOVES: 'farmapro_light_cashmoves_v4',
+      PV_COUNTER: 'farmapro_light_pv_counter_v4'
+    };
+
+    let state = {
+      medications: [],
+      filteredMeds: [],
+      selectedIndex: 0,
+      pinnedMedId: null,
+      suggestionCards: [], // Sempre até 3 sugestões na ordem: 1º Referência (R) -> 2º Similar (S) -> 3º Genérico (G)
+      onlyWithStock: false,
+      searchMode: 'NAME',
+      pendingMultiplier: 1,
+      cart: [],
+      discountMode: 'PCT',
+      discountValue: 0,
+      customer: {
+        cpf: '',
+        name: 'CONSUMIDOR FINAL',
+        convenio: 'À VISTA / PARTICULAR'
+      },
+      paymentMethod: 'PIX',
+      preVendas: [],
+      salesHistory: [],
+      cashMoves: [],
+      pvCounter: 1
+    };
+
+    const searchInput = document.getElementById('searchInput');
+
+    // 3. INICIALIZAÇÃO
+    function initApp() {
+      loadFromStorage();
+      updateClock();
+      setInterval(updateClock, 1000);
+      applyFilters();
+      renderCart();
+      updatePreVendaBadge();
+      if (searchInput) searchInput.focus();
+    }
+
+    function loadFromStorage() {
+      try {
+        const savedMeds = localStorage.getItem(STORAGE_KEYS.MEDS);
+        state.medications = savedMeds ? JSON.parse(savedMeds) : JSON.parse(JSON.stringify(INITIAL_MEDICATIONS));
+
+        const savedPv = localStorage.getItem(STORAGE_KEYS.PRE_VENDAS);
+        state.preVendas = savedPv ? JSON.parse(savedPv) : [];
+
+        const savedSales = localStorage.getItem(STORAGE_KEYS.SALES_HISTORY);
+        state.salesHistory = savedSales ? JSON.parse(savedSales) : [];
+
+        const savedCash = localStorage.getItem(STORAGE_KEYS.CASH_MOVES);
+        state.cashMoves = savedCash ? JSON.parse(savedCash) : [
+          { tipo: 'SUPRIMENTO', valor: 250.00, obs: 'Fundo de troco inicial', hora: '08:00' }
+        ];
+
+        const savedCounter = localStorage.getItem(STORAGE_KEYS.PV_COUNTER);
+        state.pvCounter = savedCounter ? parseInt(savedCounter, 10) : 1;
+        updateReceiptNumberDisplay();
+      } catch (e) {
+        state.medications = JSON.parse(JSON.stringify(INITIAL_MEDICATIONS));
+      }
+    }
+
+    function persistStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEYS.MEDS, JSON.stringify(state.medications));
+        localStorage.setItem(STORAGE_KEYS.PRE_VENDAS, JSON.stringify(state.preVendas));
+        localStorage.setItem(STORAGE_KEYS.SALES_HISTORY, JSON.stringify(state.salesHistory));
+        localStorage.setItem(STORAGE_KEYS.CASH_MOVES, JSON.stringify(state.cashMoves));
+        localStorage.setItem(STORAGE_KEYS.PV_COUNTER, String(state.pvCounter));
+      } catch (e) {
+        console.warn('Erro ao salvar no localStorage:', e);
+      }
+    }
+
+    function resetDemoData() {
+      Object.values(STORAGE_KEYS).forEach((k) => localStorage.removeItem(k));
+      state.cart = [];
+      state.discountValue = 0;
+      state.pinnedMedId = null;
+      state.suggestionCards = [];
+      loadFromStorage();
+      clearSearch();
+      renderCart();
+      updatePreVendaBadge();
+      showToast('Base de 56 medicamentos e estoque restaurados!', 'info');
+    }
+
+    // 4. TELA CHEIA (ALTERNATIVA SEGURA AO F11)
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {
+          showToast('Seu navegador bloqueou a tela cheia automática. Use o menu (⋮) > Tela cheia.', 'warning');
+        });
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+      const isFull = !!document.fullscreenElement;
+      document.getElementById('fullscreenIconExpand').classList.toggle('hidden', isFull);
+      document.getElementById('fullscreenIconCompress').classList.toggle('hidden', !isFull);
+      document.getElementById('fullscreenBtnLabel').textContent = isFull ? 'Sair Tela Cheia' : 'Tela Cheia';
+    });
+
+    // 5. RELÓGIO E FORMATAÇÃO
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clockTime').textContent = now.toLocaleTimeString('pt-BR');
+      document.getElementById('clockDate').textContent = now.toLocaleDateString('pt-BR');
+    }
+
+    function formatBRL(val) {
+      return Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatNum(val) {
+      return Number(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function normalizeText(str) {
+      return (str || '')
+        .toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+    }
+
+    function updateReceiptNumberDisplay() {
+      document.getElementById('receiptNumber').textContent = `#PV-${String(state.pvCounter).padStart(4, '0')}`;
+    }
+
+    // 6. BUSCA INSTANTÂNEA (MÍNIMO 2 LETRAS, ORDEM ALFABÉTICA, SEM ROLAGEM LATERAL)
+    searchInput.addEventListener('input', (e) => {
+      state.pinnedMedId = null;
+      state.suggestionCards = [];
+
+      const raw = e.target.value;
+      const multMatch = raw.match(/^(\d+)\*(.*)$/);
+      if (multMatch) {
+        const qty = Math.max(1, Math.min(999, parseInt(multMatch[1], 10)));
+        state.pendingMultiplier = qty;
+        const badge = document.getElementById('multiplierIndicator');
+        badge.textContent = `${qty}x`;
+        badge.classList.remove('hidden');
+      } else {
+        state.pendingMultiplier = 1;
+        document.getElementById('multiplierIndicator').classList.add('hidden');
+      }
+      state.selectedIndex = 0;
+      applyFilters();
+    });
+
+    function getCleanSearchQuery() {
+      const raw = searchInput.value.trim();
+      const multMatch = raw.match(/^(\d+)\*(.*)$/);
+      return multMatch ? multMatch[2].trim() : raw;
+    }
+
+    function matchesWordPrefix(targetText, token) {
+      const norm = normalizeText(targetText);
+      if (norm.startsWith(token)) return true;
+      const words = norm.split(/[\s\-\+\/\(\),]+/).filter(Boolean);
+      return words.some((w) => w.startsWith(token));
+    }
+
+    function applyFilters() {
+      const cleanQuery = getCleanSearchQuery();
+      const normalizedQuery = normalizeText(cleanQuery);
+
+      if (normalizedQuery.length < 2) {
+        state.filteredMeds = [];
+        state.selectedIndex = 0;
+        state.pinnedMedId = null;
+        state.suggestionCards = [];
+        renderEmptyPromptState(normalizedQuery.length);
+        renderViewMode();
+        updateFilterButtonsUI();
+        return;
+      }
+
+      const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
+      const isNumericBarcode = /^\d{4,}$/.test(normalizedQuery);
+
+      const matched = state.medications.filter((med) => {
+        if (state.onlyWithStock && med.saldo <= 0) return false;
+
+        if (isNumericBarcode) {
+          return med.ean.startsWith(normalizedQuery) || med.codigoInterno.startsWith(normalizedQuery);
+        }
+
+        if (state.searchMode === 'PRINCIPIO') {
+          return tokens.every((tk) => matchesWordPrefix(med.principioAtivo, tk));
+        }
+
+        return tokens.every((tk) => matchesWordPrefix(med.descricao, tk));
+      });
+
+      const firstToken = tokens[0] || '';
+      matched.sort((a, b) => {
+        const aField = normalizeText(state.searchMode === 'PRINCIPIO' ? a.principioAtivo : a.descricao);
+        const bField = normalizeText(state.searchMode === 'PRINCIPIO' ? b.principioAtivo : b.descricao);
+
+        const aStarts = aField.startsWith(firstToken) ? 0 : 1;
+        const bStarts = bField.startsWith(firstToken) ? 0 : 1;
+        if (aStarts !== bStarts) return aStarts - bStarts;
+
+        return a.descricao.localeCompare(b.descricao, 'pt-BR', { sensitivity: 'base' });
+      });
+
+      state.filteredMeds = matched;
+      if (state.selectedIndex >= state.filteredMeds.length) {
+        state.selectedIndex = Math.max(0, state.filteredMeds.length - 1);
+      }
+
+      renderTable();
+      renderViewMode();
+      updateFilterButtonsUI();
+    }
+
+    function renderEmptyPromptState(charCount) {
+      const tbody = document.getElementById('productTableBody');
+      const msg = charCount === 1
+        ? 'Digite mais <strong>1 letra</strong> para exibir os medicamentos em ordem alfabética...'
+        : 'Digite pelo menos <strong>2 letras</strong> do nome do medicamento (ou código EAN) para pesquisar.';
+
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="py-12 px-6 text-center">
+            <div class="max-w-md mx-auto flex flex-col items-center gap-2">
+              <div class="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-100 text-[#1E3A8A] flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                </svg>
+              </div>
+              <p class="text-xs sm:text-sm text-slate-600">${msg}</p>
+              <div class="flex flex-wrap justify-center gap-1.5 mt-1 text-[11px] font-mono">
+                <button onclick="quickSearchSample('dip')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 transition">dip</button>
+                <button onclick="quickSearchSample('dor')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 transition">dor</button>
+                <button onclick="quickSearchSample('los')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 transition">los</button>
+                <button onclick="quickSearchSample('amo')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 transition">amo</button>
+                <button onclick="quickSearchSample('riv')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 transition">riv</button>
+                <button onclick="quickSearchSample('ome')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 transition">ome</button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function quickSearchSample(term) {
+      searchInput.value = term;
+      searchInput.dispatchEvent(new Event('input'));
+      searchInput.focus();
+    }
+
+    function toggleStockFilter() {
+      state.onlyWithStock = !state.onlyWithStock;
+      applyFilters();
+      showToast(state.onlyWithStock ? 'Filtro ativado: Apenas itens com saldo' : 'Exibindo itens com e sem saldo', 'info');
+    }
+
+    function toggleSearchMode() {
+      state.searchMode = state.searchMode === 'NAME' ? 'PRINCIPIO' : 'NAME';
+      state.pinnedMedId = null;
+      state.suggestionCards = [];
+      applyFilters();
+      showToast(
+        state.searchMode === 'PRINCIPIO'
+          ? 'Modo de busca (F3): Princípio Ativo (Molécula)'
+          : 'Modo de busca (F3): Nome do Medicamento',
+        'info'
+      );
+    }
+
+    function updateFilterButtonsUI() {
+      const cleanLen = normalizeText(getCleanSearchQuery()).length;
+      document.getElementById('resultsCounter').textContent = cleanLen < 2
+        ? 'Aguardando digitação (mínimo 2 letras) • Base com 56 medicamentos'
+        : `${state.filteredMeds.length} medicamento(s) encontrado(s) em ordem alfabética`;
+
+      const stBtn = document.getElementById('filterStockBtn');
+      stBtn.className = state.onlyWithStock
+        ? 'px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 transition'
+        : 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition';
+
+      const modeBtn = document.getElementById('filterModeBtn');
+      document.getElementById('searchModeLabel').textContent = state.searchMode === 'PRINCIPIO' ? 'Princípio Ativo' : 'Nome do Medicamento';
+      modeBtn.className = state.searchMode === 'PRINCIPIO'
+        ? 'px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300 transition'
+        : 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition';
+    }
+
+    function handleEscapeAction() {
+      if (state.pinnedMedId !== null) {
+        unlockPinnedProduct();
+        return;
+      }
+      clearSearch();
+    }
+
+    function clearSearch() {
+      searchInput.value = '';
+      state.pendingMultiplier = 1;
+      state.pinnedMedId = null;
+      state.suggestionCards = [];
+      document.getElementById('multiplierIndicator').classList.add('hidden');
+      state.selectedIndex = 0;
+      applyFilters();
+      searchInput.focus();
+    }
+
+    function focusSearchInput() {
+      switchMobileTab('balcao');
+      searchInput.focus();
+      searchInput.select();
+    }
+
+    // 7. RENDERIZAÇÃO DA TABELA DE PESQUISA
+    function renderTable() {
+      const tbody = document.getElementById('productTableBody');
+      if (state.filteredMeds.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-10 text-center text-slate-500">
+              Nenhum medicamento encontrado iniciando com "<strong class="text-slate-800">${getCleanSearchQuery()}</strong>". Pressione <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-700">ESC</kbd> para limpar.
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = state.filteredMeds.map((med, idx) => {
+        const isSelected = idx === state.selectedIndex;
+        const isPsico = med.classificacao.includes('PSICOTROPICO');
+        const isAntibio = med.classificacao.includes('ANTIMICROBIANO');
+
+        let typeBadge = '';
+        if (med.tipo === 'G') {
+          typeBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-400 text-slate-950 font-extrabold text-xs shadow-2xs" title="Genérico">G</span>`;
+        } else if (med.tipo === 'S') {
+          typeBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-100 text-blue-800 border border-blue-300 font-extrabold text-xs" title="Similar">S</span>`;
+        } else {
+          typeBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300 font-extrabold text-xs" title="Referência">R</span>`;
+        }
+
+        let titleColor = 'text-slate-900';
+        if (isSelected) titleColor = 'text-white';
+        else if (isPsico) titleColor = 'text-fuchsia-700';
+        else if (med.loteProximoVencer) titleColor = 'text-amber-700';
+        else if (med.promocao) titleColor = 'text-red-700';
+        else if (med.pbm) titleColor = 'text-blue-800';
+
+        const rowBgClass = isSelected ? 'bg-blue-600 text-white' : 'hover:bg-blue-50/70 bg-white';
+        const subTextColor = isSelected ? 'text-blue-100' : 'text-slate-500';
+        const priceColor = isSelected ? 'text-white' : 'text-slate-900';
+        const rentColor = isSelected
+          ? 'text-emerald-200 font-bold'
+          : med.rentabilidade >= 75
+            ? 'text-emerald-700 font-bold'
+            : 'text-slate-500';
+
+        const saldoBadge = med.saldo <= 0
+          ? `<span class="px-1.5 py-0.5 rounded ${isSelected ? 'bg-red-500 text-white' : 'bg-red-100 text-red-700'} font-mono font-bold text-[11px]">0</span>`
+          : `<span class="font-mono font-bold ${isSelected ? 'text-white' : 'text-slate-800'}">${med.saldo}</span>`;
+
+        return `
+          <tr
+            data-row-index="${idx}"
+            onclick="pinRowByIndex(${idx})"
+            class="cursor-pointer transition-colors ${rowBgClass}"
+          >
+            <td class="py-2 px-1.5 text-center align-middle">${typeBadge}</td>
+            <td class="py-2 px-1.5 font-mono text-[11px] align-middle hidden sm:table-cell ${subTextColor}">${med.codigoInterno}</td>
+            <td class="py-2 px-2 align-middle min-w-0">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="font-bold truncate ${titleColor}">${med.descricao}</span>
+                ${isPsico ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-300'}">344</span>` : ''}
+                ${isAntibio ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-800 border border-orange-300'}">RDC 20</span>` : ''}
+              </div>
+              <div class="text-[11px] truncate ${subTextColor}">
+                ${med.principioAtivo} <span class="md:hidden">• ${med.laboratorio}</span>
+              </div>
+            </td>
+            <td class="py-2 px-2 text-[11px] align-middle truncate hidden md:table-cell ${subTextColor}">${med.laboratorio}</td>
+            <td class="py-2 px-2 text-right align-middle">${saldoBadge}</td>
+            <td class="py-2 px-2 text-right align-middle font-mono font-extrabold ${priceColor}">${formatNum(med.preco)}</td>
+            <td class="py-2 px-2 text-right align-middle font-mono text-xs hidden sm:table-cell ${rentColor}">${formatNum(med.rentabilidade)}%</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // 8. FIXAÇÃO NO 1º ENTER + 3 SUGESTÕES NA ORDEM FIXA: 1º REFERÊNCIA -> 2º SIMILAR -> 3º GENÉRICO
+    function pinRowByIndex(idx) {
+      const med = state.filteredMeds[idx];
+      if (!med) return;
+      state.selectedIndex = idx;
+      pinMedicationById(med.id);
+    }
+
+    function pinMedicationById(medId) {
+      const targetMed = state.medications.find((m) => m.id === medId);
+      if (!targetMed) return;
+
+      state.pinnedMedId = targetMed.id;
+      buildOrderedThreeSuggestions(targetMed);
+      renderViewMode();
+    }
+
+    function unlockPinnedProduct() {
+      state.pinnedMedId = null;
+      state.suggestionCards = [];
+      renderTable();
+      renderViewMode();
+      searchInput.focus();
+    }
+
+    function buildOrderedThreeSuggestions(pinnedMed) {
+      // Busca outros medicamentos com o MESMO princípio ativo do medicamento fixado
+      const sameMoleculeOthers = state.medications.filter(
+        (m) => m.principioAtivo === pinnedMed.principioAtivo && m.id !== pinnedMed.id
+      );
+
+      // Seleciona exatamente 1 de cada categoria na ordem obrigatória:
+      // 1º Outro de Referência ('R') -> 2º Similar ('S') -> 3º Genérico ('G')
+      const refCandidate = sameMoleculeOthers.find((m) => m.tipo === 'R');
+      const simCandidate = sameMoleculeOthers.find((m) => m.tipo === 'S');
+      const genCandidate = sameMoleculeOthers.find((m) => m.tipo === 'G');
+
+      const orderedList = [];
+      if (refCandidate) orderedList.push(refCandidate);
+      if (simCandidate) orderedList.push(simCandidate);
+      if (genCandidate) orderedList.push(genCandidate);
+
+      // Caso o item fixado seja o único de uma categoria e faltem slots para completar 3 cards,
+      // preenche os slots restantes com outras opções do mesmo princípio ativo mantendo a prioridade R -> S -> G
+      if (orderedList.length < 3) {
+        const typePriority = { R: 1, S: 2, G: 3 };
+        const remaining = sameMoleculeOthers
+          .filter((m) => !orderedList.some((added) => added.id === m.id))
+          .sort((a, b) => (typePriority[a.tipo] || 9) - (typePriority[b.tipo] || 9));
+
+        while (orderedList.length < 3 && remaining.length > 0) {
+          orderedList.push(remaining.shift());
+        }
+        orderedList.sort((a, b) => (typePriority[a.tipo] || 9) - (typePriority[b.tipo] || 9));
+      }
+
+      state.suggestionCards = orderedList;
+    }
+
+    function renderViewMode() {
+      const tableWrapper = document.getElementById('searchTableWrapper');
+      const detailsPanel = document.getElementById('selectedDetailsPanel');
+
+      if (state.pinnedMedId === null) {
+        tableWrapper.classList.remove('hidden');
+        tableWrapper.classList.add('flex');
+        detailsPanel.classList.add('hidden');
+        detailsPanel.classList.remove('flex');
+        return;
+      }
+
+      const activeMed = state.medications.find((m) => m.id === state.pinnedMedId);
+      if (!activeMed) {
+        state.pinnedMedId = null;
+        tableWrapper.classList.remove('hidden');
+        detailsPanel.classList.add('hidden');
+        return;
+      }
+
+      // Oculta a lista de pesquisa e exibe apenas o medicamento escolhido fixado + 3 sugestões abaixo
+      tableWrapper.classList.add('hidden');
+      tableWrapper.classList.remove('flex');
+      detailsPanel.classList.remove('hidden');
+      detailsPanel.classList.add('flex');
+
+      // Preenche o card superior do medicamento fixado
+      const pinnedTypeEl = document.getElementById('pinnedTypeBadge');
+      if (activeMed.tipo === 'G') {
+        pinnedTypeEl.textContent = 'GENÉRICO';
+        pinnedTypeEl.className = 'px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-mono text-xs font-extrabold uppercase shrink-0';
+      } else if (activeMed.tipo === 'S') {
+        pinnedTypeEl.textContent = 'SIMILAR';
+        pinnedTypeEl.className = 'px-2.5 py-1 rounded-lg bg-sky-300 text-slate-950 font-mono text-xs font-extrabold uppercase shrink-0';
+      } else {
+        pinnedTypeEl.textContent = 'REFERÊNCIA';
+        pinnedTypeEl.className = 'px-2.5 py-1 rounded-lg bg-emerald-400 text-slate-950 font-mono text-xs font-extrabold uppercase shrink-0';
+      }
+
+      document.getElementById('pinnedLabBadge').textContent = `${activeMed.laboratorio} • Cód. ${activeMed.codigoInterno} • Saldo: ${activeMed.saldo}`;
+      document.getElementById('pinnedMedTitle').textContent = activeMed.descricao;
+      document.getElementById('pinnedMedPrice').textContent = formatBRL(activeMed.preco);
+
+      // Metadados técnicos
+      document.getElementById('detailPrincipio').textContent = activeMed.principioAtivo;
+      document.getElementById('detailArmazenamento').textContent = activeMed.armazenamento;
+      document.getElementById('detailPmc').textContent = formatBRL(activeMed.pmc);
+
+      const progs = [];
+      if (activeMed.farmaciaPopular) progs.push('Farm. Popular');
+      if (activeMed.pbm) progs.push('PBM Ativo');
+      document.getElementById('detailProgramas').textContent = progs.length ? progs.join(' • ') : 'Venda Padrão';
+
+      const loteEl = document.getElementById('detailLote');
+      loteEl.textContent = `${activeMed.lote} (${activeMed.validade})`;
+      loteEl.className = activeMed.loteProximoVencer
+        ? 'text-xs font-mono font-bold text-amber-700 truncate mt-0.5'
+        : 'text-xs font-mono text-slate-700 truncate mt-0.5';
+
+      // Preço de referência máximo da molécula para exibir desconto/economia real nos cards
+      const allSameMolecule = state.medications.filter((m) => m.principioAtivo === activeMed.principioAtivo);
+      const refPrices = allSameMolecule.filter((m) => m.tipo === 'R').map((m) => m.preco);
+      const baseRefPrice = refPrices.length > 0 ? Math.max(...refPrices) : Math.max(activeMed.preco, activeMed.pmc);
+
+      const interGrid = document.getElementById('interchangeablesGrid');
+      document.getElementById('interchangeableCount').textContent = `${state.suggestionCards.length} sugestões`;
+
+      interGrid.innerHTML = state.suggestionCards.map((opt, idx) => {
+        const savingAmount = Math.max(0, baseRefPrice - opt.preco);
+        const savingPct = baseRefPrice > 0 ? Math.round((savingAmount / baseRefPrice) * 100) : 0;
+
+        const tipoTag = opt.tipo === 'G'
+          ? `<span class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-extrabold text-[10px]">3º GENÉRICO</span>`
+          : opt.tipo === 'S'
+            ? `<span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300 font-bold text-[10px]">2º SIMILAR</span>`
+            : `<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px]">1º REFERÊNCIA</span>`;
+
+        const discountInfo = savingAmount > 0.5
+          ? `<span class="text-[11px] font-mono font-bold text-emerald-700">Desc. ${savingPct}% (-${formatBRL(savingAmount)})</span>`
+          : `<span class="text-[11px] font-mono text-slate-500">PMC ${formatBRL(opt.pmc)}</span>`;
+
+        return `
+          <div
+            data-suggestion-idx="${idx}"
+            onclick="pinMedicationById(${opt.id})"
+            ondblclick="pinMedicationById(${opt.id}); confirmPinnedToCart();"
+            class="bg-white hover:bg-blue-50/80 border-2 border-slate-200 hover:border-blue-600 rounded-xl p-2.5 cursor-pointer transition flex flex-col justify-between gap-1.5 shadow-2xs"
+          >
+            <div class="flex items-center justify-between gap-1">
+              ${tipoTag}
+              <span class="text-[11px] font-mono text-slate-600">Saldo: <strong class="text-slate-900">${opt.saldo}</strong></span>
+            </div>
+
+            <div class="my-auto">
+              <div class="text-xs sm:text-[13px] font-extrabold text-slate-900 line-clamp-2 leading-snug" title="${opt.descricao}">
+                ${opt.descricao}
+              </div>
+              <div class="text-[10px] font-medium text-slate-500 truncate mt-0.5">${opt.laboratorio}</div>
+            </div>
+
+            <div class="flex items-end justify-between pt-1.5 border-t border-slate-100">
+              <div>
+                <div class="text-[9px] uppercase font-bold text-slate-400">Preço / Desconto</div>
+                ${discountInfo}
+              </div>
+              <div class="font-mono text-sm sm:text-base font-extrabold text-[#1E3A8A]">
+                ${formatBRL(opt.preco)}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function ensureSelectedRowVisible() {
+      const container = document.getElementById('tableScrollContainer');
+      const row = container.querySelector(`tr[data-row-index="${state.selectedIndex}"]`);
+      if (row) {
+        row.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    // 9. SACOLA / PRÉ-VENDA (2º ENTER ENVIA PARA A SACOLA)
+    function confirmPinnedToCart() {
+      if (state.pinnedMedId === null) return;
+      addSpecificProductToCart(state.pinnedMedId);
+    }
+
+    function addSpecificProductToCart(medId) {
+      const med = state.medications.find((m) => m.id === medId);
+      if (!med) return;
+
+      const qtyToAdd = state.pendingMultiplier || 1;
+
+      if (med.saldo < qtyToAdd) {
+        showToast(`Estoque insuficiente para ${med.descricao} (Saldo: ${med.saldo})`, 'error');
+        return;
+      }
+
+      if (med.classificacao.includes('PSICOTROPICO')) {
+        showToast(`PORTARIA 344: ${med.descricao} exige retenção de Receita Controlada (SNGPC).`, 'warning');
+      } else if (med.classificacao.includes('ANTIMICROBIANO')) {
+        showToast(`RDC 20: ${med.descricao} exige receita em 2 vias (validade 10 dias).`, 'warning');
+      }
+
+      const existingItem = state.cart.find((item) => item.medId === med.id);
+      if (existingItem) {
+        if (existingItem.qty + qtyToAdd > med.saldo) {
+          showToast(`Limite de estoque atingido (${med.saldo} unid.)`, 'error');
+          return;
+        }
+        existingItem.qty += qtyToAdd;
+      } else {
+        state.cart.push({
+          medId: med.id,
+          codigoInterno: med.codigoInterno,
+          ean: med.ean,
+          descricao: med.descricao,
+          unitPrice: med.preco,
+          qty: qtyToAdd
+        });
+      }
+
+      renderCart();
+      triggerBagVisualFeedback();
+      clearSearch();
+      showToast(`Adicionado à sacola: ${qtyToAdd}x ${med.descricao}`, 'success');
+    }
+
+    function triggerBagVisualFeedback() {
+      const card = document.getElementById('lastAddedCard');
+      const bag = document.getElementById('bagReceiptBox');
+      [card, bag].forEach((el) => {
+        if (!el) return;
+        el.classList.remove('bag-flash');
+        void el.offsetWidth;
+        el.classList.add('bag-flash');
+      });
+    }
+
+    function changeCartItemQty(idx, delta) {
+      const item = state.cart[idx];
+      if (!item) return;
+      const med = state.medications.find((m) => m.id === item.medId);
+      const nextQty = item.qty + delta;
+
+      if (nextQty <= 0) {
+        removeCartItemByIndex(idx);
+        return;
+      }
+      if (med && nextQty > med.saldo) {
+        showToast(`Estoque máximo disponível: ${med.saldo} unid.`, 'error');
+        return;
+      }
+      item.qty = nextQty;
+      renderCart();
+    }
+
+    function removeLastOrSelectedCartItem() {
+      if (state.cart.length === 0) {
+        showToast('A sacola de pré-venda está vazia.', 'info');
+        return;
+      }
+      const removed = state.cart.pop();
+      renderCart();
+      showToast(`Item cancelado: ${removed.descricao}`, 'warning');
+    }
+
+    function removeCartItemByIndex(idx) {
+      const removed = state.cart.splice(idx, 1)[0];
+      renderCart();
+      if (removed) {
+        showToast(`Removido da sacola: ${removed.descricao}`, 'warning');
+      }
+    }
+
+    function getCartTotals() {
+      const totalItems = state.cart.length;
+      const totalVolumes = state.cart.reduce((acc, item) => acc + item.qty, 0);
+      const grossTotal = state.cart.reduce((acc, item) => acc + (item.qty * item.unitPrice), 0);
+
+      let discountAmount = 0;
+      if (state.discountMode === 'PCT') {
+        discountAmount = grossTotal * (state.discountValue / 100);
+      } else {
+        discountAmount = Math.min(grossTotal, state.discountValue);
+      }
+      const netTotal = Math.max(0, grossTotal - discountAmount);
+      const effectivePct = grossTotal > 0 ? (discountAmount / grossTotal) * 100 : 0;
+
+      return { totalItems, totalVolumes, grossTotal, discountAmount, netTotal, effectivePct };
+    }
+
+    function renderCart() {
+      const listEl = document.getElementById('cartItemsList');
+      const statusBadge = document.getElementById('terminalStatusBadge');
+      const { totalItems, totalVolumes, discountAmount, netTotal, effectivePct } = getCartTotals();
+
+      if (state.cart.length === 0) {
+        statusBadge.textContent = 'TERMINAL LIVRE';
+        statusBadge.className = 'px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-emerald-500 text-white shadow-sm shrink-0';
+
+        document.getElementById('activeItemName').textContent = 'AGUARDANDO ITEM...';
+        document.getElementById('activeItemEan').textContent = 'EAN: --------------';
+        document.getElementById('activeItemQty').textContent = '0';
+        document.getElementById('activeItemUnit').textContent = '0,00';
+        document.getElementById('activeItemDisc').textContent = '0%';
+        document.getElementById('activeItemSub').textContent = '0,00';
+
+        listEl.innerHTML = `
+          <div class="h-full flex flex-col items-center justify-center text-center p-4 text-slate-400">
+            <svg class="w-7 h-7 mb-1.5 opacity-50" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+            </svg>
+            <p class="text-xs font-semibold text-slate-500">Sacola do cliente vazia</p>
+            <p class="text-[11px] mt-0.5">1º Enter fixa o item • 2º Enter lança na sacola</p>
+          </div>`;
+      } else {
+        statusBadge.textContent = 'PRÉ-VENDA ABERTA';
+        statusBadge.className = 'px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-amber-400 text-slate-950 shadow-sm shrink-0';
+
+        const lastItem = state.cart[state.cart.length - 1];
+        document.getElementById('activeItemName').textContent = lastItem.descricao;
+        document.getElementById('activeItemEan').textContent = `EAN: ${lastItem.ean}`;
+        document.getElementById('activeItemQty').textContent = lastItem.qty;
+        document.getElementById('activeItemUnit').textContent = formatNum(lastItem.unitPrice);
+        document.getElementById('activeItemDisc').textContent = `${formatNum(effectivePct)}%`;
+        document.getElementById('activeItemSub').textContent = formatNum(lastItem.qty * lastItem.unitPrice);
+
+        listEl.innerHTML = state.cart.map((item, idx) => {
+          const lineTotal = item.qty * item.unitPrice;
+          return `
+            <div class="px-2 py-1.5 grid grid-cols-12 items-center hover:bg-amber-100/60 group">
+              <div class="col-span-5 pr-1 min-w-0">
+                <div class="text-slate-900 font-bold truncate" title="${item.descricao}">${String(idx + 1).padStart(2, '0')} ${item.descricao}</div>
+                <div class="text-[10px] text-slate-500">Cód: ${item.codigoInterno}</div>
+              </div>
+              <div class="col-span-3 flex items-center justify-center gap-1">
+                <button onclick="changeCartItemQty(${idx}, -1)" class="w-5 h-5 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold flex items-center justify-center leading-none">-</button>
+                <span class="font-bold text-slate-800 min-w-[18px] text-center">${item.qty}</span>
+                <button onclick="changeCartItemQty(${idx}, 1)" class="w-5 h-5 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold flex items-center justify-center leading-none">+</button>
+              </div>
+              <div class="col-span-2 text-right text-slate-600 text-[11px]">${formatNum(item.unitPrice)}</div>
+              <div class="col-span-2 text-right font-extrabold text-emerald-700 flex items-center justify-end gap-1">
+                <span>${formatNum(lineTotal)}</span>
+                <button onclick="removeCartItemByIndex(${idx})" title="Remover item" class="text-red-500 hover:text-red-700 font-bold ml-0.5">×</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+        listEl.scrollTop = listEl.scrollHeight;
+      }
+
+      document.getElementById('totalItemsCount').textContent = totalItems;
+      document.getElementById('totalVolumesCount').textContent = totalVolumes;
+      document.getElementById('totalAmountDisplay').textContent = formatBRL(netTotal);
+      document.getElementById('mobileCartBadge').textContent = totalVolumes;
+
+      const discRow = document.getElementById('receiptDiscountRow');
+      if (discountAmount > 0 && state.cart.length > 0) {
+        discRow.classList.remove('hidden');
+        document.getElementById('receiptDiscountValue').textContent = `- ${formatBRL(discountAmount)}`;
+      } else {
+        discRow.classList.add('hidden');
+      }
+    }
+
+    // 10. SALVAR / CARREGAR PRÉ-VENDAS (<F5> / <F4>)
+    function savePreVenda() {
+      if (state.cart.length === 0) {
+        showToast('Adicione pelo menos 1 item antes de salvar a Pré-Venda.', 'warning');
+        return;
+      }
+      const totals = getCartTotals();
+      const pvCode = `PV-${String(state.pvCounter).padStart(4, '0')}`;
+      state.preVendas.unshift({
+        code: pvCode,
+        createdAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        customer: { ...state.customer },
+        discountMode: state.discountMode,
+        discountValue: state.discountValue,
+        items: JSON.parse(JSON.stringify(state.cart)),
+        total: totals.netTotal
+      });
+
+      state.pvCounter += 1;
+      state.cart = [];
+      state.discountValue = 0;
+      state.customer = { cpf: '', name: 'CONSUMIDOR FINAL', convenio: 'À VISTA / PARTICULAR' };
+      document.getElementById('headerCustomerName').textContent = state.customer.name;
+
+      persistStorage();
+      updateReceiptNumberDisplay();
+      updatePreVendaBadge();
+      renderCart();
+      clearSearch();
+      showToast(`Pré-Venda ${pvCode} gravada com sucesso!`, 'success');
+    }
+
+    function updatePreVendaBadge() {
+      document.getElementById('headerPreVendaCount').textContent = state.preVendas.length;
+    }
+
+    function renderPreVendasModal() {
+      const container = document.getElementById('preVendasListContainer');
+      if (state.preVendas.length === 0) {
+        container.innerHTML = `<div class="py-8 text-center text-xs text-slate-500">Nenhuma pré-venda salva no momento. Use <strong class="text-slate-800">F5</strong> para gravar a sacola atual.</div>`;
+        return;
+      }
+
+      container.innerHTML = state.preVendas.map((pv, idx) => `
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono font-extrabold text-sm text-[#1E3A8A]">${pv.code}</span>
+              <span class="text-[11px] text-slate-500">às ${pv.createdAt}</span>
+            </div>
+            <div class="text-xs font-bold text-slate-800 mt-0.5">${pv.customer.name}</div>
+            <div class="text-[11px] text-slate-600">${pv.items.length} item(ns) • Total: <strong class="text-emerald-700 font-mono">${formatBRL(pv.total)}</strong></div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="loadPreVendaToCart(${idx})" class="px-3 py-1.5 rounded-lg bg-[#047857] hover:bg-emerald-600 text-white text-xs font-bold transition">
+              Puxar Sacola
+            </button>
+            <button onclick="deletePreVenda(${idx})" class="px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition">
+              ×
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function loadPreVendaToCart(idx) {
+      const pv = state.preVendas.splice(idx, 1)[0];
+      if (!pv) return;
+      state.cart = pv.items;
+      state.discountMode = pv.discountMode || 'PCT';
+      state.discountValue = pv.discountValue || 0;
+      state.customer = pv.customer;
+      document.getElementById('headerCustomerName').textContent = state.customer.name;
+      persistStorage();
+      updatePreVendaBadge();
+      renderCart();
+      closeAllModals();
+      showToast(`Pré-Venda ${pv.code} carregada na sacola!`, 'success');
+    }
+
+    function deletePreVenda(idx) {
+      state.preVendas.splice(idx, 1);
+      persistStorage();
+      updatePreVendaBadge();
+      renderPreVendasModal();
+    }
+
+    // 11. PAGAMENTO E BAIXA DE ESTOQUE (<F9>)
+    function openPaymentModal() {
+      if (state.cart.length === 0) {
+        showToast('Insira ao menos um medicamento na sacola antes de finalizar.', 'warning');
+        return;
+      }
+      const { netTotal } = getCartTotals();
+      document.getElementById('payModalTotal').textContent = formatBRL(netTotal);
+      document.getElementById('payModalCustomer').textContent = `${state.customer.name} (${state.customer.convenio})`;
+      selectPaymentMethod('PIX');
+      openModal('modalPagamento');
+    }
+
+    function selectPaymentMethod(method) {
+      state.paymentMethod = method;
+      document.querySelectorAll('.pay-method-btn').forEach((btn) => {
+        btn.className = 'pay-method-btn p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition';
+      });
+      const activeBtn = document.getElementById(`payBtn${method}`);
+      if (activeBtn) {
+        activeBtn.className = 'pay-method-btn p-3 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-left transition';
+      }
+
+      document.getElementById('cashChangeBox').classList.toggle('hidden', method !== 'DINHEIRO');
+      document.getElementById('pixQrBox').classList.toggle('hidden', method !== 'PIX');
+
+      if (method === 'DINHEIRO') {
+        const cashInput = document.getElementById('cashReceivedInput');
+        cashInput.value = '';
+        document.getElementById('cashChangeDisplay').textContent = 'R$ 0,00';
+        setTimeout(() => cashInput.focus(), 50);
+      }
+    }
+
+    function calculateChange() {
+      const { netTotal } = getCartTotals();
+      const received = parseFloat(document.getElementById('cashReceivedInput').value) || 0;
+      const change = Math.max(0, received - netTotal);
+      document.getElementById('cashChangeDisplay').textContent = formatBRL(change);
+    }
+
+    function finalizeSale() {
+      if (state.cart.length === 0) return;
+      const totals = getCartTotals();
+
+      if (state.paymentMethod === 'DINHEIRO') {
+        const received = parseFloat(document.getElementById('cashReceivedInput').value) || 0;
+        if (received > 0 && received < totals.netTotal) {
+          showToast('Valor recebido em dinheiro é menor que o total da venda.', 'error');
+          return;
+        }
+      }
+
+      state.cart.forEach((cartItem) => {
+        const med = state.medications.find((m) => m.id === cartItem.medId);
+        if (med) {
+          med.saldo = Math.max(0, med.saldo - cartItem.qty);
+        }
+      });
+
+      state.salesHistory.unshift({
+        id: `NFCe-${Date.now().toString().slice(-6)}`,
+        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        method: state.paymentMethod,
+        total: totals.netTotal,
+        customer: state.customer.name,
+        itemsCount: totals.totalVolumes
+      });
+
+      state.cart = [];
+      state.discountValue = 0;
+      state.customer = { cpf: '', name: 'CONSUMIDOR FINAL', convenio: 'À VISTA / PARTICULAR' };
+      document.getElementById('headerCustomerName').textContent = state.customer.name;
+
+      persistStorage();
+      applyFilters();
+      renderCart();
+      closeAllModals();
+      showToast(`Venda concluída (${state.paymentMethod}) • ${formatBRL(totals.netTotal)} • Estoque atualizado!`, 'success');
+      searchInput.focus();
+    }
+
+    // 12. DESCONTO E CLIENTE
+    function setDiscountMode(mode) {
+      state.discountMode = mode;
+      document.getElementById('discTypePctBtn').className = mode === 'PCT'
+        ? 'flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#1E3A8A] text-white'
+        : 'flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200';
+      document.getElementById('discTypeValBtn').className = mode === 'VAL'
+        ? 'flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#1E3A8A] text-white'
+        : 'flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200';
+
+      document.getElementById('discountInputLabel').textContent = mode === 'PCT'
+        ? 'Percentual de Desconto (%)'
+        : 'Valor de Desconto em Reais (R$)';
+      document.getElementById('quickPctButtons').classList.toggle('hidden', mode !== 'PCT');
+      document.getElementById('discountValueInput').focus();
+    }
+
+    function applyQuickDiscount(pct) {
+      state.discountMode = 'PCT';
+      document.getElementById('discountValueInput').value = pct;
+    }
+
+    function confirmDiscount() {
+      const val = parseFloat(document.getElementById('discountValueInput').value);
+      if (isNaN(val) || val < 0) {
+        showToast('Informe um valor de desconto válido.', 'error');
+        return;
+      }
+      if (state.discountMode === 'PCT' && val > 50) {
+        showToast('Desconto percentual máximo permitido é 50%.', 'error');
+        return;
+      }
+      state.discountValue = val;
+      renderCart();
+      closeAllModals();
+      showToast(
+        state.discountMode === 'PCT'
+          ? `Desconto de ${val}% aplicado à sacola.`
+          : `Desconto de ${formatBRL(val)} aplicado à sacola.`,
+        'success'
+      );
+    }
+
+    function saveCustomerInfo() {
+      const cpf = document.getElementById('customerCpfInput').value.trim();
+      const name = document.getElementById('customerNameInput').value.trim() || 'CONSUMIDOR FINAL';
+      const convenio = document.getElementById('customerConvenioInput').value;
+
+      state.customer = { cpf, name: name.toUpperCase(), convenio };
+      document.getElementById('headerCustomerName').textContent = state.customer.name;
+      closeAllModals();
+      showToast(`Cliente vinculado: ${state.customer.name}`, 'success');
+    }
+
+    // 13. MENU NUMÉRICO DE OPERAÇÕES (<F11>)
+    document.getElementById('menuOptionInput').addEventListener('keyup', (e) => {
+      const val = e.target.value.trim();
+      if (val.length === 2 || e.key === 'Enter') {
+        executeMenuOption(val);
+      }
+    });
+
+    function executeMenuOption(code) {
+      closeAllModals();
+      if (code === '11') {
+        openModal('modalPreVendas');
+        return;
+      }
+      if (code === '04') {
+        if (state.salesHistory.length === 0) {
+          showToast('Nenhuma venda recente para estornar.', 'info');
+          return;
+        }
+        const estornada = state.salesHistory.shift();
+        persistStorage();
+        showToast(`Venda ${estornada.id} (${formatBRL(estornada.total)}) estornada!`, 'warning');
+        return;
+      }
+      if (code === '20' || code === '21') {
+        const isSuprimento = code === '20';
+        document.getElementById('caixaOpTitle').textContent = isSuprimento ? '20 - Suprimento de Caixa' : '21 - Sangria de Caixa';
+        document.getElementById('caixaOpBody').innerHTML = `
+          <div>
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Valor (R$)</label>
+            <input id="cashMoveVal" type="number" step="0.01" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-mono text-slate-900 outline-none" placeholder="0,00" />
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Observação / Motivo</label>
+            <input id="cashMoveObs" type="text" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 outline-none" placeholder="Ex: Troco adicional / Depósito cofre" />
+          </div>
+          <button onclick="registerCashMove('${isSuprimento ? 'SUPRIMENTO' : 'SANGRIA'}')" class="w-full py-2.5 rounded-xl ${isSuprimento ? 'bg-[#047857]' : 'bg-red-600'} text-white font-bold text-xs uppercase">
+            Confirmar Lançamento
+          </button>
+        `;
+        openModal('modalCaixaOperacao');
+        setTimeout(() => document.getElementById('cashMoveVal').focus(), 50);
+        return;
+      }
+      if (code === '80' || code === '81') {
+        const totalVendas = state.salesHistory.reduce((acc, s) => acc + s.total, 0);
+        const totalSuprimentos = state.cashMoves.filter((m) => m.tipo === 'SUPRIMENTO').reduce((a, b) => a + b.valor, 0);
+        const totalSangrias = state.cashMoves.filter((m) => m.tipo === 'SANGRIA').reduce((a, b) => a + b.valor, 0);
+        const saldoGaveta = totalSuprimentos + totalVendas - totalSangrias;
+
+        document.getElementById('caixaOpTitle').textContent = code === '80' ? '80 - Fechamento Parcial (Leitura X)' : '81 - Fechamento Geral (Redução Z)';
+        document.getElementById('caixaOpBody').innerHTML = `
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 font-mono text-xs flex flex-col gap-2">
+            <div class="flex justify-between"><span class="text-slate-600">Vendas Concluídas (${state.salesHistory.length}):</span><span class="text-emerald-700 font-bold">${formatBRL(totalVendas)}</span></div>
+            <div class="flex justify-between"><span class="text-slate-600">Suprimentos (+):</span><span class="text-blue-700 font-bold">${formatBRL(totalSuprimentos)}</span></div>
+            <div class="flex justify-between"><span class="text-slate-600">Sangrias (-):</span><span class="text-red-600 font-bold">- ${formatBRL(totalSangrias)}</span></div>
+            <div class="border-t border-slate-300 pt-2 flex justify-between text-sm font-extrabold text-slate-900"><span>SALDO EM CAIXA:</span><span>${formatBRL(saldoGaveta)}</span></div>
+          </div>
+          <button onclick="closeAllModals()" class="w-full py-2.5 rounded-xl bg-[#1E3A8A] text-white font-bold text-xs uppercase">Concluir Conferência</button>
+        `;
+        openModal('modalCaixaOperacao');
+        return;
+      }
+      if (code === '30') {
+        const criticos = state.medications.filter((m) => m.saldo <= 10);
+        document.getElementById('caixaOpTitle').textContent = '30 - Falteiro / Reposição Crítica';
+        document.getElementById('caixaOpBody').innerHTML = `
+          <div class="text-xs text-slate-600 mb-1">Itens com estoque baixo (≤ 10 unid.):</div>
+          <div class="max-h-56 overflow-y-auto divide-y divide-slate-200 bg-slate-50 rounded-xl border border-slate-200">
+            ${criticos.map((z) => `<div class="p-2.5 flex justify-between text-xs"><span class="font-bold text-slate-800">${z.descricao}</span><span class="font-mono text-red-600 font-bold">Saldo: ${z.saldo}</span></div>`).join('')}
+          </div>
+        `;
+        openModal('modalCaixaOperacao');
+        return;
+      }
+
+      showToast(`Operação [${code}] executada no terminal.`, 'info');
+    }
+
+    function registerCashMove(tipo) {
+      const valor = parseFloat(document.getElementById('cashMoveVal').value);
+      const obs = document.getElementById('cashMoveObs').value.trim() || tipo;
+      if (isNaN(valor) || valor <= 0) {
+        showToast('Informe um valor válido.', 'error');
+        return;
+      }
+      state.cashMoves.push({
+        tipo,
+        valor,
+        obs,
+        hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      });
+      persistStorage();
+      closeAllModals();
+      showToast(`${tipo} de ${formatBRL(valor)} registrado!`, 'success');
+    }
+
+    // 14. AUXILIARES DE MODAIS E ABAS MOBILE
+    function openModal(id) {
+      closeAllModals();
+      if (id === 'modalPreVendas') renderPreVendasModal();
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+      }
+      if (id === 'modalOpcoes') {
+        const inp = document.getElementById('menuOptionInput');
+        inp.value = '';
+        setTimeout(() => inp.focus(), 50);
+      }
+      if (id === 'modalDesconto') {
+        setDiscountMode(state.discountMode || 'PCT');
+        const inp = document.getElementById('discountValueInput');
+        inp.value = state.discountValue || '';
+        setTimeout(() => inp.focus(), 50);
+      }
+    }
+
+    function closeAllModals() {
+      ['modalOpcoes', 'modalPagamento', 'modalDesconto', 'modalCliente', 'modalPreVendas', 'modalCaixaOperacao'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.add('hidden');
+          el.classList.remove('flex');
+        }
+      });
+    }
+
+    function isAnyModalOpen() {
+      return ['modalOpcoes', 'modalPagamento', 'modalDesconto', 'modalCliente', 'modalPreVendas', 'modalCaixaOperacao'].some(
+        (id) => !document.getElementById(id).classList.contains('hidden')
+      );
+    }
+
+    function switchMobileTab(tab) {
+      const balcao = document.getElementById('sectionBalcao');
+      const caixa = document.getElementById('sectionCaixa');
+      const btnBalcao = document.getElementById('tabBtnBalcao');
+      const btnCaixa = document.getElementById('tabBtnCaixa');
+
+      if (tab === 'balcao') {
+        balcao.classList.remove('hidden');
+        caixa.classList.add('hidden');
+        caixa.classList.remove('flex');
+        btnBalcao.className = 'py-1.5 px-3 rounded-xl text-xs font-bold bg-[#1E3A8A] text-white shadow-sm';
+        btnCaixa.className = 'py-1.5 px-3 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center gap-2';
+      } else {
+        balcao.classList.add('hidden');
+        caixa.classList.remove('hidden');
+        caixa.classList.add('flex');
+        btnCaixa.className = 'py-1.5 px-3 rounded-xl text-xs font-bold bg-[#047857] text-white shadow-sm flex items-center justify-center gap-2';
+        btnBalcao.className = 'py-1.5 px-3 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200';
+      }
+    }
+
+    // 15. ATALHOS DE TECLADO GLOBAIS
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        openModal('modalDesconto');
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (isAnyModalOpen()) {
+          closeAllModals();
+          searchInput.focus();
+        } else {
+          handleEscapeAction();
+        }
+        return;
+      }
+
+      if (e.key === 'F1') {
+        e.preventDefault();
+        closeAllModals();
+        focusSearchInput();
+        return;
+      }
+      if (e.key === 'F2') {
+        e.preventDefault();
+        toggleStockFilter();
+        return;
+      }
+      if (e.key === 'F3') {
+        e.preventDefault();
+        toggleSearchMode();
+        return;
+      }
+      if (e.key === 'F4') {
+        e.preventDefault();
+        openModal('modalPreVendas');
+        return;
+      }
+      if (e.key === 'F5') {
+        e.preventDefault();
+        savePreVenda();
+        return;
+      }
+      if (e.key === 'F8') {
+        e.preventDefault();
+        removeLastOrSelectedCartItem();
+        return;
+      }
+      if (e.key === 'F9') {
+        e.preventDefault();
+        openPaymentModal();
+        return;
+      }
+      if (e.key === 'F10') {
+        e.preventDefault();
+        openModal('modalCliente');
+        return;
+      }
+      if (e.key === 'F11') {
+        e.preventDefault();
+        openModal('modalOpcoes');
+        return;
+      }
+
+      if (!isAnyModalOpen()) {
+        // Navegação na tabela de pesquisa quando ainda não há item fixado
+        if (state.pinnedMedId === null) {
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (state.filteredMeds.length > 0 && state.selectedIndex < state.filteredMeds.length - 1) {
+              state.selectedIndex++;
+              renderTable();
+              ensureSelectedRowVisible();
+            }
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (state.filteredMeds.length > 0 && state.selectedIndex > 0) {
+              state.selectedIndex--;
+              renderTable();
+              ensureSelectedRowVisible();
+            }
+          } else if (e.key === 'Enter' || e.key === 'NumpadEnter') {
+            if (state.filteredMeds.length > 0 && state.filteredMeds[state.selectedIndex]) {
+              e.preventDefault();
+              pinRowByIndex(state.selectedIndex);
+              searchInput.blur();
+            }
+          }
+        } else {
+          // Quando o item está fixado: ← / → troca entre os 3 cards de sugestão, 2º Enter envia à sacola
+          if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+            if (state.suggestionCards.length > 0) {
+              e.preventDefault();
+              const nextIdx = e.key === 'ArrowRight' ? 0 : state.suggestionCards.length - 1;
+              pinMedicationById(state.suggestionCards[nextIdx].id);
+            }
+          } else if (e.key === 'Enter' || e.key === 'NumpadEnter') {
+            e.preventDefault();
+            confirmPinnedToCart();
+          } else if (document.activeElement !== searchInput && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            searchInput.focus();
+          }
+        }
+      } else if ((e.key === 'Enter' || e.key === 'NumpadEnter') && !document.getElementById('modalPagamento').classList.contains('hidden')) {
+        e.preventDefault();
+        finalizeSale();
+      }
+    });
+
+    // 16. NOTIFICAÇÕES TOAST
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+
+      const styles = {
+        success: 'bg-white border-emerald-500 text-emerald-800',
+        warning: 'bg-white border-amber-500 text-amber-900',
+        error: 'bg-white border-red-500 text-red-800',
+        info: 'bg-white border-blue-600 text-blue-900'
+      };
+
+      toast.className = `pointer-events-auto border-l-4 border ${styles[type] || styles.info} px-3.5 py-2.5 rounded-xl shadow-lg text-xs font-bold flex items-center justify-between gap-2 transition-all duration-300`;
+      toast.innerHTML = `<span>${message}</span>`;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-6px)';
+        setTimeout(() => toast.remove(), 250);
+      }, 2800);
+    }
+
+    window.onload = initApp;
+  </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext.js';
 import { PortalOperacionalScreen } from './pages/PortalOperacionalScreen.js';
 import { PdvCaixaScreen } from './pages/PdvCaixaScreen.js';
@@ -14,12 +14,38 @@ import {
 } from './components/ModalAtalhosOperacionais.js';
 import { MenuLateral, ModuloNavegacao } from './components/MenuLateral.js';
 
+// Detecção inicial da rota via URL para suportar acesso direto aos ambientes independentes
+const obterModuloInicial = (): ModuloNavegacao => {
+  if (typeof window !== 'undefined') {
+    const path = window.location.pathname.toLowerCase();
+    const host = window.location.hostname.toLowerCase();
+    if (path.startsWith('/balcao') || host.startsWith('balcao')) return 'balcao-consulta';
+    if (path.startsWith('/pdv') || path.startsWith('/caixa') || host.startsWith('pdv')) return 'pdv-caixa';
+  }
+  return 'portal-operacional';
+};
+
 export const App: React.FC = () => {
   const { temPermissao, usuario, logout } = useAuth();
 
   // Navegação Global FarmaPro — Exclusivamente os dois ambientes operacionais
-  const [moduloAtivo, setModuloAtivo] = useState<ModuloNavegacao>('portal-operacional');
-  const [menuAberto, setMenuAberto] = useState<boolean>(true);
+  const [moduloAtivo, setModuloAtivo] = useState<ModuloNavegacao>(obterModuloInicial);
+  const [menuAberto, setMenuAberto] = useState<boolean>(() => obterModuloInicial() === 'portal-operacional');
+
+  // Sincronização da URL com o ambiente ativo
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const targetPath =
+        moduloAtivo === 'balcao-consulta'
+          ? '/balcao'
+          : moduloAtivo === 'pdv-caixa'
+            ? '/pdv'
+            : '/';
+      if (window.location.pathname !== targetPath) {
+        window.history.replaceState(null, '', targetPath);
+      }
+    }
+  }, [moduloAtivo]);
 
   // Modais de Autenticação Operacional (Matrícula + Senha Numérica 6 Dígitos)
   const [loginOperacional, setLoginOperacional] = useState<{
