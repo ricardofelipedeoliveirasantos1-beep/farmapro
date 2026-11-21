@@ -8,6 +8,7 @@ import {
   Venda,
   Voucher,
 } from '@farmapro/shared';
+import { PreVendaService } from './prevenda.service.js';
 
 export interface ProdutoPesquisaVenda {
   id: string;
@@ -668,6 +669,28 @@ export class VendasService {
         }),
       ],
     );
+
+    // Se a venda originou-se de uma comanda / pré-venda gerada no Balcão
+    if (dados.preVendaId || dados.codigoComanda) {
+      let targetPreVendaId = dados.preVendaId;
+      if (!targetPreVendaId && dados.codigoComanda) {
+        const resPv = await client.query<{ id: string }>(
+          `SELECT id FROM pre_vendas WHERE empresa_id = $1 AND filial_id = $2 AND UPPER(codigo_comanda) = $3`,
+          [tenant.empresaId, filialId, dados.codigoComanda.trim().toUpperCase()],
+        );
+        targetPreVendaId = resPv.rows[0]?.id;
+      }
+
+      if (targetPreVendaId) {
+        await PreVendaService.finalizarPreVendaNoCaixa(
+          client,
+          tenant,
+          targetPreVendaId,
+          vendaId,
+          operadorId,
+        );
+      }
+    }
 
     return {
       id: vendaId,

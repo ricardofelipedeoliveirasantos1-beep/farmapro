@@ -15,6 +15,12 @@ export type Permissao =
   | 'pdv:fechar_caixa'
   | 'pdv:reabrir_caixa'
   
+  // Balcão de Atendimento e Consulta (Operação de Balcão e Pré-Venda)
+  | 'balcao:consultar'
+  | 'pre_venda:criar'
+  | 'pre_venda:consultar'
+  | 'pre_venda:cancelar'
+  
   // Vouchers (Cancelamentos e Devoluções)
   | 'vouchers:emitir'
   | 'vouchers:consultar'

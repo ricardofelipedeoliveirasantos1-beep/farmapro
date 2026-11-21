@@ -12,6 +12,7 @@ export * from './types/produto';
 export * from './types/lote';
 export * from './types/cliente';
 export * from './types/venda';
+export * from './types/prevenda';
 export * from './types/voucher';
 export * from './types/estoque';
 export * from './types/compras';

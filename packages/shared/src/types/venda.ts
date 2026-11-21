@@ -191,6 +191,8 @@ export interface CriarVendaDTO {
   filialId?: string;
   caixaSessaoId: string;
   dispositivoId: string;
+  preVendaId?: string;
+  codigoComanda?: string;
   clienteId?: string;
   clienteIdentificacao?: {
     cpf?: string;

@@ -10,6 +10,7 @@ import { rotasVendas } from './routes/vendas.routes.js';
 import { rotasEstoque } from './routes/estoque.routes.js';
 import { rotasCompras } from './routes/compras.routes.js';
 import { rotasRecebimento } from './routes/recebimento.routes.js';
+import { rotasPreVenda } from './routes/prevenda.routes.js';
 
 const porta = Number(process.env.PORT) || 3333;
 const host = process.env.API_HOST || '0.0.0.0';
@@ -43,6 +44,7 @@ async function iniciarServidor() {
     await fastify.register(rotasEstoque);
     await fastify.register(rotasCompras);
     await fastify.register(rotasRecebimento);
+    await fastify.register(rotasPreVenda);
 
     // Rota de Verificação de Saúde (Health Check)
     fastify.get('/api/health', async () => {

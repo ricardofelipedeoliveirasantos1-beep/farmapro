@@ -20,6 +20,9 @@ import { Badge } from '@farmapro/ui';
 import { useAuth } from '../contexts/AuthContext.js';
 
 export type ModuloNavegacao =
+  | 'portal-operacional'
+  | 'pdv-caixa'
+  | 'balcao-consulta'
   | 'pdv-balcao'
   | 'operacao-caixa'
   | 'historico-vendas'
@@ -68,6 +71,36 @@ export const MenuLateral: React.FC<MenuLateralProps> = ({
   const { temPermissao } = useAuth();
 
   const grupos: GrupoMenu[] = [
+    {
+      titulo: 'Operação Independente',
+      itens: [
+        {
+          id: 'portal-operacional',
+          titulo: 'Portal de Acesso Operacional',
+          descricao: 'Seleção independente entre Caixa e Balcão',
+          icone: LayoutDashboard,
+          destaque: true,
+        },
+        {
+          id: 'pdv-caixa',
+          titulo: 'Caixa / PDV (Exclusivo)',
+          descricao: 'Frente de caixa, comanda e troco dinâmico',
+          icone: ShoppingCart,
+          permissao: 'pdv:acesso',
+          destaque: true,
+          badge: 'Exclusivo',
+        },
+        {
+          id: 'balcao-consulta',
+          titulo: 'Balcão & Consulta (Exclusivo)',
+          descricao: 'Consulta, preços, FEFO e emissão de comanda',
+          icone: Pill,
+          permissao: 'balcao:consultar',
+          destaque: true,
+          badge: 'Exclusivo',
+        },
+      ],
+    },
     {
       titulo: 'Atendimento & Caixa',
       itens: [

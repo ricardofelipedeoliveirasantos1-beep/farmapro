@@ -46,6 +46,9 @@ import { HistoricoVendasPage } from './pages/HistoricoVendasPage.js';
 import { PainelEstoquePage } from './pages/PainelEstoquePage.js';
 import { PainelComprasPage } from './pages/PainelComprasPage.js';
 import { PainelRecebimentoPage } from './pages/PainelRecebimentoPage.js';
+import { PortalOperacionalScreen } from './pages/PortalOperacionalScreen.js';
+import { PdvCaixaScreen } from './pages/PdvCaixaScreen.js';
+import { BalcaoConsultaScreen } from './pages/BalcaoConsultaScreen.js';
 import { LoginModal } from './pages/LoginModal.js';
 import { SelecionarTenantModal } from './pages/SelecionarTenantModal.js';
 import { MenuLateral, ModuloNavegacao } from './components/MenuLateral.js';
@@ -134,10 +137,11 @@ export const App: React.FC = () => {
     cargoAtual,
     origemPin,
     logout,
+    temPermissao,
   } = useAuth();
 
   // Navegação Global FarmaPro (Padrão Light com Menu Hambúrguer)
-  const [moduloAtivo, setModuloAtivo] = useState<ModuloNavegacao>('pdv-balcao');
+  const [moduloAtivo, setModuloAtivo] = useState<ModuloNavegacao>('portal-operacional');
   const [menuAbertoMobile, setMenuAbertoMobile] = useState<boolean>(false);
   const [recolhidoDesktop, setRecolhidoDesktop] = useState<boolean>(false);
 
@@ -152,6 +156,75 @@ export const App: React.FC = () => {
     setBotaoCarregando(true);
     setTimeout(() => setBotaoCarregando(false), 1000);
   };
+
+  if (moduloAtivo === 'portal-operacional') {
+    return (
+      <>
+        <PortalOperacionalScreen
+          aoNavegarCaixa={() => {
+            if (temPermissao('pdv:acesso')) {
+              setModuloAtivo('pdv-caixa');
+            } else {
+              alert('Acesso negado: Seu usuário não possui a permissão de Caixa (pdv:acesso).');
+            }
+          }}
+          aoNavegarBalcao={() => {
+            if (
+              temPermissao('balcao:consultar') ||
+              temPermissao('pdv:acesso') ||
+              temPermissao('pre_venda:criar')
+            ) {
+              setModuloAtivo('balcao-consulta');
+            } else {
+              alert('Acesso negado: Seu usuário não possui permissão de Balcão (balcao:consultar).');
+            }
+          }}
+          aoAbrirLogin={() => setModalLoginAberto(true)}
+        />
+        <LoginModal aberto={modalLoginAberto} aoFechar={() => setModalLoginAberto(false)} />
+      </>
+    );
+  }
+
+  if (moduloAtivo === 'pdv-caixa') {
+    return (
+      <>
+        <PdvCaixaScreen
+          aoVoltarPortal={() => setModuloAtivo('portal-operacional')}
+          aoAbrirMenu={() => setMenuAbertoMobile(true)}
+        />
+        <MenuLateral
+          moduloAtivo={moduloAtivo}
+          aoSelecionarModulo={(mod) => setModuloAtivo(mod)}
+          abertoMobile={menuAbertoMobile}
+          aoFecharMobile={() => setMenuAbertoMobile(false)}
+          recolhidoDesktop={true}
+          aoAlternarRecolhidoDesktop={() => {}}
+        />
+        <LoginModal aberto={modalLoginAberto} aoFechar={() => setModalLoginAberto(false)} />
+      </>
+    );
+  }
+
+  if (moduloAtivo === 'balcao-consulta') {
+    return (
+      <>
+        <BalcaoConsultaScreen
+          aoVoltarPortal={() => setModuloAtivo('portal-operacional')}
+          aoAbrirMenu={() => setMenuAbertoMobile(true)}
+        />
+        <MenuLateral
+          moduloAtivo={moduloAtivo}
+          aoSelecionarModulo={(mod) => setModuloAtivo(mod)}
+          abertoMobile={menuAbertoMobile}
+          aoFecharMobile={() => setMenuAbertoMobile(false)}
+          recolhidoDesktop={true}
+          aoAlternarRecolhidoDesktop={() => {}}
+        />
+        <LoginModal aberto={modalLoginAberto} aoFechar={() => setModalLoginAberto(false)} />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
