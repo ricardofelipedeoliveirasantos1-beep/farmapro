@@ -145,28 +145,17 @@ export const PortalOperacionalScreen: React.FC<PortalOperacionalScreenProps> = (
           2. ÁREA CENTRAL HERO: AMBIENTE DE FARMÁCIA + LOGOMARCA CENTRAL + SLOGAN
           ========================================================================= */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8">
-        {/* Fundo Farmácia com Efeito de Desfoque e Prateleiras Sutis */}
-        <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
-          {/* Luz de fundo suave e gradiente farmacêutico */}
-          <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 via-white to-blue-50/30" />
+        {/* Fundo Real de Farmácia Desfocada com Iluminação Clara e Prateleiras */}
+        <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden select-none bg-white">
+          {/* Imagem Fotográfica Real de Farmácia com Desfoque Suave */}
+          <img
+            src="/fundo-farmacia.jpg"
+            alt="Ambiente Farmácia Desfocado"
+            className="absolute inset-0 w-full h-full object-cover object-center opacity-85"
+          />
 
-          {/* Silhueta sutil de prateleiras de medicamentos ao fundo */}
-          <svg
-            className="absolute inset-0 w-full h-full opacity-12"
-            xmlns="http://www.w3.org/2000/svg"
-            preserveAspectRatio="none"
-          >
-            <defs>
-              <pattern id="shelf-pattern" width="160" height="90" patternUnits="userSpaceOnUse">
-                <rect x="10" y="20" width="30" height="45" rx="3" fill="#0284c7" />
-                <rect x="45" y="25" width="22" height="40" rx="3" fill="#10b981" />
-                <rect x="72" y="15" width="35" height="50" rx="3" fill="#3b82f6" />
-                <rect x="112" y="28" width="25" height="37" rx="3" fill="#0284c7" />
-                <line x1="0" y1="68" x2="160" y2="68" stroke="#94a3b8" strokeWidth="3" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#shelf-pattern)" />
-          </svg>
+          {/* Iluminação Clara Suave para Garantir Contraste Perfeito e Ambiente Branco */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-white/40 to-white/60" />
 
           {/* Ondas Fluidas Estilizadas em Azul e Verde no Rodapé (Exato à Referência) */}
           <div className="absolute bottom-0 left-0 right-0 h-48 sm:h-64 overflow-hidden">

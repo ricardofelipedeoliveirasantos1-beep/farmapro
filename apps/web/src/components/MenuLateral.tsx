@@ -244,12 +244,12 @@ export const MenuLateral: React.FC<MenuLateralProps> = ({
 
   return (
     <>
-      {/* Menu Drawer Sobreposto (Posicionado exatamente à esquerda) */}
+      {/* Menu Drawer Sobreposto (Posicionado exatamente à esquerda sobre o fundo claro limpo) */}
       {abertoMobile && (
         <div className="fixed inset-0 z-50 flex pointer-events-auto">
-          {/* Fundo escuro sutil para fechar ao clicar fora */}
+          {/* Fundo transparente para fechar ao clicar fora, sem escurecer nem cobrir a tela com camada preta */}
           <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-2xs transition-opacity"
+            className="fixed inset-0 bg-transparent"
             onClick={aoFecharMobile}
           />
           {/* Caixa do Menu */}
