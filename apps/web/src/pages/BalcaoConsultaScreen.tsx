@@ -23,8 +23,10 @@ import {
   Sparkles,
   Barcode,
   Menu,
+  Eye,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext.js';
+import { FichaMedicamentoModal } from '../components/FichaMedicamentoModal.js';
 
 interface ItemOrcamento {
   produtoId: string;
@@ -69,6 +71,10 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
   const [comandaGerada, setComandaGerada] = useState<PreVenda | null>(null);
   const [modalComandaAberta, setModalComandaAberta] = useState<boolean>(false);
   const [gerandoComanda, setGerandoComanda] = useState<boolean>(false);
+
+  // Ficha Completa do Medicamento
+  const [produtoFicha, setProdutoFicha] = useState<ConsultaProdutoBalcao | null>(null);
+  const [modalFichaAberta, setModalFichaAberta] = useState<boolean>(false);
 
   // Posição de Atendimento
   const [posicaoBalcao] = useState<string>('Balcão 02');
@@ -263,16 +269,17 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [produtosEncontrados, indiceFocado, itensOrcamento]);
 
-  // Debounce na busca
+  // Debounce na busca (com exigência mínima de 2 caracteres)
   useEffect(() => {
     const termo = termoBusca.trim();
-    if (!termo) {
+    if (termo.length < 2) {
       setProdutosEncontrados(catalogoLocalDemonstrativo);
+      setCarregandoBusca(false);
       return;
     }
 
+    setCarregandoBusca(true);
     const timer = setTimeout(async () => {
-      setCarregandoBusca(true);
       try {
         const res = await fetch(`/api/pre-vendas/produtos?q=${encodeURIComponent(termo)}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -691,14 +698,28 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
                         <span className="text-lg font-black text-slate-900">
                           {formatarCentavosParaReal(prod.precoVendaCentavos)}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => handleAdicionarAoOrcamento(prod)}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs transition-all active:scale-95"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Adicionar</span>
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProdutoFicha(prod);
+                              setModalFichaAberta(true);
+                            }}
+                            className="px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center gap-1 transition-all"
+                            title="Ver Ficha Completa do Medicamento"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Ficha</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAdicionarAoOrcamento(prod)}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs transition-all active:scale-95"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Adicionar</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -945,6 +966,14 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
           </div>
         </Modal>
       )}
+
+      {/* 5. MODAL DE FICHA COMPLETA DO MEDICAMENTO */}
+      <FichaMedicamentoModal
+        produto={produtoFicha}
+        aberto={modalFichaAberta}
+        aoFechar={() => setModalFichaAberta(false)}
+        aoAdicionarAoOrcamento={(prod) => handleAdicionarAoOrcamento(prod)}
+      />
     </div>
   );
 };

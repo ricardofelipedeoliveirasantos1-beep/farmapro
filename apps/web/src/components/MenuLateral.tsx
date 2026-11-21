@@ -1,48 +1,35 @@
 import React from 'react';
 import {
   ShoppingCart,
-  Coins,
-  Receipt,
-  Boxes,
-  Users,
-  ShieldCheck,
   Pill,
   LayoutDashboard,
-  Palette,
-  FileCode,
+  Settings,
+  HelpCircle,
   X,
-  ChevronLeft,
-  ChevronRight,
-  Truck,
-  PackageCheck,
+  User,
+  LogOut,
+  KeyRound,
 } from 'lucide-react';
 import { Badge } from '@farmapro/ui';
 import { useAuth } from '../contexts/AuthContext.js';
 
 export type ModuloNavegacao =
   | 'portal-operacional'
-  | 'pdv-caixa'
   | 'balcao-consulta'
-  | 'pdv-balcao'
-  | 'operacao-caixa'
-  | 'historico-vendas'
-  | 'estoque-lotes'
-  | 'compras-pedidos'
-  | 'recebimento-nfe'
-  | 'funcionarios'
-  | 'cargos-permissoes'
-  | 'catalogo-demo'
-  | 'visao-geral'
-  | 'design-system'
-  | 'contratos';
+  | 'pdv-caixa'
+  | 'configuracoes-operacionais'
+  | 'ajuda-operacional';
 
 interface MenuLateralProps {
   moduloAtivo: ModuloNavegacao;
   aoSelecionarModulo: (modulo: ModuloNavegacao) => void;
   abertoMobile: boolean;
   aoFecharMobile: () => void;
-  recolhidoDesktop: boolean;
-  aoAlternarRecolhidoDesktop: () => void;
+  recolhidoDesktop?: boolean;
+  aoAlternarRecolhidoDesktop?: () => void;
+  aoAbrirConfiguracoes?: () => void;
+  aoAbrirAjuda?: () => void;
+  aoAbrirLogin?: () => void;
 }
 
 interface ItemMenu {
@@ -53,6 +40,7 @@ interface ItemMenu {
   permissao?: string;
   badge?: string;
   destaque?: boolean;
+  acaoEspecial?: 'configuracoes' | 'ajuda';
 }
 
 interface GrupoMenu {
@@ -65,152 +53,59 @@ export const MenuLateral: React.FC<MenuLateralProps> = ({
   aoSelecionarModulo,
   abertoMobile,
   aoFecharMobile,
-  recolhidoDesktop,
-  aoAlternarRecolhidoDesktop,
+  aoAbrirConfiguracoes,
+  aoAbrirAjuda,
+  aoAbrirLogin,
 }) => {
-  const { temPermissao } = useAuth();
+  const { usuario, cargoAtual, filialAtiva, logout, temPermissao } = useAuth();
 
   const grupos: GrupoMenu[] = [
     {
-      titulo: 'Operação Independente',
+      titulo: 'Terminais Operacionais',
       itens: [
         {
           id: 'portal-operacional',
-          titulo: 'Portal de Acesso Operacional',
-          descricao: 'Seleção independente entre Caixa e Balcão',
+          titulo: 'Início / Seleção Operacional',
+          descricao: 'Portal com os dois acessos de trabalho',
           icone: LayoutDashboard,
+          destaque: true,
+        },
+        {
+          id: 'balcao-consulta',
+          titulo: 'Painel de Venda (Balcão)',
+          descricao: 'Consulta, preços, FEFO e emissão de comanda',
+          icone: Pill,
+          permissao: 'balcao:consultar',
+          badge: 'Balcão',
           destaque: true,
         },
         {
           id: 'pdv-caixa',
-          titulo: 'Caixa / PDV (Exclusivo)',
-          descricao: 'Frente de caixa, comanda e troco dinâmico',
+          titulo: 'PDV (Caixa)',
+          descricao: 'Frente de caixa, leitura de comanda e troco dinâmico',
           icone: ShoppingCart,
           permissao: 'pdv:acesso',
+          badge: 'Caixa',
           destaque: true,
-          badge: 'Exclusivo',
-        },
-        {
-          id: 'balcao-consulta',
-          titulo: 'Balcão & Consulta (Exclusivo)',
-          descricao: 'Consulta, preços, FEFO e emissão de comanda',
-          icone: Pill,
-          permissao: 'balcao:consultar',
-          destaque: true,
-          badge: 'Exclusivo',
         },
       ],
     },
     {
-      titulo: 'Atendimento & Caixa',
+      titulo: 'Operação & Suporte',
       itens: [
         {
-          id: 'pdv-balcao',
-          titulo: 'PDV Balcão',
-          descricao: 'Vendas rápidas e leitor de código de barras',
-          icone: ShoppingCart,
-          permissao: 'pdv:acesso',
-          destaque: true,
-          badge: 'Etapa 06',
+          id: 'configuracoes-operacionais',
+          titulo: 'Configurações Essenciais',
+          descricao: 'Filial, terminal, impressora e modo local',
+          icone: Settings,
+          acaoEspecial: 'configuracoes',
         },
         {
-          id: 'operacao-caixa',
-          titulo: 'Operação de Caixa',
-          descricao: 'Abertura, suprimentos, sangrias e fechamento',
-          icone: Coins,
-          permissao: 'pdv:acesso',
-          badge: 'Etapa 06',
-        },
-        {
-          id: 'historico-vendas',
-          titulo: 'Histórico & Cancelamentos',
-          descricao: 'Cupons emitidos, cancelamentos e vouchers',
-          icone: Receipt,
-          permissao: 'pdv:acesso',
-          badge: 'Etapa 06',
-        },
-      ],
-    },
-    {
-      titulo: 'Estoque & Rastreabilidade',
-      itens: [
-        {
-          id: 'estoque-lotes',
-          titulo: 'Estoque, Lotes & FEFO',
-          descricao: 'Painel, lotes, FEFO, inventário e ledger',
-          icone: Boxes,
-          permissao: 'estoque:visualizar',
-          destaque: true,
-          badge: 'Etapa 07',
-        },
-        {
-          id: 'catalogo-demo',
-          titulo: 'Catálogo de Produtos',
-          descricao: 'Consulta de produtos e consulta rápida',
-          icone: Pill,
-          permissao: 'estoque:visualizar',
-        },
-      ],
-    },
-    {
-      titulo: 'Compras & Suprimentos',
-      itens: [
-        {
-          id: 'compras-pedidos',
-          titulo: 'Fornecedores & Pedidos',
-          descricao: 'Fornecedores, solicitações e ordens de compra',
-          icone: Truck,
-          permissao: 'fornecedores:consultar',
-          destaque: true,
-          badge: 'Etapa 08',
-        },
-        {
-          id: 'recebimento-nfe',
-          titulo: 'Recebimento & XML NF-e',
-          descricao: '3-Way Matching, XML, lotes e divergências',
-          icone: PackageCheck,
-          permissao: 'recebimento:consultar',
-          destaque: true,
-          badge: 'Etapa 09',
-        },
-      ],
-    },
-    {
-      titulo: 'Gestão de Pessoas & Acessos',
-      itens: [
-        {
-          id: 'funcionarios',
-          titulo: 'Colaboradores & PIN',
-          descricao: 'Usuários, filiais e PIN de terminal',
-          icone: Users,
-          permissao: 'usuarios:gerenciar',
-        },
-        {
-          id: 'cargos-permissoes',
-          titulo: 'Cargos & Permissões',
-          descricao: 'Matriz granular sem cargo Estoquista',
-          icone: ShieldCheck,
-          permissao: 'cargos:gerenciar',
-        },
-      ],
-    },
-    {
-      titulo: 'Fundação & Demonstração',
-      itens: [
-        {
-          id: 'visao-geral',
-          titulo: 'Visão Geral',
-          icone: LayoutDashboard,
-        },
-        {
-          id: 'design-system',
-          titulo: 'Design System (Light)',
-          icone: Palette,
-        },
-        {
-          id: 'contratos',
-          titulo: 'Contratos & Tipos',
-          icone: FileCode,
+          id: 'ajuda-operacional',
+          titulo: 'Ajuda & Atalhos (F1-F10)',
+          descricao: 'Guia rápido de atendimento e teclas de atalho',
+          icone: HelpCircle,
+          acaoEspecial: 'ajuda',
         },
       ],
     },
@@ -218,14 +113,14 @@ export const MenuLateral: React.FC<MenuLateralProps> = ({
 
   // Filtra itens autorizados com base nas permissões efetivas do usuário
   const gruposFiltrados = grupos
-    .map(grupo => ({
+    .map((grupo) => ({
       ...grupo,
-      itens: grupo.itens.filter(item => {
+      itens: grupo.itens.filter((item) => {
         if (!item.permissao) return true;
         return temPermissao(item.permissao);
       }),
     }))
-    .filter(grupo => grupo.itens.length > 0);
+    .filter((grupo) => grupo.itens.length > 0);
 
   const renderItem = (item: ItemMenu) => {
     const ativo = moduloAtivo === item.id;
@@ -235,8 +130,17 @@ export const MenuLateral: React.FC<MenuLateralProps> = ({
       <button
         key={item.id}
         type="button"
-        title={recolhidoDesktop ? `${item.titulo} — ${item.descricao || ''}` : undefined}
         onClick={() => {
+          if (item.acaoEspecial === 'configuracoes' && aoAbrirConfiguracoes) {
+            aoAbrirConfiguracoes();
+            aoFecharMobile();
+            return;
+          }
+          if (item.acaoEspecial === 'ajuda' && aoAbrirAjuda) {
+            aoAbrirAjuda();
+            aoFecharMobile();
+            return;
+          }
           aoSelecionarModulo(item.id);
           aoFecharMobile();
         }}
@@ -244,113 +148,143 @@ export const MenuLateral: React.FC<MenuLateralProps> = ({
           ativo
             ? 'bg-blue-600 text-white shadow-xs font-semibold'
             : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 font-medium'
-        } ${recolhidoDesktop ? 'justify-center px-2' : ''}`}
+        }`}
       >
         <Icone
-          className={`shrink-0 ${
-            ativo ? 'text-white' : item.destaque ? 'text-blue-600' : 'text-slate-500'
-          } ${recolhidoDesktop ? 'w-5 h-5' : 'w-4 h-4'}`}
+          className={`shrink-0 w-5 h-5 ${
+            ativo
+              ? 'text-white'
+              : item.id === 'balcao-consulta'
+              ? 'text-emerald-600'
+              : item.id === 'pdv-caixa'
+              ? 'text-blue-600'
+              : 'text-slate-500'
+          }`}
         />
-
-        {!recolhidoDesktop && (
-          <div className="flex-1 min-w-0 flex items-center justify-between gap-1.5">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-1">
             <span className="text-xs truncate">{item.titulo}</span>
             {item.badge && (
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider ${
-                  ativo ? 'bg-blue-700/80 text-blue-100' : 'bg-blue-50 text-blue-700 border border-blue-200'
-                }`}
+              <Badge
+                variante={item.id === 'balcao-consulta' ? 'sucesso' : 'info'}
+                tamanho="sm"
               >
                 {item.badge}
-              </span>
+              </Badge>
             )}
           </div>
-        )}
+          {item.descricao && (
+            <p className={`text-[10px] truncate ${ativo ? 'text-blue-100' : 'text-slate-400'}`}>
+              {item.descricao}
+            </p>
+          )}
+        </div>
       </button>
     );
   };
 
   const conteudoMenu = (
-    <div className="h-full flex flex-col bg-white select-none">
-      {/* Topo do Menu com Controle de Recolher/Expandir */}
-      <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-        {!recolhidoDesktop && (
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-            Navegação FarmaPro
-          </span>
-        )}
-        <button
-          type="button"
-          onClick={aoAlternarRecolhidoDesktop}
-          title={recolhidoDesktop ? 'Expandir Menu' : 'Recolher Menu'}
-          className="hidden lg:flex p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors mx-auto"
-        >
-          {recolhidoDesktop ? (
-            <ChevronRight className="w-4 h-4" />
-          ) : (
-            <ChevronLeft className="w-4 h-4" />
-          )}
-        </button>
+    <div className="flex flex-col h-full bg-white select-none">
+      {/* Cabeçalho do Menu */}
+      <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-lg shadow-xs">
+            +
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5 leading-none">
+              <span className="text-base font-black text-slate-900 tracking-tight">FarmaPro</span>
+              <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.2 rounded">
+                SaaS
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-500 font-medium block truncate max-w-[160px]">
+              {filialAtiva?.nome || 'Operação Farmacêutica'}
+            </span>
+          </div>
+        </div>
+
+        {/* Botão Fechar no Mobile */}
         <button
           type="button"
           onClick={aoFecharMobile}
-          className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-100"
+          className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          title="Fechar Menu"
         >
           <X className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Lista de Módulos por Categoria */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5">
-        {gruposFiltrados.map((grupo, idx) => (
-          <div key={idx} className="space-y-1">
-            {!recolhidoDesktop && (
-              <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                {grupo.titulo}
-              </p>
-            )}
-            <div className="space-y-1">{grupo.itens.map(renderItem)}</div>
+      {/* Lista de Módulos Operacionais */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-5">
+        {gruposFiltrados.map((grupo) => (
+          <div key={grupo.titulo} className="space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 block">
+              {grupo.titulo}
+            </span>
+            <div className="space-y-0.5">{grupo.itens.map(renderItem)}</div>
           </div>
         ))}
       </div>
 
-      {/* Rodapé Informativo */}
-      {!recolhidoDesktop && (
-        <div className="p-3 border-t border-slate-100 bg-slate-50/60 rounded-b-xl text-[11px] text-slate-500 flex items-center justify-between">
-          <span>Modo Light Ativo</span>
-          <Badge variante="sucesso" tamanho="sm">FarmaPro v0.1</Badge>
+      {/* Rodapé do Menu com Usuário Conectado */}
+      <div className="p-3 border-t border-slate-200 bg-slate-50/70 space-y-2">
+        <div className="px-2 py-1.5 rounded-lg bg-white border border-slate-200 flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+            <User className="w-3.5 h-3.5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="font-bold text-slate-800 text-xs block truncate">
+              {usuario?.nome || 'Operador'}
+            </span>
+            <span className="text-[10px] text-slate-500 block truncate">
+              {cargoAtual?.nome || 'Colaborador'}
+            </span>
+          </div>
         </div>
-      )}
+
+        <div className="grid grid-cols-2 gap-1.5 pt-1">
+          {aoAbrirLogin && (
+            <button
+              type="button"
+              onClick={() => {
+                aoAbrirLogin();
+                aoFecharMobile();
+              }}
+              className="py-1.5 px-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] flex items-center justify-center gap-1 transition-colors"
+            >
+              <KeyRound className="w-3 h-3 text-blue-600" />
+              <span>Trocar</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={logout}
+            className="py-1.5 px-2 rounded-lg border border-red-200 bg-white hover:bg-red-50 text-red-600 font-bold text-[11px] flex items-center justify-center gap-1 transition-colors"
+          >
+            <LogOut className="w-3 h-3" />
+            <span>Sair</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 
   return (
     <>
-      {/* 1. Gaveta Móvel (Drawer) para Celular e Tablet */}
+      {/* Drawer Gaveta Mobile / Modal */}
       {abertoMobile && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
-          {/* Fundo escurecido com clique para fechar */}
+        <div className="fixed inset-0 z-50 flex">
           <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
             onClick={aoFecharMobile}
           />
-          {/* Gaveta lateral deslizante */}
-          <div className="relative w-72 max-w-[85vw] bg-white h-full shadow-2xl z-10 flex flex-col">
+          <div className="relative z-10 w-72 max-w-[85vw] h-full shadow-2xl animate-in slide-in-from-left duration-200">
             {conteudoMenu}
           </div>
         </div>
       )}
-
-      {/* 2. Menu Lateral Fixo para Desktop (Recolhível) */}
-      <aside
-        className={`hidden lg:block shrink-0 transition-all duration-200 ${
-          recolhidoDesktop ? 'w-20' : 'w-64'
-        }`}
-      >
-        <div className="sticky top-20 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          {conteudoMenu}
-        </div>
-      </aside>
     </>
   );
 };

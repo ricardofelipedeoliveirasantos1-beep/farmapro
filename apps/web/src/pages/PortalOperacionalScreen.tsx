@@ -14,6 +14,9 @@ import {
   Clock,
   Sparkles,
   Lock,
+  Menu,
+  Settings,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext.js';
 
@@ -21,12 +24,18 @@ interface PortalOperacionalScreenProps {
   aoNavegarCaixa: () => void;
   aoNavegarBalcao: () => void;
   aoAbrirLogin: () => void;
+  aoAbrirMenu?: () => void;
+  aoAbrirConfiguracoes?: () => void;
+  aoAbrirAjuda?: () => void;
 }
 
 export const PortalOperacionalScreen: React.FC<PortalOperacionalScreenProps> = ({
   aoNavegarCaixa,
   aoNavegarBalcao,
   aoAbrirLogin,
+  aoAbrirMenu,
+  aoAbrirConfiguracoes,
+  aoAbrirAjuda,
 }) => {
   const { usuario, filialAtiva, cargoAtual, logout, temPermissao } = useAuth();
 
@@ -43,6 +52,17 @@ export const PortalOperacionalScreen: React.FC<PortalOperacionalScreenProps> = (
       <header className="bg-white border-b border-slate-200 px-6 py-4 shadow-xs">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
+            {aoAbrirMenu && (
+              <button
+                type="button"
+                onClick={aoAbrirMenu}
+                className="p-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
+                title="Abrir Menu Operacional"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            )}
+
             <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-xl shadow-xs">
               +
             </div>
@@ -59,7 +79,31 @@ export const PortalOperacionalScreen: React.FC<PortalOperacionalScreenProps> = (
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-slate-600">
+          <div className="flex items-center gap-3 text-xs text-slate-600">
+            {aoAbrirConfiguracoes && (
+              <button
+                type="button"
+                onClick={aoAbrirConfiguracoes}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 font-medium text-slate-700 transition-colors"
+                title="Configurações Operacionais Essenciais"
+              >
+                <Settings className="w-4 h-4 text-slate-500" />
+                <span className="hidden sm:inline">Configurações</span>
+              </button>
+            )}
+
+            {aoAbrirAjuda && (
+              <button
+                type="button"
+                onClick={aoAbrirAjuda}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 font-medium text-slate-700 transition-colors"
+                title="Ajuda e Teclas de Atalho"
+              >
+                <HelpCircle className="w-4 h-4 text-blue-600" />
+                <span className="hidden sm:inline">Ajuda</span>
+              </button>
+            )}
+
             {filialAtiva && (
               <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                 <Building2 className="w-4 h-4 text-slate-500" />
