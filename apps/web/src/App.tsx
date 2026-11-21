@@ -92,11 +92,6 @@ export const App: React.FC = () => {
               logout();
             }
           }}
-          aoClicarMedicamentos={() => setAtalhoAtivo('medicamentos')}
-          aoClicarEstoque={() => setAtalhoAtivo('estoque')}
-          aoClicarPreVendas={() => setAtalhoAtivo('prevendas')}
-          aoClicarClientes={() => setAtalhoAtivo('clientes')}
-          aoClicarRelatorios={() => setAtalhoAtivo('relatorios')}
         />
       )}
 

@@ -18,11 +18,6 @@ interface PortalOperacionalScreenProps {
   aoAbrirMenu: () => void;
   aoTrocarFilial?: () => void;
   aoSair?: () => void;
-  aoClicarMedicamentos: () => void;
-  aoClicarEstoque: () => void;
-  aoClicarPreVendas: () => void;
-  aoClicarClientes: () => void;
-  aoClicarRelatorios: () => void;
 }
 
 export const PortalOperacionalScreen: React.FC<PortalOperacionalScreenProps> = ({
@@ -31,11 +26,6 @@ export const PortalOperacionalScreen: React.FC<PortalOperacionalScreenProps> = (
   aoAbrirMenu,
   aoTrocarFilial,
   aoSair,
-  aoClicarMedicamentos,
-  aoClicarEstoque,
-  aoClicarPreVendas,
-  aoClicarClientes,
-  aoClicarRelatorios,
 }) => {
   const { filialAtiva, logout } = useAuth();
 
@@ -265,78 +255,63 @@ export const PortalOperacionalScreen: React.FC<PortalOperacionalScreenProps> = (
       </main>
 
       {/* =========================================================================
-          3. BARRA HORIZONTAL INFERIOR DE ATALHOS OPERACIONAIS (EXATO À REFERÊNCIA)
+          3. BARRA HORIZONTAL INFERIOR ILUSTRATIVA (EXCLUSIVAMENTE VISUAL)
           Separada por divisores verticais: Medicamentos | Estoque | Pré-vendas | Clientes | Relatórios
           ========================================================================= */}
       <nav
-        aria-label="Atalhos Operacionais Rápidos"
-        className="relative z-20 pb-6 px-4 flex justify-center"
+        aria-label="Atalhos Operacionais Ilustrativos"
+        className="relative z-20 pb-6 px-4 flex justify-center select-none"
       >
         <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/90 py-2.5 px-3 flex items-center justify-center max-w-4xl w-full divide-x divide-slate-200">
           {/* 1. Medicamentos */}
-          <button
-            type="button"
-            onClick={aoClicarMedicamentos}
-            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 hover:text-blue-600 hover:bg-slate-50 rounded-xl transition-all group"
-            title="Consulta Rápida de Medicamentos e Preços"
+          <div
+            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 cursor-default"
           >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
               <Pill className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <span className="text-xs sm:text-sm font-bold tracking-tight">Medicamentos</span>
-          </button>
+          </div>
 
           {/* 2. Estoque */}
-          <button
-            type="button"
-            onClick={aoClicarEstoque}
-            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 hover:text-blue-600 hover:bg-slate-50 rounded-xl transition-all group"
-            title="Painel e Consulta de Estoque / Lotes"
+          <div
+            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 cursor-default"
           >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
               <Package className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <span className="text-xs sm:text-sm font-bold tracking-tight">Estoque</span>
-          </button>
+          </div>
 
           {/* 3. Pré-vendas */}
-          <button
-            type="button"
-            onClick={aoClicarPreVendas}
-            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 hover:text-blue-600 hover:bg-slate-50 rounded-xl transition-all group"
-            title="Comandas e Pré-vendas Emitidas pelo Balcão"
+          <div
+            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 cursor-default"
           >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
               <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <span className="text-xs sm:text-sm font-bold tracking-tight">Pré-vendas</span>
-          </button>
+          </div>
 
           {/* 4. Clientes */}
-          <button
-            type="button"
-            onClick={aoClicarClientes}
-            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 hover:text-blue-600 hover:bg-slate-50 rounded-xl transition-all group"
-            title="Consulta e Cadastro de Clientes e Convênios"
+          <div
+            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 cursor-default"
           >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
               <Users className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <span className="text-xs sm:text-sm font-bold tracking-tight">Clientes</span>
-          </button>
+          </div>
 
           {/* 5. Relatórios */}
-          <button
-            type="button"
-            onClick={aoClicarRelatorios}
-            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 hover:text-blue-600 hover:bg-slate-50 rounded-xl transition-all group"
-            title="Relatório Operacional de Vendas do Dia"
+          <div
+            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 cursor-default"
           >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
               <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <span className="text-xs sm:text-sm font-bold tracking-tight">Relatórios</span>
-          </button>
+          </div>
         </div>
       </nav>
     </div>
