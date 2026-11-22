@@ -190,11 +190,15 @@ export const ComprovantePreVendaModal: React.FC<ComprovantePreVendaModalProps> =
               <span className="text-slate-500">Convênio:</span>
               <span>{preVenda.customer.convenio}</span>
             </div>
-            <div className="flex justify-between items-center pt-1 border-t border-slate-200">
-              <span className="font-bold text-slate-700">Vendedor Responsável:</span>
-              <strong className="text-blue-900 font-bold font-mono print:text-black">
-                {preVenda.vendedorNome || preVenda.attendantName} {preVenda.vendedorMatricula ? `(${preVenda.vendedorMatricula})` : ''}
-              </strong>
+            {/* Destaque do Vendedor Responsável pelo Atendimento */}
+            <div className="bg-amber-50/60 print:bg-transparent border border-amber-200/80 print:border-slate-400 rounded-lg p-2 text-center my-1">
+              <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider block">
+                Atendente / Vendedor Responsável
+              </span>
+              <span className="text-xs sm:text-sm font-black text-slate-900 font-mono tracking-wide block mt-0.5 print:text-black">
+                {preVenda.vendedorMatricula ? `[MATRÍCULA: ${preVenda.vendedorMatricula}] ` : ''}
+                {preVenda.vendedorNome || preVenda.attendantName}
+              </span>
             </div>
             {preVenda.criadoPorNome && preVenda.criadoPorNome !== preVenda.vendedorNome && (
               <div className="flex justify-between items-center text-[9px] text-slate-400">

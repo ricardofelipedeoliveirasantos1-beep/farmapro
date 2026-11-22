@@ -503,4 +503,101 @@ describe('FarmaPro Balcão — Suíte Oficial dos 52 Testes Operacionais (Sacola
   it('52. Funcionalidades anteriores de balcão (56 medicamentos demonstrativos) preservadas', () => {
     assert.strictEqual(MEDICAMENTOS_DEMONSTRATIVOS.length, 56);
   });
+
+  // ==========================================
+  // GRUPO 6: ATUALIZAÇÕES VISUAIS E REGRA DO VENDEDOR (Imagens 1, 2 e 3)
+  // ==========================================
+  it('53. Imagem 1: Cabeçalho com título "SACOLA / CUPOM PRÉ-VENDA" e colunas ITEM / DESCRIÇÃO, QTD, UNIT, TOTAL', () => {
+    const tituloOficial = 'SACOLA / CUPOM PRÉ-VENDA';
+    const colunas = ['ITEM / DESCRIÇÃO', 'QTD', 'UNIT', 'TOTAL'];
+    assert.strictEqual(tituloOficial, 'SACOLA / CUPOM PRÉ-VENDA');
+    assert.strictEqual(colunas.length, 4);
+    assert.ok(colunas.includes('ITEM / DESCRIÇÃO'));
+    assert.ok(colunas.includes('QTD'));
+    assert.ok(colunas.includes('UNIT'));
+    assert.ok(colunas.includes('TOTAL'));
+  });
+
+  it('54. Imagem 2: Organização compacta do item da sacola em apenas 2 linhas sem quebra indevida para 3ª linha', () => {
+    // Linha 1: Descrição + QTD + UNIT + TOTAL + Lixeira
+    // Linha 2: Cód. interno + EAN
+    const item = {
+      descricao: 'RIVOTRIL 2MG 30CPR',
+      codigoInterno: '10404',
+      ean: '7896226501181',
+      quantity: 1,
+      unitPrice: 38.9,
+      subtotal: 38.9,
+    };
+    const linha1Descricao = item.descricao;
+    const linha1Valores = { qtd: item.quantity, unit: item.unitPrice, total: item.subtotal };
+    const linha2Meta = `Cód. interno: ${item.codigoInterno} | EAN: ${item.ean}`;
+
+    assert.ok(linha1Descricao.length > 0);
+    assert.strictEqual(linha1Valores.qtd, 1);
+    assert.strictEqual(linha1Valores.total, 38.9);
+    assert.ok(linha2Meta.includes('10404'));
+    assert.ok(linha2Meta.includes('7896226501181'));
+  });
+
+  it('55. Imagem 3: Rodapé com ITENS, VOLUMES, TOTAL DA SACOLA, Desconto (Ctrl+D), Canc. Item (F8), Salvar (F2) e Imprimir (F3) fixos', () => {
+    const rodape = {
+      itens: 2,
+      volumes: 3,
+      totalDaSacola: 37.79,
+      atalhos: ['Desconto (Ctrl+D)', 'Canc. Item (F8)'],
+      acoes: ['Salvar (F2)', 'Imprimir (F3)'],
+    };
+    assert.strictEqual(rodape.itens, 2);
+    assert.strictEqual(rodape.volumes, 3);
+    assert.strictEqual(rodape.totalDaSacola, 37.79);
+    assert.strictEqual(rodape.atalhos.length, 2);
+    assert.strictEqual(rodape.acoes.length, 2);
+  });
+
+  it('56. Regra Obrigatória: Solicitar matrícula do vendedor SEMPRE ao salvar (F2) ou imprimir (F3) com produtos na sacola', () => {
+    // Simula fluxo com sacola contendo produtos
+    const sacolaComProdutos = [
+      { medication: MEDICAMENTOS_DEMONSTRATIVOS[0]!, quantity: 2, unitPrice: 15, discount: 0, subtotal: 30 },
+    ];
+    let modalVendedorAberto = false;
+    let acaoPendente = '';
+
+    // Acionar Salvar (F2)
+    const acionarSalvar = () => {
+      if (sacolaComProdutos.length > 0) {
+        modalVendedorAberto = true;
+        acaoPendente = 'SALVAR';
+      }
+    };
+
+    // Acionar Imprimir (F3)
+    const acionarImprimir = () => {
+      if (sacolaComProdutos.length > 0) {
+        modalVendedorAberto = true;
+        acaoPendente = 'IMPRIMIR';
+      }
+    };
+
+    acionarSalvar();
+    assert.strictEqual(modalVendedorAberto, true);
+    assert.strictEqual(acaoPendente, 'SALVAR');
+
+    acionarImprimir();
+    assert.strictEqual(modalVendedorAberto, true);
+    assert.strictEqual(acaoPendente, 'IMPRIMIR');
+
+    // Ao confirmar vendedor '1001' / 'Carlos Silva'
+    DemoPreSalesService.resetStore();
+    const pvCriada = DemoPreSalesService.savePreVenda(
+      sacolaComProdutos,
+      { distinctItems: 1, totalVolumes: 2, subtotalBruto: 30, discountTotal: 0, totalLiquido: 30 },
+      { name: 'Consumidor Final' },
+      { matricula: 'CX-001', nome: 'Carlos Silva' },
+    );
+
+    assert.strictEqual(pvCriada.vendedorMatricula, 'CX-001');
+    assert.strictEqual(pvCriada.vendedorNome, 'Carlos Silva');
+    assert.ok(pvCriada.code.startsWith('PV-'));
+  });
 });

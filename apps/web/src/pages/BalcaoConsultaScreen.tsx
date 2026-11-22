@@ -77,6 +77,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
 
   // Memória da última pré-venda salva e controle de debounce no F2
   const [ultimaPreVendaCriada, setUltimaPreVendaCriada] = useState<PreVendaDemo | null>(null);
+  const [acaoVendedorPendente, setAcaoVendedorPendente] = useState<'SALVAR' | 'IMPRIMIR'>('SALVAR');
   const salvandoPreVendaRef = useRef<boolean>(false);
 
   // Fila de Pré-vendas
@@ -260,8 +261,36 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       alert('A sacola está vazia. Adicione pelo menos um produto antes de salvar a pré-venda.');
       return;
     }
+    setAcaoVendedorPendente('SALVAR');
     setModoExclusaoSacola(false);
     setModalVendedorAberto(true);
+  };
+
+  // Iniciar impressão de pré-venda (F3):
+  // Se a sacola tiver produtos, solicita a matrícula do vendedor SEMPRE antes de salvar e imprimir
+  const handleIniciarImprimirPreVenda = () => {
+    if (salvandoPreVendaRef.current) return;
+    if (sacola.length > 0) {
+      setAcaoVendedorPendente('IMPRIMIR');
+      setModoExclusaoSacola(false);
+      setModalVendedorAberto(true);
+      return;
+    }
+
+    if (comandaConcluida) {
+      window.print();
+      return;
+    }
+
+    const preVendaAlvo = ultimaPreVendaCriada || listaPreVendas[0];
+    if (preVendaAlvo) {
+      setComandaConcluida(preVendaAlvo);
+      setTimeout(() => {
+        window.print();
+      }, 150);
+    } else {
+      alert('Nenhuma pré-venda para imprimir. Adicione produtos na sacola ou selecione uma pré-venda salva.');
+    }
   };
 
   // Confirmação final após validação do vendedor (Debounced)
@@ -293,28 +322,17 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       setDescontoGlobal(0);
       setUltimoItemAdicionado(null);
       setModoExclusaoSacola(false);
+
+      if (acaoVendedorPendente === 'IMPRIMIR') {
+        setTimeout(() => {
+          window.print();
+        }, 200);
+      }
     } finally {
       setTimeout(() => {
         salvandoPreVendaRef.current = false;
+        setAcaoVendedorPendente('SALVAR');
       }, 600);
-    }
-  };
-
-  // Imprimir Comprovante de Pré-venda (F3)
-  const handleImprimirPreVenda = () => {
-    if (comandaConcluida) {
-      window.print();
-      return;
-    }
-
-    const preVendaAlvo = ultimaPreVendaCriada || listaPreVendas[0];
-    if (preVendaAlvo) {
-      setComandaConcluida(preVendaAlvo);
-      setTimeout(() => {
-        window.print();
-      }, 150);
-    } else {
-      alert('Nenhuma pré-venda salva para imprimir. Salve primeiro uma pré-venda com F2.');
     }
   };
 
@@ -393,7 +411,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       // 5. F3: Imprimir Pré-Venda
       if (e.key === 'F3') {
         e.preventDefault();
-        handleImprimirPreVenda();
+        handleIniciarImprimirPreVenda();
         return;
       }
 
@@ -588,7 +606,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
         </section>
 
         {/* Lado Direito: Sacola de Atendimento / Pré-Venda (4 colunas) */}
-        <aside className="lg:col-span-4 flex flex-col min-w-0 sticky top-2">
+        <aside className="lg:col-span-4 flex flex-col min-w-0 sticky top-2 h-[calc(100vh-80px)]">
           <AttendanceCart
             itens={sacola}
             totais={totaisSacola}
@@ -604,6 +622,8 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
               }
             }}
             aoSalvarPreVenda={handleIniciarSalvarPreVenda}
+            aoImprimirPreVenda={handleIniciarImprimirPreVenda}
+            temUltimaPreVenda={!!ultimaPreVendaCriada || !!comandaConcluida}
             aoAbrirCliente={() => setModalClienteAberto(true)}
             aoAbrirDesconto={() => setModalDescontoAberto(true)}
             modoExclusao={modoExclusaoSacola}
@@ -618,10 +638,12 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       {/* 3. Modais Operacionais Independentes */}
       <IdentificarVendedorModal
         aberto={modalVendedorAberto}
+        acao={acaoVendedorPendente}
         matriculaInicial={usuario?.matricula || ''}
         aoConfirmar={handleConfirmarVendedorPreVenda}
         aoFechar={() => {
           setModalVendedorAberto(false);
+          setAcaoVendedorPendente('SALVAR');
           inputBuscaRef.current?.focus();
         }}
       />

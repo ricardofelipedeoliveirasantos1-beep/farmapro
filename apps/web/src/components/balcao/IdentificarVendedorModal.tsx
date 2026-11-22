@@ -13,6 +13,7 @@ import { VendedorResponsavel } from '../../types/balcao.js';
 interface IdentificarVendedorModalProps {
   aberto: boolean;
   matriculaInicial?: string;
+  acao?: 'SALVAR' | 'IMPRIMIR';
   aoConfirmar: (vendedor: VendedorResponsavel) => void;
   aoFechar: () => void;
 }
@@ -20,6 +21,7 @@ interface IdentificarVendedorModalProps {
 export const IdentificarVendedorModal: React.FC<IdentificarVendedorModalProps> = ({
   aberto,
   matriculaInicial = '',
+  acao = 'SALVAR',
   aoConfirmar,
   aoFechar,
 }) => {
@@ -91,10 +93,12 @@ export const IdentificarVendedorModal: React.FC<IdentificarVendedorModalProps> =
             </div>
             <div>
               <h3 className="font-black text-base tracking-tight">
-                Identificação do Vendedor
+                {acao === 'IMPRIMIR' ? 'Identificação do Vendedor para Impressão' : 'Identificação do Vendedor'}
               </h3>
               <p className="text-[11px] text-blue-100 font-medium">
-                Obrigatório para registrar a comanda de pré-venda (F5)
+                {acao === 'IMPRIMIR'
+                  ? 'Informe sua matrícula para registrar e imprimir a pré-venda (F3)'
+                  : 'Informe sua matrícula para registrar a pré-venda no balcão (F2)'}
               </p>
             </div>
           </div>
@@ -246,11 +250,13 @@ export const IdentificarVendedorModal: React.FC<IdentificarVendedorModalProps> =
             disabled={!resultado?.valido}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm ${
               resultado?.valido
-                ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                ? acao === 'IMPRIMIR'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
             }`}
           >
-            <span>Confirmar e Emitir Pré-Venda</span>
+            <span>{acao === 'IMPRIMIR' ? 'Confirmar e Imprimir Pré-Venda' : 'Confirmar e Salvar Pré-Venda'}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
