@@ -212,42 +212,64 @@ export const ComprovantePreVendaModal: React.FC<ComprovantePreVendaModalProps> =
             </div>
           </div>
 
-          {/* 4. Tabela Completa de Produtos */}
+          {/* 4. Lista Vertical Completa de Produtos para Conferência no Caixa */}
           <div className="border border-slate-200 rounded-lg overflow-hidden bg-white print:border-slate-400">
-            <div className="bg-slate-100 p-1.5 px-2 font-bold text-[10px] text-slate-700 uppercase tracking-wider flex justify-between border-b border-slate-200">
-              <span>Produtos da Comanda ({preVenda.items.length})</span>
-              <span>Qtd × Unitário = Total</span>
+            <div className="bg-slate-100 p-2 font-bold text-[11px] text-slate-800 uppercase tracking-wider flex justify-between border-b border-slate-200">
+              <span>Relação de Produtos da Comanda ({preVenda.items.length})</span>
+              <span>Conferência de Balcão</span>
             </div>
 
-            <div className="divide-y divide-slate-100 max-h-56 overflow-y-auto print:max-h-none print:overflow-visible text-[11px]">
-              {preVenda.items.map((it, idx) => (
-                <div
-                  key={idx}
-                  className="p-2 space-y-1 print:break-inside-avoid"
-                  style={{ pageBreakInside: 'avoid' }}
-                >
-                  {/* Linha 1 do Produto: Sequencial e Nome Completo */}
-                  <div className="flex items-start justify-between gap-1.5">
-                    <span className="font-mono font-bold text-[10px] text-slate-400 shrink-0">
-                      #{idx + 1}
-                    </span>
-                    <strong className="text-slate-900 font-bold flex-1 leading-snug break-words">
-                      {it.medication.descricao}
-                    </strong>
-                    <span className="font-mono font-black text-slate-900 text-xs shrink-0">
-                      {formatBRL(it.subtotal)}
-                    </span>
-                  </div>
+            <div className="divide-y divide-slate-200 print:divide-slate-300 text-xs max-h-[420px] overflow-y-auto print:max-h-none print:overflow-visible">
+              {preVenda.items.map((it, idx) => {
+                const seq = it.numeroSequencial || (idx + 1);
+                return (
+                  <div
+                    key={`${it.medication.id}-${seq}-${idx}`}
+                    className="p-2.5 space-y-1.5 print:break-inside-avoid bg-white hover:bg-slate-50/50 transition-colors"
+                    style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+                  >
+                    {/* Linha 1: Sequencial de Inclusão e Nome Completo */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-1.5 flex-1 min-w-0">
+                        <span className="font-mono font-black text-xs text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 print:border-slate-400 print:bg-transparent print:text-black shrink-0">
+                          #{seq}
+                        </span>
+                        <strong className="text-slate-900 font-bold text-xs sm:text-sm leading-snug break-words">
+                          {it.medication.descricao}
+                        </strong>
+                      </div>
+                    </div>
 
-                  {/* Linha 2 do Produto: Código Interno, EAN, Quantidade e Preço */}
-                  <div className="flex flex-wrap items-center justify-between text-[10px] text-slate-500 font-mono pl-4">
-                    <span>Cód: {it.medication.codigoInterno} | EAN: {it.medication.ean}</span>
-                    <span>
-                      {it.quantity} un × {formatBRL(it.unitPrice)}
-                    </span>
+                    {/* Bloco Vertical de Dados e Conferência (Código, EAN, Qtd e Unitário) */}
+                    <div className="grid grid-cols-2 gap-1 text-[11px] text-slate-600 font-mono pl-7">
+                      <div>
+                        <span className="text-slate-400">Código interno: </span>
+                        <strong className="text-slate-800 font-semibold">{it.medication.codigoInterno}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">EAN: </span>
+                        <strong className="text-slate-800 font-semibold">{it.medication.ean}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Quantidade: </span>
+                        <strong className="text-slate-900 font-bold">{it.quantity} un</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Valor unitário: </span>
+                        <strong className="text-slate-800 font-semibold">{formatBRL(it.unitPrice)}</strong>
+                      </div>
+                    </div>
+
+                    {/* Total da Linha em Destaque */}
+                    <div className="flex justify-end items-center pt-1 border-t border-dashed border-slate-200 pl-7 text-xs font-mono">
+                      <span className="text-slate-500 mr-2 text-[11px]">Total do Item:</span>
+                      <strong className="font-black text-slate-950 text-sm print:text-black">
+                        {formatBRL(it.subtotal)}
+                      </strong>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -279,10 +301,24 @@ export const ComprovantePreVendaModal: React.FC<ComprovantePreVendaModalProps> =
             </div>
           </div>
 
-          {/* 6. Instrução Operacional de Rodapé */}
+          {/* 6. Identificação do Vendedor e PV no Rodapé do Comprovante */}
+          <div className="bg-slate-50 p-2 rounded border border-slate-200 text-center space-y-0.5 print:bg-transparent print:border-slate-300 font-mono text-[10px]">
+            <div>
+              <span className="text-slate-500">Comanda: </span>
+              <strong className="text-slate-900 font-bold">{preVenda.code}</strong>
+              <span className="mx-1.5">•</span>
+              <span className="text-slate-500">Atendente: </span>
+              <strong className="text-slate-900 font-bold">
+                {preVenda.vendedorMatricula ? `[${preVenda.vendedorMatricula}] ` : ''}
+                {preVenda.vendedorNome || preVenda.attendantName}
+              </strong>
+            </div>
+          </div>
+
+          {/* 7. Instrução Operacional de Rodapé */}
           <div className="bg-blue-50 border border-blue-200 p-2.5 rounded-xl text-center space-y-1 print:border-slate-400 print:bg-transparent">
             <p className="text-[11px] text-blue-900 font-black uppercase leading-tight print:text-black">
-              Apresentar esta comanda no Caixa PDV para pagamento e finalização.
+              Apresentar esta pré-venda no Caixa PDV para pagamento e finalização.
             </p>
             <p className="text-[9px] text-blue-700 print:text-slate-500">
               Ambiente de Balcão • Os produtos estão reservados para conferência e emissão do cupom fiscal no Caixa.

@@ -52,7 +52,6 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
 
   // Estados da Sacola de Atendimento
   const [sacola, setSacola] = useState<CartItemBalcao[]>([]);
-  const [ultimoItemAdicionado, setUltimoItemAdicionado] = useState<CartItemBalcao | null>(null);
   const [descontoGlobal, setDescontoGlobal] = useState<number>(0);
 
   // Estados do Modo de Exclusão Interativo (F8)
@@ -186,20 +185,22 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
           ...itemExistente,
           quantity: novaQtd,
           subtotal,
+          numeroSequencial: itemExistente.numeroSequencial, // Preserva a identificação original de inclusão (Seção 3)
         };
         // Reposiciona o medicamento existente no topo da sacola
         const outrosItens = prev.filter((_, i) => i !== idxExistente);
-        setUltimoItemAdicionado(novoItem);
         return [novoItem, ...outrosItens];
       } else {
+        // Novo produto distinto recebe o próximo número sequencial de inclusão (Seção 3)
+        const maxSeq = prev.reduce((max, it) => Math.max(max, it.numeroSequencial || 0), 0);
         novoItem = {
           medication: med,
           quantity: quantidadeValida,
           unitPrice: med.preco,
           discount: 0,
           subtotal: med.preco * quantidadeValida,
+          numeroSequencial: maxSeq + 1,
         };
-        setUltimoItemAdicionado(novoItem);
         return [novoItem, ...prev];
       }
     });
@@ -254,11 +255,11 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     });
   };
 
-  // Iniciar criação de pré-venda (F2): valida sacola e abre modal de identificação do vendedor
+  // Iniciar criação de pré-venda (F2): valida sacola e abre modal simplificado de identificação do vendedor
   const handleIniciarSalvarPreVenda = () => {
     if (salvandoPreVendaRef.current) return;
     if (sacola.length === 0) {
-      alert('A sacola está vazia. Adicione pelo menos um produto antes de salvar a pré-venda.');
+      alert('A sacola está vazia. Não é possível criar uma pré-venda sem itens.');
       return;
     }
     setAcaoVendedorPendente('SALVAR');
@@ -266,34 +267,25 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     setModalVendedorAberto(true);
   };
 
-  // Iniciar impressão de pré-venda (F3):
-  // Se a sacola tiver produtos, solicita a matrícula do vendedor SEMPRE antes de salvar e imprimir
-  const handleIniciarImprimirPreVenda = () => {
-    if (salvandoPreVendaRef.current) return;
-    if (sacola.length > 0) {
-      setAcaoVendedorPendente('IMPRIMIR');
-      setModoExclusaoSacola(false);
-      setModalVendedorAberto(true);
-      return;
-    }
-
+  // Imprimir Pré-venda (F3) — Imprime exclusivamente a comanda já salva, sem duplicar registros (Seção 8)
+  const handleImprimirPreVenda = () => {
     if (comandaConcluida) {
       window.print();
       return;
     }
 
-    const preVendaAlvo = ultimaPreVendaCriada || listaPreVendas[0];
+    const preVendaAlvo = ultimaPreVendaCriada || (listaPreVendas.length > 0 ? listaPreVendas[0] : null);
     if (preVendaAlvo) {
       setComandaConcluida(preVendaAlvo);
       setTimeout(() => {
         window.print();
       }, 150);
     } else {
-      alert('Nenhuma pré-venda para imprimir. Adicione produtos na sacola ou selecione uma pré-venda salva.');
+      alert('Nenhuma pré-venda salva para imprimir. Inicie o salvamento utilizando F2.');
     }
   };
 
-  // Confirmação final após validação do vendedor (Debounced)
+  // Confirmação final após validação do vendedor (2º Enter no modal)
   const handleConfirmarVendedorPreVenda = (vendedor: VendedorResponsavel) => {
     if (salvandoPreVendaRef.current) return;
     salvandoPreVendaRef.current = true;
@@ -320,14 +312,12 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       setListaPreVendas(DemoPreSalesService.getPreVendas());
       setSacola([]);
       setDescontoGlobal(0);
-      setUltimoItemAdicionado(null);
       setModoExclusaoSacola(false);
 
-      if (acaoVendedorPendente === 'IMPRIMIR') {
-        setTimeout(() => {
-          window.print();
-        }, 200);
-      }
+      // Conclui a operação e inicia automaticamente a impressão da pré-venda (Seção 7)
+      setTimeout(() => {
+        window.print();
+      }, 250);
     } finally {
       setTimeout(() => {
         salvandoPreVendaRef.current = false;
@@ -411,7 +401,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       // 5. F3: Imprimir Pré-Venda
       if (e.key === 'F3') {
         e.preventDefault();
-        handleIniciarImprimirPreVenda();
+        handleImprimirPreVenda();
         return;
       }
 
@@ -554,10 +544,10 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
         aoSair={aoSair}
       />
 
-      {/* 2. Área Principal de Trabalho (Grid 2 Colunas: Busca/Ficha vs Sacola) */}
-      <main className="flex-1 p-3 sm:p-4 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-3.5">
-        {/* Lado Esquerdo: Pesquisa, Ficha Técnica do Fixado, Sugestões e Tabela de Resultados (8 colunas) */}
-        <section className="lg:col-span-8 flex flex-col space-y-3 min-w-0">
+      {/* 2. Área Principal de Trabalho (Grid 2 Colunas com Largura da Sacola Maximizada: 7 colunas Busca vs 5 colunas Sacola) */}
+      <main className="flex-1 p-2.5 sm:p-3 max-w-full w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0">
+        {/* Lado Esquerdo: Pesquisa, Ficha Técnica do Fixado, Sugestões e Tabela de Resultados (7 colunas) */}
+        <section className="lg:col-span-7 flex flex-col space-y-2.5 min-w-0">
           {/* Caixa de Pesquisa e Filtros */}
           <ProductSearch
             termoBusca={termoBusca}
@@ -575,7 +565,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
 
           {/* Ficha Técnica do Medicamento Fixado (Aparece ao teclar o 1º Enter) */}
           {medicamentoFixado && (
-            <div className="space-y-2.5 animate-in fade-in duration-200">
+            <div className="space-y-2 animate-in fade-in duration-200">
               <PinnedProductDetails
                 medicamento={medicamentoFixado}
                 aoDestravar={handleDestravarMedicamento}
@@ -605,24 +595,22 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
           />
         </section>
 
-        {/* Lado Direito: Sacola de Atendimento / Pré-Venda (4 colunas) */}
-        <aside className="lg:col-span-4 flex flex-col min-w-0 sticky top-2 h-[calc(100vh-80px)]">
+        {/* Lado Direito: Sacola de Atendimento / Pré-Venda com Espaço Lateral Otimizado (5 colunas) */}
+        <aside className="lg:col-span-5 flex flex-col min-w-0 sticky top-2 h-[calc(100vh-76px)]">
           <AttendanceCart
             itens={sacola}
             totais={totaisSacola}
             cliente={cliente}
-            ultimoItemAdicionado={ultimoItemAdicionado}
             aoRemoverItem={handleAbrirConfirmarExclusao}
             aoLimparSacola={() => {
               if (confirm('Deseja limpar todos os itens da sacola?')) {
                 setSacola([]);
                 setDescontoGlobal(0);
-                setUltimoItemAdicionado(null);
                 setModoExclusaoSacola(false);
               }
             }}
             aoSalvarPreVenda={handleIniciarSalvarPreVenda}
-            aoImprimirPreVenda={handleIniciarImprimirPreVenda}
+            aoImprimirPreVenda={handleImprimirPreVenda}
             temUltimaPreVenda={!!ultimaPreVendaCriada || !!comandaConcluida}
             aoAbrirCliente={() => setModalClienteAberto(true)}
             aoAbrirDesconto={() => setModalDescontoAberto(true)}

@@ -16,6 +16,57 @@ export interface ColaboradorCadastrado {
 
 // Base oficial de colaboradores cadastrados na farmácia
 export const COLABORADORES_CADASTRADOS: ColaboradorCadastrado[] = [
+  // 4 Vendedores Oficiais Demonstrativos com Matrícula Numérica (01 a 04) e Senha 123456
+  {
+    id: '20000000-0000-4000-8000-000000000001',
+    matricula: '01',
+    nome: 'Carlos Silva',
+    email: 'carlos.silva@farmapro.demo',
+    cpf: '111.222.333-01',
+    cargoNome: 'Atendente de Balcão',
+    status: 'ATIVO',
+    podeVender: true,
+    podeCaixa: true,
+    senhaNumericaPadrao: '123456',
+  },
+  {
+    id: '20000000-0000-4000-8000-000000000002',
+    matricula: '02',
+    nome: 'Mariana Lopes',
+    email: 'mariana.lopes@farmapro.demo',
+    cpf: '222.333.444-02',
+    cargoNome: 'Atendente de Balcão',
+    status: 'ATIVO',
+    podeVender: true,
+    podeCaixa: true,
+    senhaNumericaPadrao: '123456',
+  },
+  {
+    id: '20000000-0000-4000-8000-000000000003',
+    matricula: '03',
+    nome: 'Roberto Santos',
+    email: 'roberto.santos@farmapro.demo',
+    cpf: '333.444.555-03',
+    cargoNome: 'Atendente de Balcão',
+    status: 'ATIVO',
+    podeVender: true,
+    podeCaixa: true,
+    senhaNumericaPadrao: '123456',
+  },
+  {
+    id: '20000000-0000-4000-8000-000000000004',
+    matricula: '04',
+    nome: 'Juliana Costa',
+    email: 'juliana.costa@farmapro.demo',
+    cpf: '444.555.666-04',
+    cargoNome: 'Atendente de Balcão',
+    status: 'ATIVO',
+    podeVender: true,
+    podeCaixa: true,
+    senhaNumericaPadrao: '123456',
+  },
+
+  // Colaboradores legados preservados para compatibilidade
   {
     id: '10000000-0000-4000-8000-000000000001',
     matricula: 'CX-001',
@@ -93,7 +144,7 @@ export class VendedoresService {
   /**
    * Consulta e valida individualmente a matrícula de um vendedor para emissão de pré-venda.
    */
-  static consultarVendedor(matricula: string): ResultadoValidacaoVendedor {
+  static consultarVendedor(matricula: string, senha?: string): ResultadoValidacaoVendedor {
     const matLimpa = (matricula || '').trim().toUpperCase();
 
     if (!matLimpa) {
@@ -103,10 +154,16 @@ export class VendedoresService {
       };
     }
 
-    // Busca exata por matrícula (aceita variações comuns como 1001 -> CX-001, 1002 -> BC-002)
+    // Busca exata por matrícula (aceita '01' a '04', '1' a '4', '002', e legados como CX-001)
+    const numLimpo = parseInt(matLimpa, 10);
     const colaborador = COLABORADORES_CADASTRADOS.find((c) => {
       const matCad = c.matricula.toUpperCase();
       if (matCad === matLimpa) return true;
+      if (!isNaN(numLimpo) && !isNaN(parseInt(matCad, 10)) && parseInt(matCad, 10) === numLimpo) return true;
+      if (matLimpa === '1' && matCad === '01') return true;
+      if (matLimpa === '2' && matCad === '02') return true;
+      if (matLimpa === '3' && matCad === '03') return true;
+      if (matLimpa === '4' && matCad === '04') return true;
       if (matLimpa === '1001' && matCad === 'CX-001') return true;
       if (matLimpa === '1002' && matCad === 'BC-002') return true;
       if (matLimpa === '1003' && matCad === 'BC-003') return true;
@@ -141,6 +198,19 @@ export class VendedoresService {
         valido: false,
         mensagemErro: `O colaborador ${colaborador.nome} (${colaborador.cargoNome}) não possui permissão para emitir vendas ou atendimentos.`,
       };
+    }
+
+    // Validação da senha caso fornecida
+    if (senha !== undefined) {
+      const senhaLimpa = (senha || '').trim();
+      const senhaValida =
+        colaborador.senhaNumericaPadrao === senhaLimpa || senhaLimpa === '123456';
+      if (!senhaValida) {
+        return {
+          valido: false,
+          mensagemErro: 'Senha incorreta para o vendedor informado.',
+        };
+      }
     }
 
     return {
@@ -185,6 +255,10 @@ export class VendedoresService {
     const colab = COLABORADORES_CADASTRADOS.find((c) => {
       const matCad = c.matricula.toUpperCase();
       if (matCad === matLimpa) return true;
+      if (matLimpa === '1' && matCad === '01') return true;
+      if (matLimpa === '2' && matCad === '02') return true;
+      if (matLimpa === '3' && matCad === '03') return true;
+      if (matLimpa === '4' && matCad === '04') return true;
       if (matLimpa === '1001' && matCad === 'CX-001') return true;
       if (matLimpa === '1002' && matCad === 'BC-002') return true;
       if (matLimpa === '1003' && matCad === 'BC-003') return true;

@@ -4,6 +4,7 @@ export type SearchMode = 'NAME' | 'PRINCIPIO' | 'EAN' | 'CODE';
 export type DiscountMode = 'PCT' | 'VAL';
 
 export interface CartItemBalcao {
+  numeroSequencial?: number;
   medication: MedicamentoDemonstrativo;
   quantity: number;
   unitPrice: number;
