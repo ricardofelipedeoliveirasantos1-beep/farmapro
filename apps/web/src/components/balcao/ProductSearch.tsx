@@ -121,8 +121,14 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({
         </div>
 
         <div className="text-[11px] text-slate-500 font-medium shrink-0">
-          <strong className="text-slate-800 font-mono font-bold">{totalResultados}</strong>{' '}
-          {totalResultados === 1 ? 'medicamento' : 'medicamentos'}
+          {termoBusca.trim() ? (
+            <>
+              <strong className="text-slate-800 font-mono font-bold">{totalResultados}</strong>{' '}
+              {totalResultados === 1 ? 'medicamento' : 'medicamentos'}
+            </>
+          ) : (
+            <span className="text-slate-400 font-medium">Aguardando busca</span>
+          )}
         </div>
       </div>
     </div>

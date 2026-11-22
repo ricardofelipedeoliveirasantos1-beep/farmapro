@@ -17,6 +17,7 @@ import { ProductSearch } from '../components/balcao/ProductSearch.js';
 import { ProductResultsTable } from '../components/balcao/ProductResultsTable.js';
 import { PinnedProductDetails } from '../components/balcao/PinnedProductDetails.js';
 import { InterchangeableSuggestions } from '../components/balcao/InterchangeableSuggestions.js';
+import { BalcaoEmptySearchState } from '../components/balcao/BalcaoEmptySearchState.js';
 import { AttendanceCart } from '../components/balcao/AttendanceCart.js';
 import { CustomerModal } from '../components/balcao/CustomerModal.js';
 import { DiscountModal } from '../components/balcao/DiscountModal.js';
@@ -90,10 +91,16 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     [termoBusca],
   );
 
-  // Filtragem dos 56 medicamentos demonstrativos (filtro de estoque removido)
+  // Medicamentos ocultos até que uma busca seja realizada (conforme solicitação do proprietário)
+  const temBuscaAtiva = queryLimpa.trim().length > 0;
+
+  // Filtragem dos medicamentos demonstrativos apenas quando houver busca ativa
   const medicamentosFiltrados = useMemo(
-    () => DemoCatalogService.filterMedications(queryLimpa, modoBusca, false),
-    [queryLimpa, modoBusca],
+    () => {
+      if (!temBuscaAtiva) return [];
+      return DemoCatalogService.filterMedications(queryLimpa, modoBusca, false);
+    },
+    [temBuscaAtiva, queryLimpa, modoBusca],
   );
 
   // Sugestões Intercambiáveis calculadas para o produto fixado
@@ -569,10 +576,10 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
             totalResultados={medicamentosFiltrados.length}
           />
 
-          {/* Transição entre Modo Ficha Completa e Modo Lista de Resultados (Seções 1, 4 e 5) */}
+          {/* Transição entre Ficha Completa, Logo FarmaPro (Sem Busca) e Tabela de Resultados (Com Busca) */}
           {medicamentoFixado ? (
             <div className="flex-1 min-h-0 flex flex-col justify-between gap-2 overflow-hidden animate-in fade-in duration-150">
-              {/* Ficha Completa com Fotografia à Esquerda e Dados Técnicos (Seção 1) */}
+              {/* Ficha Completa com Fotografia e Dados Técnicos (Exato à Imagem 2) */}
               <PinnedProductDetails
                 medicamento={medicamentoFixado}
                 aoDestravar={handleDestravarMedicamento}
@@ -582,7 +589,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
                 quantidadeInicial={multiplier > 0 ? multiplier : 1}
               />
 
-              {/* Sugestões Intercambiáveis (R -> S -> G) com Altura Reduzida (Seção 3) */}
+              {/* Sugestões Intercambiáveis (R -> S -> G) com Altura Reduzida (Exato à Imagem 2) */}
               <InterchangeableSuggestions
                 sugestoes={sugestoesIntercambiaveis}
                 medicamentoFixado={medicamentoFixado}
@@ -590,8 +597,18 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
                 indiceFocadoSugestao={indiceFocadoSugestao}
               />
             </div>
+          ) : !temBuscaAtiva ? (
+            /* Espaço Central Oculto sem Pesquisa: Logo FarmaPro e Instruções de Atendimento */
+            <BalcaoEmptySearchState
+              aoSelecionarSugestao={termo => {
+                setTermoBusca(termo);
+                setTimeout(() => {
+                  inputBuscaRef.current?.focus();
+                }, 30);
+              }}
+            />
           ) : (
-            /* Tabela de Resultados da Pesquisa com Rolagem Vertical Interna Própria (Seção 4) */
+            /* Tabela de Resultados da Pesquisa com Rolagem Vertical Interna Própria */
             <ProductResultsTable
               medicamentos={medicamentosFiltrados}
               indiceSelecionado={indiceSelecionado}

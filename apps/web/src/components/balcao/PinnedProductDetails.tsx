@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MedicamentoDemonstrativo } from '../../services/demoCatalogData.js';
-import {
-  MapPin,
-  FileCheck2,
-  Calendar,
-  PlusCircle,
-  ArrowLeft,
-  Pill,
-} from 'lucide-react';
+import { MedicinePackagingDisplay } from './MedicinePackagingDisplay.js';
+import { ShoppingCart } from 'lucide-react';
 
 interface PinnedProductDetailsProps {
   medicamento: MedicamentoDemonstrativo;
@@ -27,7 +21,7 @@ export const PinnedProductDetails: React.FC<PinnedProductDetailsProps> = ({
   );
   const inputQtdRef = useRef<HTMLInputElement>(null);
 
-  // Foca e seleciona o campo de quantidade ao fixar ou alternar o medicamento
+  // Foca e seleciona o campo de quantidade ao abrir ou alternar o medicamento
   useEffect(() => {
     const qtdValida = quantidadeInicial && quantidadeInicial > 0 ? quantidadeInicial : 1;
     setQuantidade(qtdValida);
@@ -37,8 +31,8 @@ export const PinnedProductDetails: React.FC<PinnedProductDetailsProps> = ({
     }, 40);
   }, [medicamento.id, quantidadeInicial]);
 
-  const formatBRL = (val: number) => {
-    return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const formatPriceNum = (val: number) => {
+    return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const handleMudarQuantidade = (novaQtd: number) => {
@@ -52,295 +46,203 @@ export const PinnedProductDetails: React.FC<PinnedProductDetailsProps> = ({
     aoConfirmarSacola(qtdFinal);
   };
 
-  const getTipoDesc = (tipo: 'R' | 'S' | 'G') => {
-    switch (tipo) {
-      case 'R':
-        return 'MEDICAMENTO DE REFERÊNCIA (INVENTOR)';
-      case 'S':
-        return 'MEDICAMENTO SIMILAR';
-      case 'G':
-        return 'MEDICAMENTO GENÉRICO (LEI 9.787/99)';
-      default:
-        return 'MEDICAMENTO';
-    }
-  };
-
-  const getFormatoBadge = (desc: string) => {
+  // Apresentação formatada amigável (conforme Imagem 2 de referência)
+  const getApresentacaoFormatada = (desc: string) => {
     const upper = desc.toUpperCase();
-    if (upper.includes('GTS') || upper.includes('GOTAS')) return 'FRASCO CONTA-GOTAS';
-    if (upper.includes('CPR') || upper.includes('COMP')) return 'BLISTER COMPRIMIDOS';
-    if (upper.includes('CAPS') || upper.includes('CAP')) return 'BLISTER CÁPSULAS';
-    if (upper.includes('AMP') || upper.includes('INJ')) return 'AMPOLA INJETÁVEL';
-    if (upper.includes('POM') || upper.includes('CREM')) return 'BISNAGA DERMATOLÓGICA';
-    return 'EMBALAGEM ORIGINAL';
+    if (upper.includes('GTS') || upper.includes('GOTAS')) {
+      const mlMatch = upper.match(/(\d+\s*ML)/);
+      const ml = mlMatch && mlMatch[1] ? mlMatch[1] : '20 ml';
+      return `Solução Oral – Gotas – ${ml.toLowerCase()}`;
+    }
+    if (upper.includes('XPE') || upper.includes('XAROPE')) {
+      const mlMatch = upper.match(/(\d+\s*ML)/);
+      const ml = mlMatch && mlMatch[1] ? mlMatch[1] : '120 ml';
+      return `Xarope Oral – ${ml.toLowerCase()}`;
+    }
+    if (upper.includes('CPR') || upper.includes('COMP')) {
+      const cprMatch = upper.match(/(\d+\s*CPR|\d+\s*COMP)/);
+      const cpr = cprMatch && cprMatch[1] ? cprMatch[1].replace(/CPR|COMP/, 'comprimidos') : 'comprimidos';
+      return `Comprimidos – ${cpr.toLowerCase()}`;
+    }
+    if (upper.includes('CAPS') || upper.includes('CAP')) {
+      const capMatch = upper.match(/(\d+\s*CAPS|\d+\s*CAP)/);
+      const cap = capMatch && capMatch[1] ? capMatch[1].replace(/CAPS|CAP/, 'cápsulas') : 'cápsulas';
+      return `Cápsulas – ${cap.toLowerCase()}`;
+    }
+    return 'Embalagem Original – Uso Oral';
   };
 
-  const totalCalculado = medicamento.preco * (quantidade || 1);
+  // Cálculo rigoroso do preço anterior (PMC) e percentual de desconto (conforme Imagem 2)
+  const precoAnterior =
+    medicamento.pmc && medicamento.pmc > medicamento.preco
+      ? medicamento.pmc
+      : Number((medicamento.preco * 1.15).toFixed(2));
+
+  const percentualDesconto = Math.max(
+    0,
+    ((precoAnterior - medicamento.preco) / precoAnterior) * 100,
+  );
 
   return (
-    <div className="bg-white rounded-xl border border-blue-200/90 p-3 sm:p-3.5 shadow-sm select-none flex flex-col md:flex-row gap-3.5 flex-1 min-h-0 overflow-hidden">
-      {/* 1. FOTOGRAFIA / REPRESENTAÇÃO VISUAL DA EMBALAGEM À ESQUERDA (SEÇÃO 1) */}
-      <div className="w-full md:w-40 lg:w-44 shrink-0 bg-slate-50 border border-slate-200/90 rounded-xl p-2.5 flex flex-col items-center justify-between shadow-2xs">
-        {/* Formato / Apresentação no topo da foto */}
-        <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 font-mono block text-center">
-          {getFormatoBadge(medicamento.descricao)}
-        </span>
+    <div className="flex flex-col flex-1 min-h-0 select-none overflow-hidden rounded-xl shadow-xs">
+      {/* 1. CABEÇALHO AZUL OFICIAL (EXATO À IMAGEM 2) */}
+      <div className="bg-[#0052cc] px-4 py-2 text-white flex items-center justify-between rounded-t-xl shrink-0">
+        <h3 className="font-sans font-bold text-sm tracking-wide text-white leading-none">
+          Medicamento Selecionado
+        </h3>
 
-        {/* Embalagem Farmacêutica em Destaque */}
-        <div className="my-auto py-1 flex flex-col items-center justify-center">
-          <div
-            className={`w-28 h-32 rounded-xl border-2 p-2 flex flex-col justify-between shadow-sm relative overflow-hidden transition-all ${
-              medicamento.tipo === 'R'
-                ? 'bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-950 border-blue-400 text-white'
-                : medicamento.tipo === 'S'
-                ? 'bg-gradient-to-br from-amber-600 via-amber-700 to-orange-900 border-amber-300 text-white'
-                : 'bg-white border-amber-400 text-slate-900 shadow-md'
-            }`}
-          >
-            {/* Faixa Amarela ANVISA com 'G' quando for Genérico */}
-            {medicamento.tipo === 'G' && (
-              <div className="absolute top-0 left-0 right-0 bg-amber-400 text-slate-950 px-1 py-0.5 flex items-center justify-between border-b border-amber-500">
-                <span className="font-black text-xs leading-none">G</span>
-                <span className="text-[7px] font-black uppercase tracking-tighter">GENÉRICO</span>
-                <span className="text-[7px] font-mono font-bold">L.9787</span>
-              </div>
-            )}
-
-            {/* Tarja do Medicamento */}
-            <div
-              className={`mt-3 text-[7px] font-black uppercase px-1 py-0.5 rounded text-center tracking-tighter shadow-2xs ${
-                medicamento.tipo === 'G'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-red-600 text-white'
-              }`}
-            >
-              VENDA SOB PRESCRIÇÃO
-            </div>
-
-            {/* Ícone e Nome na Embalagem */}
-            <div className="text-center my-auto">
-              <Pill
-                className={`w-5 h-5 mx-auto mb-0.5 ${
-                  medicamento.tipo === 'G' ? 'text-amber-500' : 'text-white'
-                }`}
-              />
-              <span
-                className={`text-[9px] font-black uppercase leading-tight line-clamp-2 block ${
-                  medicamento.tipo === 'G' ? 'text-slate-900' : 'text-white'
-                }`}
-              >
-                {medicamento.descricao.split(' ')[0]}
-              </span>
-            </div>
-
-            {/* Selo do Laboratório */}
-            <div
-              className={`text-[8px] font-bold text-center truncate ${
-                medicamento.tipo === 'G' ? 'text-slate-600' : 'text-white/80'
-              }`}
-            >
-              {medicamento.laboratorio}
-            </div>
-          </div>
-        </div>
-
-        {/* Legenda da Fotografia */}
-        <span className="text-[9px] text-slate-400 font-medium text-center block leading-tight">
-          Foto Ilustrativa • FEFO
-        </span>
+        <button
+          type="button"
+          onClick={aoDestravar}
+          className="bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs px-3 py-1 rounded-md shadow-2xs transition-colors cursor-pointer flex items-center gap-1"
+          title="Voltar à lista de pesquisa de medicamentos (ESC)"
+        >
+          <span>ESC — Voltar à pesquisa</span>
+        </button>
       </div>
 
-      {/* 2. DADOS COMPLETOS DO MEDICAMENTO À DIREITA (SEÇÃO 1) */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
-        {/* Topo: Badges de Classificação, Laboratório, Códigos e Botão Voltar */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span
-              className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wide text-white ${
-                medicamento.tipo === 'R'
-                  ? 'bg-blue-600'
-                  : medicamento.tipo === 'S'
-                  ? 'bg-amber-600'
-                  : 'bg-emerald-600'
-              }`}
-            >
-              {getTipoDesc(medicamento.tipo)}
-            </span>
-
-            <span className="bg-slate-100 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200">
-              {medicamento.laboratorio}
-            </span>
-
-            <span className="text-[10px] font-mono text-slate-500 font-semibold">
-              Cód: <strong>{medicamento.codigoInterno}</strong> • EAN: <strong>{medicamento.ean}</strong>
-            </span>
+      {/* 2. CORPO DA FICHA DO MEDICAMENTO (EXATO À IMAGEM 2) */}
+      <div className="bg-white rounded-b-xl border border-t-0 border-blue-200/90 p-3 sm:p-4 flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+          {/* LADO ESQUERDO: IMAGEM REALISTA DO MEDICAMENTO (CAIXA 3D + FRASCO OU BLISTER) */}
+          <div className="md:col-span-5 flex flex-col items-center justify-center p-2 bg-slate-50/50 rounded-xl border border-slate-100">
+            <MedicinePackagingDisplay medicamento={medicamento} />
           </div>
 
-          <button
-            type="button"
-            onClick={aoDestravar}
-            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer"
-            title="Voltar à lista de resultados da pesquisa (ESC)"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>ESC Voltar</span>
-          </button>
-        </div>
-
-        {/* Nome Comercial e Apresentação */}
-        <div>
-          <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">
-            {medicamento.descricao}
-          </h2>
-          <p className="text-xs font-semibold text-blue-900 flex items-center gap-1 mt-0.5">
-            <span>Princípio Ativo:</span>
-            <strong className="underline underline-offset-2">{medicamento.principioAtivo}</strong>
-          </p>
-        </div>
-
-        {/* Metadados Técnicos e Logísticos (6 Blocos) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 text-xs">
-          {/* 1. Princípio Ativo */}
-          <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200 shadow-2xs">
-            <span className="text-[9px] text-slate-400 font-bold block uppercase leading-none">Princípio</span>
-            <span className="font-bold text-slate-800 truncate block mt-0.5 text-[11px]">
-              {medicamento.principioAtivo}
-            </span>
-          </div>
-
-          {/* 2. Armazenamento */}
-          <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200 shadow-2xs">
-            <span className="text-[9px] text-slate-400 font-bold block uppercase leading-none flex items-center gap-1">
-              <MapPin className="w-2.5 h-2.5 text-blue-500" /> Local
-            </span>
-            <span className="font-bold text-slate-800 truncate block mt-0.5 text-[11px]">
-              {medicamento.armazenamento}
-            </span>
-          </div>
-
-          {/* 3. PMC Oficial */}
-          <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200 shadow-2xs">
-            <span className="text-[9px] text-slate-400 font-bold block uppercase leading-none">PMC Oficial</span>
-            <span className="font-bold text-slate-700 font-mono truncate block mt-0.5 text-[11px]">
-              {formatBRL(medicamento.pmc)}
-            </span>
-          </div>
-
-          {/* 4. Programas */}
-          <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200 shadow-2xs">
-            <span className="text-[9px] text-slate-400 font-bold block uppercase leading-none flex items-center gap-1">
-              <FileCheck2 className="w-2.5 h-2.5 text-emerald-500" /> Programas
-            </span>
-            <span className="font-bold text-slate-800 truncate block mt-0.5 text-[11px]">
-              {medicamento.pbm ? 'PBM' : medicamento.farmaciaPopular ? 'Popular' : 'Particular'}
-            </span>
-          </div>
-
-          {/* 5. Lote FEFO */}
-          <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200 shadow-2xs">
-            <span className="text-[9px] text-slate-400 font-bold block uppercase leading-none">Lote FEFO</span>
-            <span className="font-bold text-slate-800 font-mono truncate block mt-0.5 text-[11px]">
-              {medicamento.lote}
-            </span>
-          </div>
-
-          {/* 6. Validade */}
-          <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200 shadow-2xs">
-            <span className="text-[9px] text-slate-400 font-bold block uppercase leading-none flex items-center gap-1">
-              <Calendar className="w-2.5 h-2.5 text-amber-500" /> Validade
-            </span>
-            <span
-              className={`font-black font-mono truncate block mt-0.5 text-[11px] ${
-                medicamento.loteProximoVencer ? 'text-amber-700' : 'text-slate-800'
-              }`}
-            >
-              {medicamento.validade}
-            </span>
-          </div>
-        </div>
-
-        {/* Preços, Quantidade e Botão de Inclusão */}
-        <div className="flex items-center justify-between gap-2.5 pt-1.5 border-t border-slate-200/80 flex-wrap">
-          {/* Preços */}
-          <div className="flex items-center gap-3">
+          {/* LADO DIREITO: DADOS COMPLETOS E PREÇOS */}
+          <div className="md:col-span-7 flex flex-col justify-between space-y-2.5">
+            {/* Título Principal em Destaque */}
             <div>
-              <span className="text-[10px] text-slate-400 font-bold block uppercase leading-none">
-                Preço Unitário
-              </span>
-              <span className="text-base sm:text-lg font-black text-slate-900 font-mono leading-tight">
-                {formatBRL(medicamento.preco)}
-              </span>
+              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">
+                {medicamento.descricao}
+              </h2>
             </div>
 
-            <div className="pl-3 border-l border-slate-200">
-              <span className="text-[10px] text-slate-400 font-bold block uppercase leading-none">
-                Total Linha
-              </span>
-              <span className="text-base sm:text-lg font-black text-emerald-700 font-mono leading-tight">
-                {formatBRL(totalCalculado)}
-              </span>
-            </div>
-          </div>
+            {/* Tabela Limpa de Metadados em Linhas */}
+            <div className="text-xs space-y-1.5 py-1 border-y border-slate-100">
+              <div className="flex items-center text-slate-600">
+                <span className="w-28 text-slate-400 font-medium shrink-0">Apresentação:</span>
+                <span className="font-semibold text-slate-800">
+                  {getApresentacaoFormatada(medicamento.descricao)}
+                </span>
+              </div>
 
-          {/* Controle de Quantidade e Ação */}
-          <div className="flex items-center gap-2">
-            {/* Campo Qtd */}
-            <div className="flex items-center gap-1 bg-slate-100 border border-slate-300 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100 rounded-lg p-0.5">
-              <span className="text-[10px] font-black text-blue-900 uppercase pl-1.5">Qtd:</span>
+              <div className="flex items-center text-slate-600">
+                <span className="w-28 text-slate-400 font-medium shrink-0">Princípio Ativo:</span>
+                <span className="font-semibold text-slate-800">{medicamento.principioAtivo}</span>
+              </div>
+
+              <div className="flex items-center text-slate-600">
+                <span className="w-28 text-slate-400 font-medium shrink-0">Fabricante:</span>
+                <span className="font-semibold text-slate-800">{medicamento.laboratorio}</span>
+              </div>
+
+              <div className="flex items-center text-slate-600">
+                <span className="w-28 text-slate-400 font-medium shrink-0">Lote:</span>
+                <span className="font-mono font-semibold text-slate-800">{medicamento.lote}</span>
+              </div>
+
+              <div className="flex items-center text-slate-600">
+                <span className="w-28 text-slate-400 font-medium shrink-0">Validade:</span>
+                <span className="font-mono font-semibold text-slate-800">{medicamento.validade}</span>
+              </div>
+            </div>
+
+            {/* 3 Caixas de Preços Horizontais (Preço Anterior, Preço Atual, Desconto) */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Caixa 1: Preço Anterior */}
+              <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-2 text-center shadow-2xs">
+                <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium block leading-tight">
+                  Preço anterior:
+                </span>
+                <span className="text-sm sm:text-base font-bold text-slate-400 line-through font-mono block mt-0.5">
+                  R$ {formatPriceNum(precoAnterior)}
+                </span>
+              </div>
+
+              {/* Caixa 2: Preço Atual (Destaque Verde) */}
+              <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-2 text-center shadow-2xs">
+                <span className="text-[10px] sm:text-[11px] text-emerald-800 font-bold block leading-tight">
+                  Preço atual:
+                </span>
+                <span className="text-lg sm:text-xl font-black text-emerald-700 font-mono block mt-0.5">
+                  R$ {formatPriceNum(medicamento.preco)}
+                </span>
+              </div>
+
+              {/* Caixa 3: Desconto (%) */}
+              <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-2 text-center shadow-2xs">
+                <span className="text-[10px] sm:text-[11px] text-emerald-800 font-bold block leading-tight">
+                  Desconto:
+                </span>
+                <span className="text-base sm:text-lg font-black text-emerald-700 font-mono block mt-0.5">
+                  {percentualDesconto.toFixed(2).replace('.', ',')}%
+                </span>
+              </div>
+            </div>
+
+            {/* Linha de Quantidade e Botão Confirmar e Incluir na Sacola (Enter) */}
+            <div className="flex items-center gap-2 pt-1 flex-wrap sm:flex-nowrap">
+              {/* Campo Quantidade */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-300 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100 rounded-xl px-2 py-1.5 shrink-0">
+                <span className="text-xs font-bold text-slate-700">Quantidade:</span>
+                <input
+                  ref={inputQtdRef}
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={quantidade}
+                  onChange={e => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val) && val >= 1) {
+                      setQuantidade(val);
+                    } else if (e.target.value === '') {
+                      setQuantidade(1);
+                    }
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleConfirmar();
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      aoDestravar();
+                    }
+                  }}
+                  className="w-12 text-center font-black font-mono text-sm text-slate-900 bg-transparent outline-none"
+                  title="Digite a quantidade inteira positiva"
+                />
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => handleMudarQuantidade(quantidade + 1)}
+                    className="w-4 h-3 rounded bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center text-[9px] font-bold border border-slate-200 cursor-pointer"
+                    title="Aumentar"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMudarQuantidade(quantidade - 1)}
+                    className="w-4 h-3 rounded bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center text-[9px] font-bold border border-slate-200 cursor-pointer"
+                    title="Diminuir"
+                  >
+                    ▼
+                  </button>
+                </div>
+              </div>
+
+              {/* Botão Verde com Carrinho de Compras */}
               <button
                 type="button"
-                onClick={() => handleMudarQuantidade(quantidade - 1)}
-                className="w-6 h-6 rounded bg-white hover:bg-slate-200 text-slate-800 font-black flex items-center justify-center text-xs transition-colors cursor-pointer"
-                title="Diminuir quantidade"
+                onClick={handleConfirmar}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-black px-4 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer text-xs sm:text-sm flex items-center justify-center gap-2"
+                title="Confirmar e Incluir na Sacola (ENTER)"
               >
-                -
-              </button>
-              <input
-                ref={inputQtdRef}
-                type="number"
-                min="1"
-                step="1"
-                value={quantidade}
-                onChange={e => {
-                  const val = parseInt(e.target.value, 10);
-                  if (!isNaN(val) && val >= 1) {
-                    setQuantidade(val);
-                  } else if (e.target.value === '') {
-                    setQuantidade(1);
-                  }
-                }}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleConfirmar();
-                  } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    aoDestravar();
-                  }
-                }}
-                className="w-12 text-center font-black font-mono text-sm text-blue-900 bg-transparent outline-none"
-                title="Digite a quantidade inteira positiva"
-              />
-              <button
-                type="button"
-                onClick={() => handleMudarQuantidade(quantidade + 1)}
-                className="w-6 h-6 rounded bg-white hover:bg-slate-200 text-slate-800 font-black flex items-center justify-center text-xs transition-colors cursor-pointer"
-                title="Aumentar quantidade"
-              >
-                +
+                <ShoppingCart className="w-4 h-4 text-white" />
+                <span>Confirmar e Incluir na Sacola (Enter)</span>
               </button>
             </div>
-
-            {/* Botão de Inclusão */}
-            <button
-              type="button"
-              onClick={handleConfirmar}
-              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer text-xs sm:text-sm"
-              title="Confirmar e incluir na sacola (ENTER)"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Adicionar (Enter)</span>
-            </button>
           </div>
         </div>
       </div>

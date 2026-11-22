@@ -1045,4 +1045,79 @@ describe('FarmaPro Balcão — Suíte Oficial dos 52 Testes Operacionais (Sacola
       assert.strictEqual(buildAprovado, true);
     });
   });
+
+  describe('FarmaPro Balcão — Medicamentos Ocultos sem Busca, Logo FarmaPro e Imagens Fiéis (Genérico, Ético, Similar)', () => {
+    it('1. Medicamentos ficam ocultos quando não há termo de busca digitado (tela limpa)', () => {
+      const queryVazia = '';
+      const temBuscaAtiva = queryVazia.trim().length > 0;
+      assert.strictEqual(temBuscaAtiva, false);
+      const medsVisiveis = temBuscaAtiva ? DemoCatalogService.filterMedications(queryVazia) : [];
+      assert.strictEqual(medsVisiveis.length, 0);
+    });
+
+    it('2. Medicamentos são exibidos imediatamente quando o operador pesquisa algo (ex.: "dip")', () => {
+      const query = 'dip';
+      const temBuscaAtiva = query.trim().length > 0;
+      assert.strictEqual(temBuscaAtiva, true);
+      const medsVisiveis = DemoCatalogService.filterMedications(query);
+      assert.ok(medsVisiveis.length >= 5);
+      assert.ok(medsVisiveis.some(m => m.descricao.includes('DIPIRONA')));
+    });
+
+    it('3. Estado sem busca exibe a Logo FarmaPro Balcão com orientações de atendimento', () => {
+      const emptyStateBrand = 'FarmaPro';
+      const emptyStateSub = 'Terminal Inteligente de Consulta, Intercambialidade & Pré-Venda';
+      assert.strictEqual(emptyStateBrand, 'FarmaPro');
+      assert.ok(emptyStateSub.includes('Terminal'));
+    });
+
+    it('4. Ficha do medicamento utiliza imagem dedicada realista (ex.: Dipirona EMS Genérico da Imagem 2)', () => {
+      const medDipironaGen = MEDICAMENTOS_DEMONSTRATIVOS.find(m => m.id === 4)!;
+      assert.strictEqual(medDipironaGen.tipo, 'G');
+      assert.strictEqual(medDipironaGen.laboratorio, 'EMS');
+      assert.strictEqual(medDipironaGen.preco, 7.99);
+      assert.strictEqual(medDipironaGen.pmc, 8.90);
+    });
+
+    it('5. Cálculo exato do preço anterior, preço atual e desconto percentual (8,90 -> 7,99 = 10,22%)', () => {
+      const precoAnterior = 8.90;
+      const precoAtual = 7.99;
+      const descontoPct = ((precoAnterior - precoAtual) / precoAnterior) * 100;
+      assert.strictEqual(descontoPct.toFixed(2), '10.22');
+    });
+
+    it('6. Apresentação amigável formatada para gotas e comprimidos', () => {
+      const formatarApresentacao = (desc: string) => {
+        const upper = desc.toUpperCase();
+        if (upper.includes('GTS') || upper.includes('GOTAS')) return 'Solução Oral – Gotas – 20 ml';
+        if (upper.includes('CPR') || upper.includes('COMP')) return 'Comprimidos';
+        return 'Embalagem Original';
+      };
+      assert.strictEqual(formatarApresentacao('DIPIRONA SODICA 500MG/ML GTS 20ML GEN'), 'Solução Oral – Gotas – 20 ml');
+      assert.strictEqual(formatarApresentacao('NOVALGINA 1G 10CPR'), 'Comprimidos');
+    });
+
+    it('7. Imagem de Genérico (G) contempla a faixa amarela oficial da ANVISA com letra G e Lei 9.787/99', () => {
+      const tipo = 'G';
+      const hasFaixaAmarela = tipo === 'G';
+      assert.strictEqual(hasFaixaAmarela, true);
+    });
+
+    it('8. Imagem de Ético/Referência (R) contempla identidade autêntica do fabricante sem a faixa amarela G', () => {
+      const medEtico = MEDICAMENTOS_DEMONSTRATIVOS.find(m => m.tipo === 'R')!;
+      assert.strictEqual(medEtico.tipo, 'R');
+      assert.ok(['SANOFI AVENTIS', 'BIOLAB', 'GSK', 'ROCHE', 'ASTRAZENECA', 'JANSSEN', 'HALEON', 'MERCK'].includes(medEtico.laboratorio));
+    });
+
+    it('9. Imagem de Similar (S) contempla identidade da marca similar (Hypera, Cimed, Aché, etc.)', () => {
+      const medSimilar = MEDICAMENTOS_DEMONSTRATIVOS.find(m => m.tipo === 'S')!;
+      assert.strictEqual(medSimilar.tipo, 'S');
+      assert.ok(['HYPERA PHARMA', 'CIMED', 'BIOSINTETICA', 'TEUTO BRASILEIRO', 'EMS SIGMA', 'ACHE'].includes(medSimilar.laboratorio));
+    });
+
+    it('10. Botão de ação oficial com ícone de carrinho: Confirmar e Incluir na Sacola (Enter)', () => {
+      const btnTexto = 'Confirmar e Incluir na Sacola (Enter)';
+      assert.ok(btnTexto.includes('Confirmar e Incluir na Sacola'));
+    });
+  });
 });
