@@ -162,11 +162,17 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     setIndiceFocadoSugestao(-1);
   };
 
-  // Destravar medicamento
+  // Destravar medicamento e retornar imediatamente à pesquisa preservando o texto e posição (Seção 5)
   const handleDestravarMedicamento = () => {
     setMedicamentoFixado(null);
     setIndiceFocadoSugestao(-1);
-    inputBuscaRef.current?.focus();
+    setTimeout(() => {
+      if (inputBuscaRef.current) {
+        inputBuscaRef.current.focus();
+        const len = inputBuscaRef.current.value.length;
+        inputBuscaRef.current.setSelectionRange(len, len);
+      }
+    }, 40);
   };
 
   // Adicionar produto à sacola (2º Enter ou clique)
@@ -531,7 +537,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
   ]);
 
   return (
-    <div className="min-h-screen bg-slate-100/70 flex flex-col font-sans select-none text-slate-800">
+    <div className="h-screen max-h-screen bg-slate-100/70 flex flex-col font-sans select-none text-slate-800 overflow-hidden">
       {/* 1. Cabeçalho Superior do Balcão */}
       <BalcaoHeader
         operadorNome={usuario ? `${usuario.nome} (${usuario.matricula || 'Balcão'})` : 'Operador Não Identificado'}
@@ -544,11 +550,11 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
         aoSair={aoSair}
       />
 
-      {/* 2. Área Principal de Trabalho (Grid 2 Colunas com Largura da Sacola Maximizada: 7 colunas Busca vs 5 colunas Sacola) */}
-      <main className="flex-1 p-2.5 sm:p-3 max-w-full w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0">
-        {/* Lado Esquerdo: Pesquisa, Ficha Técnica do Fixado, Sugestões e Tabela de Resultados (7 colunas) */}
-        <section className="lg:col-span-7 flex flex-col space-y-2.5 min-w-0">
-          {/* Caixa de Pesquisa e Filtros */}
+      {/* 2. Área Principal de Trabalho (Grid 2 Colunas 100% sem Rolagem da Página: 7 colunas Busca vs 5 colunas Sacola) */}
+      <main className="flex-1 p-2 sm:p-2.5 max-w-full w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-2.5 min-h-0 overflow-hidden">
+        {/* Lado Esquerdo: Pesquisa, Ficha Técnica Completa ou Tabela de Resultados (7 colunas) */}
+        <section className="lg:col-span-7 flex flex-col min-w-0 h-full overflow-hidden space-y-2">
+          {/* Caixa de Pesquisa e Filtros (Preserva exatamente o texto digitado) */}
           <ProductSearch
             termoBusca={termoBusca}
             aoMudarBusca={val => setTermoBusca(val)}
@@ -563,9 +569,10 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
             totalResultados={medicamentosFiltrados.length}
           />
 
-          {/* Ficha Técnica do Medicamento Fixado (Aparece ao teclar o 1º Enter) */}
-          {medicamentoFixado && (
-            <div className="space-y-2 animate-in fade-in duration-200">
+          {/* Transição entre Modo Ficha Completa e Modo Lista de Resultados (Seções 1, 4 e 5) */}
+          {medicamentoFixado ? (
+            <div className="flex-1 min-h-0 flex flex-col justify-between gap-2 overflow-hidden animate-in fade-in duration-150">
+              {/* Ficha Completa com Fotografia à Esquerda e Dados Técnicos (Seção 1) */}
               <PinnedProductDetails
                 medicamento={medicamentoFixado}
                 aoDestravar={handleDestravarMedicamento}
@@ -575,7 +582,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
                 quantidadeInicial={multiplier > 0 ? multiplier : 1}
               />
 
-              {/* Sugestões Intercambiáveis (R -> S -> G) */}
+              {/* Sugestões Intercambiáveis (R -> S -> G) com Altura Reduzida (Seção 3) */}
               <InterchangeableSuggestions
                 sugestoes={sugestoesIntercambiaveis}
                 medicamentoFixado={medicamentoFixado}
@@ -583,20 +590,20 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
                 indiceFocadoSugestao={indiceFocadoSugestao}
               />
             </div>
+          ) : (
+            /* Tabela de Resultados da Pesquisa com Rolagem Vertical Interna Própria (Seção 4) */
+            <ProductResultsTable
+              medicamentos={medicamentosFiltrados}
+              indiceSelecionado={indiceSelecionado}
+              aoSelecionarIndice={idx => setIndiceSelecionado(idx)}
+              aoFixarMedicamento={med => handleFixarMedicamento(med)}
+              medicamentoFixadoId={null}
+            />
           )}
-
-          {/* Tabela de Resultados da Pesquisa */}
-          <ProductResultsTable
-            medicamentos={medicamentosFiltrados}
-            indiceSelecionado={indiceSelecionado}
-            aoSelecionarIndice={idx => setIndiceSelecionado(idx)}
-            aoFixarMedicamento={med => handleFixarMedicamento(med)}
-            medicamentoFixadoId={medicamentoFixado?.id ?? null}
-          />
         </section>
 
         {/* Lado Direito: Sacola de Atendimento / Pré-Venda com Espaço Lateral Otimizado (5 colunas) */}
-        <aside className="lg:col-span-5 flex flex-col min-w-0 sticky top-2 h-[calc(100vh-76px)]">
+        <aside className="lg:col-span-5 flex flex-col min-w-0 h-full overflow-hidden">
           <AttendanceCart
             itens={sacola}
             totais={totaisSacola}

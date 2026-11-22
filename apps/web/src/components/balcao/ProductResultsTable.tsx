@@ -73,7 +73,7 @@ export const ProductResultsTable: React.FC<ProductResultsTableProps> = ({
   return (
     <div
       ref={tableContainerRef}
-      className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden flex flex-col max-h-[480px]"
+      className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden flex flex-col flex-1 min-h-0"
     >
       <div className="overflow-y-auto flex-1">
         <table className="w-full text-left text-xs border-collapse">
