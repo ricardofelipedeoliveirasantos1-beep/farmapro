@@ -4,6 +4,7 @@ import {
   Keyboard,
   RotateCcw,
   Info,
+  Download,
 } from 'lucide-react';
 
 interface BalcaoOptionsModalProps {
@@ -74,6 +75,23 @@ export const BalcaoOptionsModal: React.FC<BalcaoOptionsModalProps> = ({
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Seção PWA Windows */}
+          <div className="bg-blue-50/70 border border-blue-200 p-3 rounded-xl space-y-2">
+            <h4 className="font-bold text-blue-900 text-xs flex items-center gap-1.5">
+              <Download className="w-4 h-4 text-blue-600" />
+              Aplicativo PWA Windows (Área de Trabalho)
+            </h4>
+            <p className="text-[11px] text-blue-800 leading-relaxed">
+              O FarmaPro Balcão pode ser instalado como um aplicativo independente no Windows:
+            </p>
+            <ol className="list-decimal list-inside text-[11px] text-blue-900 space-y-1 font-medium pl-1">
+              <li>Acesse <span className="font-mono bg-blue-100 px-1 py-0.5 rounded">/balcao</span> no Microsoft Edge ou Google Chrome.</li>
+              <li>Clique no ícone de <strong>Instalar</strong> na barra de endereços (ou menu ⋯ &gt; <em>Aplicativos</em> &gt; <em>Instalar este site como um aplicativo</em>).</li>
+              <li>Marque <strong>"Criar atalho na Área de Trabalho"</strong> e <strong>"Fixar na Barra de Tarefas"</strong>.</li>
+              <li>O Balcão abrirá em janela exclusiva com o ícone oficial FarmaPro, sem barra de navegação.</li>
+            </ol>
           </div>
 
           {/* Seção de Ações Rápidas de Demonstração */}
