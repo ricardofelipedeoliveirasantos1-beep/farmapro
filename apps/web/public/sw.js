@@ -1,6 +1,6 @@
 // FarmaPro Balcão — Service Worker (PWA Windows)
 // Versão do Cache da Aplicação
-const CACHE_NAME = 'farmapro-balcao-shell-v1';
+const CACHE_NAME = 'farmapro-balcao-shell-v2';
 
 // Recursos essenciais do shell da aplicação
 const SHELL_ASSETS = [
@@ -9,6 +9,8 @@ const SHELL_ASSETS = [
   '/index.html',
   '/manifest.webmanifest',
   '/favicon.png',
+  '/logo-farmapro-completa.png',
+  '/logo-farmapro-emblema.png',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/icons/icon-maskable-192x192.png',

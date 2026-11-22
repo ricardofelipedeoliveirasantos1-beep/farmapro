@@ -70,9 +70,11 @@ export const MenuLateral: React.FC<MenuLateralProps> = ({
       {/* 1. TOPO AZUL COM LOGOMARCA E BOTÃO FECHAR (EXATO À REFERÊNCIA) */}
       <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700 p-3.5 text-white flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/60 border border-white/20 text-white flex items-center justify-center font-black text-lg shadow-2xs">
-            +
-          </div>
+          <img
+            src="/logo-farmapro-emblema.png"
+            alt="FarmaPro"
+            className="w-8 h-8 object-contain drop-shadow-xs"
+          />
           <div>
             <div className="flex items-center gap-1.5 leading-none">
               <span className="text-base font-black tracking-tight">FarmaPro</span>

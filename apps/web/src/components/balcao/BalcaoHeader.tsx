@@ -86,9 +86,11 @@ export const BalcaoHeader: React.FC<BalcaoHeaderProps> = ({
           </button>
         )}
 
-        <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-lg shadow-2xs">
-          +
-        </div>
+        <img
+          src="/logo-farmapro-emblema.png"
+          alt="FarmaPro"
+          className="w-8 h-8 object-contain drop-shadow-xs"
+        />
 
         <div>
           <div className="flex items-center gap-2 leading-none">

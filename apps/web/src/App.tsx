@@ -186,9 +186,11 @@ export const App: React.FC = () => {
           />
         ) : (
           <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-center select-none font-sans">
-            <div className="w-16 h-16 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-3xl shadow-xl mb-4">
-              +
-            </div>
+            <img
+              src="/logo-farmapro-emblema.png"
+              alt="FarmaPro"
+              className="w-16 h-16 object-contain mb-4 drop-shadow-xl"
+            />
             <h2 className="text-xl font-bold text-white tracking-tight">FarmaPro Balcão</h2>
             <p className="text-sm text-slate-300 mt-1 max-w-sm">
               Sessão não identificada ou expirada. Identifique-se com sua matrícula e senha de 6 dígitos para acessar o painel de vendas.

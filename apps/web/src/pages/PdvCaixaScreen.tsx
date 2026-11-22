@@ -487,9 +487,11 @@ export const PdvCaixaScreen: React.FC<PdvCaixaScreenProps> = ({
           </button>
 
           <div className="flex items-center gap-2 pr-2 border-r border-slate-200">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-lg">
-              +
-            </div>
+            <img
+              src="/logo-farmapro-emblema.png"
+              alt="FarmaPro"
+              className="w-8 h-8 object-contain drop-shadow-xs"
+            />
             <div>
               <div className="flex items-center gap-1.5 leading-none">
                 <span className="text-base font-black text-slate-900 tracking-tight">FarmaPro</span>

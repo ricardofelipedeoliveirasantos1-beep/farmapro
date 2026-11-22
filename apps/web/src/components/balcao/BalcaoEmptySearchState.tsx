@@ -32,19 +32,13 @@ export const BalcaoEmptySearchState: React.FC<BalcaoEmptySearchStateProps> = ({
         <div className="absolute -inset-6 bg-gradient-to-r from-blue-500/15 via-emerald-400/20 to-teal-500/15 rounded-full blur-2xl opacity-80 pointer-events-none" />
 
         {/* Emblema Principal: Escudo da Família + Cruz Farmacêutica + Coração */}
-        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-[#1a365d] via-blue-700 to-teal-600 text-white flex items-center justify-center shadow-lg shadow-blue-900/20 border-2 border-white/60">
-          <div className="relative flex items-center justify-center">
-            {/* Cruz Médica estilizada com Coração no Centro */}
-            <span className="text-4xl sm:text-5xl font-black leading-none tracking-tighter select-none drop-shadow-sm">
-              +
-            </span>
-            <div className="absolute -bottom-2 -right-2 bg-rose-500 text-white p-1.5 rounded-full shadow-md border-2 border-white animate-bounce">
-              <Heart className="w-4 h-4 fill-white" />
-            </div>
-            <div className="absolute -top-2 -left-2 bg-emerald-500 text-white p-1 rounded-full shadow-xs border border-white">
-              <ShieldCheck className="w-3.5 h-3.5" />
-            </div>
-          </div>
+        {/* Emblema Oficial FarmaPro (Imagem 3) */}
+        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white p-2.5 flex items-center justify-center shadow-lg shadow-blue-900/10 border border-slate-200/80">
+          <img
+            src="/logo-farmapro-emblema.png"
+            alt="FarmaPro"
+            className="w-full h-full object-contain select-none"
+          />
         </div>
 
         {/* Nome FarmaPro • Saúde da Família */}

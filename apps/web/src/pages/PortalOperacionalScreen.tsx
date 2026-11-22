@@ -84,10 +84,12 @@ export const PortalOperacionalScreen: React.FC<PortalOperacionalScreenProps> = (
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Ícone da Marca FarmaPro (Quadrado Azul com Cruz Branca) */}
-          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-xl shadow-xs">
-            +
-          </div>
+          {/* Emblema Oficial da Marca FarmaPro (Imagem 3) */}
+          <img
+            src="/logo-farmapro-emblema.png"
+            alt="FarmaPro"
+            className="w-9 h-9 object-contain drop-shadow-xs select-none"
+          />
 
           <div>
             <div className="flex items-center gap-2 leading-none">
@@ -171,86 +173,13 @@ export const PortalOperacionalScreen: React.FC<PortalOperacionalScreenProps> = (
           </div>
         </div>
 
-        {/* Bloco Central: Emblema + Farma Pro + Slogan */}
-        <div className="flex flex-col items-center justify-center text-center max-w-xl mx-auto -mt-6">
-          {/* Emblema da Marca FarmaPro em Vetor SVG de Alta Fidelidade */}
-          <div className="relative w-44 h-44 sm:w-52 sm:h-52 mb-2 flex items-center justify-center drop-shadow-md">
-            <svg viewBox="0 0 200 200" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Swoosh Azul Suave no lado esquerdo */}
-              <path
-                d="M45 130 C30 100, 35 60, 65 40 C75 32, 90 28, 95 30 C80 45, 60 70, 62 105 C63 115, 67 125, 75 135 C60 138, 50 135, 45 130 Z"
-                fill="#38bdf8"
-                opacity="0.85"
-              />
-
-              {/* Cruz Médica Azul Estilizada com Bordas Arredondadas */}
-              <g fill="#0256c4">
-                {/* Braço vertical */}
-                <rect x="78" y="25" width="44" height="150" rx="14" />
-                {/* Braço horizontal */}
-                <rect x="25" y="78" width="150" height="44" rx="14" />
-              </g>
-
-              {/* Almofariz e Pilão Farmacêutico em Branco no Centro da Cruz */}
-              <g fill="#ffffff">
-                {/* Tigela do Almofariz */}
-                <path d="M72 96 C72 120, 82 130, 100 130 C118 130, 128 120, 128 96 L72 96 Z" />
-                {/* Borda superior do Almofariz */}
-                <rect x="68" y="93" width="64" height="6" rx="3" />
-                {/* Base do Almofariz */}
-                <rect x="88" y="128" width="24" height="4" rx="2" />
-                {/* Pilão inclinado */}
-                <path d="M96 74 L122 98 L116 104 L90 80 Z" rx="2" />
-                {/* Cruz Azul Interna na tigela do almofariz */}
-                <rect x="97" y="105" width="6" height="16" rx="1.5" fill="#0256c4" />
-                <rect x="92" y="110" width="16" height="6" rx="1.5" fill="#0256c4" />
-              </g>
-
-              {/* Duas Folhas Verdes Vivas Brotam no Lado Direito */}
-              <g fill="#16a34a">
-                {/* Folha Principal Grande */}
-                <path d="M120 100 C155 80, 175 45, 172 40 C170 65, 140 105, 122 108 Z" />
-                {/* Folha Secundária Menor */}
-                <path d="M122 85 C145 68, 160 48, 158 45 C154 60, 136 86, 124 88 Z" fill="#22c55e" />
-              </g>
-            </svg>
-          </div>
-
-          {/* Tipografia da Marca: Farma (Azul) + Pro (Verde) */}
-          <div className="flex items-center justify-center tracking-tight leading-none">
-            <span
-              className="text-5xl sm:text-6xl font-black italic tracking-tight"
-              style={{ color: '#0c2356' }}
-            >
-              Farma
-            </span>
-            <span
-              className="text-5xl sm:text-6xl font-black italic tracking-tight ml-1"
-              style={{ color: '#16a34a' }}
-            >
-              Pro
-            </span>
-          </div>
-
-          {/* Traço/Swoosh Verde Suave Sublinhando Farma Pro */}
-          <div className="w-48 sm:w-60 h-2 my-1 flex justify-center">
-            <svg viewBox="0 0 240 12" className="w-full h-full" fill="none">
-              <path
-                d="M10 6 C60 12, 180 12, 230 6"
-                stroke="#16a34a"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-
-          {/* Slogan Farmacêutico em Itálico (Exato à Imagem) */}
-          <p
-            className="text-lg sm:text-2xl italic font-medium tracking-tight mt-1"
-            style={{ color: '#0c2356' }}
-          >
-            Mais <span className="text-emerald-600 font-bold">saúde</span> para você e sua família
-          </p>
+        {/* Bloco Central: Nova Logo Oficial FarmaPro (Imagem 2) */}
+        <div className="flex flex-col items-center justify-center text-center max-w-xl mx-auto -mt-4 animate-in fade-in duration-300">
+          <img
+            src="/logo-farmapro-completa.png"
+            alt="FarmaPro — Sistema de Gestão Farmacêutica"
+            className="w-80 sm:w-96 md:w-[460px] max-w-full h-auto object-contain drop-shadow-md select-none"
+          />
         </div>
       </main>
 
