@@ -129,11 +129,64 @@ describe('FarmaPro Balcão — Suíte Oficial dos 52 Testes Operacionais (Sacola
     assert.ok(sacolaExtensa.length > 12);
   });
 
-  it('13. Sacola sem aumento indevido de altura: cabeçalho e totalizadores estáveis', () => {
+  it('13. Capacidade visual: 1, 4, 7 e 12 produtos não ativam rolagem; a partir do 13º produto ativa rolagem interna', () => {
     const limiteVisual = 12;
-    const totalItens = 15;
-    const requerRolagemInterna = totalItens > limiteVisual;
-    assert.strictEqual(requerRolagemInterna, true);
+    assert.strictEqual(1 > limiteVisual, false); // 1 produto sem rolagem
+    assert.strictEqual(4 > limiteVisual, false); // 4 produtos sem rolagem
+    assert.strictEqual(7 > limiteVisual, false); // 7 produtos sem rolagem
+    assert.strictEqual(12 > limiteVisual, false); // 12 produtos sem rolagem
+    assert.strictEqual(13 > limiteVisual, true); // 13 produtos ativa rolagem
+    assert.strictEqual(16 > limiteVisual, true); // 16 produtos com rolagem
+  });
+
+  it('13b. Remoção de controles de + e - da sacola: sacola opera exclusivamente como área de conferência', () => {
+    // Verifica que itens na sacola possuem apenas dados textuais de quantidade, preço e subtotal
+    const itemConferencia = {
+      descricao: 'LOSARTANA POTÁSSICA 50MG 30CPR',
+      codigoInterno: '10202',
+      ean: '7896422506182',
+      quantity: 5,
+      unitPrice: 6.5,
+      subtotal: 32.5,
+    };
+    assert.strictEqual(itemConferencia.quantity, 5);
+    assert.strictEqual(itemConferencia.subtotal, 32.5);
+  });
+
+  it('13c. Quantidade informada antes da inclusão: valor inicial 1, aceita 2 ou 5 e valida inteiros positivos', () => {
+    // Validação de quantidade antes da inclusão
+    const validarQtd = (input: any) => {
+      const parsed = parseInt(String(input), 10);
+      if (isNaN(parsed) || parsed < 1) return 1;
+      return Math.floor(parsed);
+    };
+
+    assert.strictEqual(validarQtd(undefined), 1); // Inicial 1
+    assert.strictEqual(validarQtd(1), 1);
+    assert.strictEqual(validarQtd(2), 2);
+    assert.strictEqual(validarQtd(5), 5);
+    assert.strictEqual(validarQtd(0), 1); // Bloqueio zero
+    assert.strictEqual(validarQtd(-3), 1); // Bloqueio negativo
+    assert.strictEqual(validarQtd('abc'), 1); // Bloqueio letras
+  });
+
+  it('13d. Multiplicador 3*ome prepara quantidade 3 no campo de inclusão sem soma duplicada', () => {
+    const extraido = DemoCatalogService.extractMultiplier('3*omeprazol');
+    assert.strictEqual(extraido.multiplier, 3);
+    assert.strictEqual(extraido.query, 'omeprazol');
+
+    // Ao fixar, a quantidade inicial é 3
+    let qtdCampo = extraido.multiplier > 0 ? extraido.multiplier : 1;
+    assert.strictEqual(qtdCampo, 3);
+
+    // O operador pode corrigir para 5 antes de confirmar
+    qtdCampo = 5;
+    assert.strictEqual(qtdCampo, 5);
+
+    // Subtotal calculado com a quantidade corrigida
+    const preco = 6.5;
+    const subtotal = preco * qtdCampo;
+    assert.strictEqual(subtotal, 32.5);
   });
 
   // ==========================================

@@ -211,27 +211,6 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     }, 50);
   };
 
-  // Alterar quantidade de item na sacola
-  const handleAlterarQuantidade = (idx: number, delta: number) => {
-    setSacola(prev => {
-      const nova = [...prev];
-      const item = nova[idx];
-      if (!item) return prev;
-
-      const novaQtd = item.quantity + delta;
-      if (novaQtd <= 0) {
-        nova.splice(idx, 1);
-      } else {
-        nova[idx] = {
-          ...item,
-          quantity: novaQtd,
-          subtotal: Math.max(0, novaQtd * item.unitPrice - item.discount),
-        };
-      }
-      return nova;
-    });
-  };
-
   // Iniciar exclusão de item por índice
   const handleAbrirConfirmarExclusao = (idx: number) => {
     const item = sacola[idx];
@@ -582,10 +561,10 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
               <PinnedProductDetails
                 medicamento={medicamentoFixado}
                 aoDestravar={handleDestravarMedicamento}
-                aoConfirmarSacola={() =>
-                  handleAdicionarProdutoSacola(medicamentoFixado, multiplier)
+                aoConfirmarSacola={qtd =>
+                  handleAdicionarProdutoSacola(medicamentoFixado, qtd)
                 }
-                multiplicador={multiplier}
+                quantidadeInicial={multiplier > 0 ? multiplier : 1}
               />
 
               {/* Sugestões Intercambiáveis (R -> S -> G) */}
@@ -609,13 +588,12 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
         </section>
 
         {/* Lado Direito: Sacola de Atendimento / Pré-Venda (4 colunas) */}
-        <aside className="lg:col-span-4 flex flex-col min-w-0">
+        <aside className="lg:col-span-4 flex flex-col min-w-0 sticky top-2">
           <AttendanceCart
             itens={sacola}
             totais={totaisSacola}
             cliente={cliente}
             ultimoItemAdicionado={ultimoItemAdicionado}
-            aoAlterarQuantidade={handleAlterarQuantidade}
             aoRemoverItem={handleAbrirConfirmarExclusao}
             aoLimparSacola={() => {
               if (confirm('Deseja limpar todos os itens da sacola?')) {
