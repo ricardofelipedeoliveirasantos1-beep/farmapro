@@ -4,11 +4,6 @@ import {
   Building2,
   ChevronDown,
   ArrowRight,
-  Pill,
-  Package,
-  ClipboardList,
-  Users,
-  BarChart3,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext.js';
 
@@ -68,11 +63,11 @@ export const PortalOperacionalScreen: React.FC<PortalOperacionalScreenProps> = (
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col justify-between overflow-hidden bg-white select-none font-sans">
+    <div className="relative h-screen max-h-screen w-full flex flex-col justify-between overflow-hidden bg-white select-none font-sans">
       {/* =========================================================================
           1. CABEÇALHO SUPERIOR (EXATO À REFERÊNCIA VISUAL)
           ========================================================================= */}
-      <header className="relative z-20 bg-white/95 backdrop-blur-xs border-b border-slate-200/80 px-4 sm:px-6 py-2.5 flex items-center justify-between shadow-2xs">
+      <header className="relative z-20 shrink-0 bg-white/95 backdrop-blur-xs border-b border-slate-200/80 px-4 sm:px-6 py-2.5 flex items-center justify-between shadow-2xs">
         {/* Lado Esquerdo: Hambúrguer + Marca FarmaPro SaaS + Slogan */}
         <div className="flex items-center gap-3">
           <button
@@ -134,9 +129,9 @@ export const PortalOperacionalScreen: React.FC<PortalOperacionalScreenProps> = (
       </header>
 
       {/* =========================================================================
-          2. ÁREA CENTRAL HERO: AMBIENTE DE FARMÁCIA + LOGOMARCA CENTRAL + SLOGAN
+          2. ÁREA CENTRAL HERO: AMBIENTE DE FARMÁCIA + LOGOMARCA CENTRALIZADA EM TELA GRANDE
           ========================================================================= */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-6 overflow-hidden">
         {/* Fundo Real de Farmácia Desfocada com Iluminação Clara e Prateleiras */}
         <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden select-none bg-white">
           {/* Imagem Fotográfica Real de Farmácia com Desfoque Suave */}
@@ -149,8 +144,8 @@ export const PortalOperacionalScreen: React.FC<PortalOperacionalScreenProps> = (
           {/* Iluminação Clara Suave para Garantir Contraste Perfeito e Ambiente Branco */}
           <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-white/40 to-white/60" />
 
-          {/* Ondas Fluidas Estilizadas em Azul e Verde no Rodapé (Exato à Referência) */}
-          <div className="absolute bottom-0 left-0 right-0 h-48 sm:h-64 overflow-hidden">
+          {/* Ondas Fluidas Estilizadas em Azul e Verde no Rodapé */}
+          <div className="absolute bottom-0 left-0 right-0 h-48 sm:h-64 overflow-hidden pointer-events-none">
             {/* Onda Azul */}
             <svg
               className="absolute bottom-0 left-0 w-full h-40 sm:h-56 text-blue-600/90"
@@ -173,76 +168,15 @@ export const PortalOperacionalScreen: React.FC<PortalOperacionalScreenProps> = (
           </div>
         </div>
 
-        {/* Bloco Central: Nova Logo Oficial FarmaPro (Imagem 2) */}
-        <div className="flex flex-col items-center justify-center text-center max-w-xl mx-auto -mt-4 animate-in fade-in duration-300">
+        {/* Bloco Central: Nova Logo Oficial FarmaPro (Imagem 2) Centralizada */}
+        <div className="flex flex-col items-center justify-center text-center max-w-2xl mx-auto animate-in fade-in duration-300 select-none">
           <img
             src="/logo-farmapro-completa.png"
             alt="FarmaPro — Sistema de Gestão Farmacêutica"
-            className="w-80 sm:w-96 md:w-[460px] max-w-full h-auto object-contain drop-shadow-md select-none"
+            className="w-80 sm:w-[420px] md:w-[500px] lg:w-[560px] max-w-full h-auto object-contain drop-shadow-xl select-none"
           />
         </div>
       </main>
-
-      {/* =========================================================================
-          3. BARRA HORIZONTAL INFERIOR ILUSTRATIVA (EXCLUSIVAMENTE VISUAL)
-          Separada por divisores verticais: Medicamentos | Estoque | Pré-vendas | Clientes | Relatórios
-          ========================================================================= */}
-      <nav
-        aria-label="Atalhos Operacionais Ilustrativos"
-        className="relative z-20 pb-6 px-4 flex justify-center select-none"
-      >
-        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/90 py-2.5 px-3 flex items-center justify-center max-w-4xl w-full divide-x divide-slate-200">
-          {/* 1. Medicamentos */}
-          <div
-            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 cursor-default"
-          >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Pill className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <span className="text-xs sm:text-sm font-bold tracking-tight">Medicamentos</span>
-          </div>
-
-          {/* 2. Estoque */}
-          <div
-            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 cursor-default"
-          >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Package className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <span className="text-xs sm:text-sm font-bold tracking-tight">Estoque</span>
-          </div>
-
-          {/* 3. Pré-vendas */}
-          <div
-            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 cursor-default"
-          >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <span className="text-xs sm:text-sm font-bold tracking-tight">Pré-vendas</span>
-          </div>
-
-          {/* 4. Clientes */}
-          <div
-            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 cursor-default"
-          >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <span className="text-xs sm:text-sm font-bold tracking-tight">Clientes</span>
-          </div>
-
-          {/* 5. Relatórios */}
-          <div
-            className="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-3 py-2 text-slate-800 cursor-default"
-          >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <span className="text-xs sm:text-sm font-bold tracking-tight">Relatórios</span>
-          </div>
-        </div>
-      </nav>
     </div>
   );
 };

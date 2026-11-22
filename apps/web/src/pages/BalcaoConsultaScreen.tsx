@@ -199,23 +199,29 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
           ...itemExistente,
           quantity: novaQtd,
           subtotal,
-          numeroSequencial: itemExistente.numeroSequencial, // Preserva a identificação original de inclusão (Seção 3)
         };
         // Reposiciona o medicamento existente no topo da sacola
         const outrosItens = prev.filter((_, i) => i !== idxExistente);
-        return [novoItem, ...outrosItens];
+        const listaAtualizada = [novoItem, ...outrosItens];
+        return listaAtualizada.map((item, index) => ({
+          ...item,
+          numeroSequencial: listaAtualizada.length - index,
+        }));
       } else {
-        // Novo produto distinto recebe o próximo número sequencial de inclusão (Seção 3)
-        const maxSeq = prev.reduce((max, it) => Math.max(max, it.numeroSequencial || 0), 0);
+        // Novo produto distinto recebe o próximo número sequencial de inclusão (#N no topo até #1 na base)
         novoItem = {
           medication: med,
           quantity: quantidadeValida,
           unitPrice: med.preco,
           discount: 0,
           subtotal: med.preco * quantidadeValida,
-          numeroSequencial: maxSeq + 1,
+          numeroSequencial: prev.length + 1,
         };
-        return [novoItem, ...prev];
+        const listaAtualizada = [novoItem, ...prev];
+        return listaAtualizada.map((item, index) => ({
+          ...item,
+          numeroSequencial: listaAtualizada.length - index,
+        }));
       }
     });
 
@@ -239,7 +245,14 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
   // Confirmação SIM no modal de exclusão
   const handleConfirmarExclusaoItem = () => {
     if (itemExclusaoConfirmando) {
-      setSacola(prev => prev.filter((_, i) => i !== indiceItemExclusao));
+      setSacola(prev => {
+        const filtrada = prev.filter((_, i) => i !== indiceItemExclusao);
+        // Re-estabelece a ordem da numeração sequencial contínua (#N até #1 sem lacunas)
+        return filtrada.map((item, index) => ({
+          ...item,
+          numeroSequencial: filtrada.length - index,
+        }));
+      });
       setItemExclusaoConfirmando(null);
       setModoExclusaoSacola(false);
       setTimeout(() => {

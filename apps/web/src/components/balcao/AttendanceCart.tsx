@@ -127,10 +127,14 @@ export const AttendanceCart: React.FC<AttendanceCartProps> = ({
       {/* 2. LISTA DE ITENS NA SACOLA:
           - Faixa 'Último no topo' removida completamente (Seção 2).
           - Largura lateral totalmente aproveitada para nomes completos (Seção 1).
-          - Numeração sequencial de inclusão (#1, #2...) preservada e estável (Seção 3).
+          - Numeração sequencial contínua (#N no topo até #1 na base), sempre re-estabelecida após exclusão.
           - Valores monetários com tamanho ligeiramente maior e total em destaque moderado (Seção 1).
-          - Cabem 12 produtos distintos visíveis antes de ativar a rolagem vertical (Seção 4). */}
-      <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-1 divide-y divide-slate-100">
+          - Cabem até 12 produtos distintos visíveis sem qualquer barra de rolagem (Seção 4). */}
+      <div
+        className={`flex-1 min-h-0 p-2 space-y-1 divide-y divide-slate-100 ${
+          itens.length > 12 ? 'overflow-y-auto' : 'overflow-hidden'
+        }`}
+      >
         {itens.length === 0 ? (
           <div className="h-44 flex flex-col items-center justify-center text-center text-slate-400 p-4">
             <p className="font-bold text-xs text-slate-600">A sacola está vazia</p>
@@ -141,11 +145,12 @@ export const AttendanceCart: React.FC<AttendanceCartProps> = ({
         ) : (
           itens.map((item, idx) => {
             const isFocadoExclusao = modoExclusao && indiceItemExclusao === idx;
-            const numeroExibicao = item.numeroSequencial || (itens.length - idx);
+            // Ordem sequencial contínua: o item mais antigo (na base) é #1, e o mais novo (no topo) é #itens.length
+            const numeroExibicao = item.numeroSequencial ?? (itens.length - idx);
 
             return (
               <div
-                key={`${item.medication.id}-${item.numeroSequencial || idx}`}
+                key={`${item.medication.id}-${idx}`}
                 ref={el => (itemRefs.current[idx] = el)}
                 onClick={() => {
                   if (modoExclusao) {

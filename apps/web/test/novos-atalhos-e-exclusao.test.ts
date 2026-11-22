@@ -686,19 +686,40 @@ describe('FarmaPro Balcão — Suíte Oficial dos 52 Testes Operacionais (Sacola
       assert.strictEqual(sacola[0]!.quantity, 2);
     });
 
-    it('15. Exclusão não corrompe os números restantes', () => {
+    it('15. Exclusão re-estabelece a ordem da numeração sequencial contínua sem lacunas', () => {
       let sacola = [
         { id: 4, name: 'Rivotril', numeroSequencial: 4 },
         { id: 3, name: 'Dipirona', numeroSequencial: 3 },
         { id: 2, name: 'Omeprazol', numeroSequencial: 2 },
         { id: 1, name: 'Losartana', numeroSequencial: 1 },
       ];
-      // Exclui Dipirona (#3)
-      sacola = sacola.filter(it => it.id !== 3);
+      // Exclui Dipirona (#3) e re-estabelece a ordem
+      const filtrada = sacola.filter(it => it.id !== 3);
+      sacola = filtrada.map((it, idx, arr) => ({ ...it, numeroSequencial: arr.length - idx }));
       assert.strictEqual(sacola.length, 3);
-      assert.strictEqual(sacola[0]!.numeroSequencial, 4);
+      assert.strictEqual(sacola[0]!.numeroSequencial, 3);
       assert.strictEqual(sacola[1]!.numeroSequencial, 2);
       assert.strictEqual(sacola[2]!.numeroSequencial, 1);
+    });
+
+    it('15b. Ao excluir o item 4 da sacola com 6 produtos, a numeração é re-estabelecida (#5, #4, #3, #2, #1)', () => {
+      let sacola = [
+        { id: 6, name: 'NOVALGINA 1G 10CPR', numeroSequencial: 6 },
+        { id: 5, name: 'REDOXON 1G 30CPR EFERV', numeroSequencial: 5 },
+        { id: 4, name: 'PRODUTO EXCLUIDO', numeroSequencial: 4 },
+        { id: 3, name: 'AMBROXMEL XPE ADT 120ML', numeroSequencial: 3 },
+        { id: 2, name: 'PARACETAMOL 750MG 20CPR GEN', numeroSequencial: 2 },
+        { id: 1, name: 'DIPIRONA SODICA 500MG/ML GTS 20ML GEN', numeroSequencial: 1 },
+      ];
+      // Exclui o item 4
+      const filtrada = sacola.filter(it => it.id !== 4);
+      sacola = filtrada.map((it, idx, arr) => ({ ...it, numeroSequencial: arr.length - idx }));
+      assert.strictEqual(sacola.length, 5);
+      assert.strictEqual(sacola[0]!.numeroSequencial, 5);
+      assert.strictEqual(sacola[1]!.numeroSequencial, 4);
+      assert.strictEqual(sacola[2]!.numeroSequencial, 3);
+      assert.strictEqual(sacola[3]!.numeroSequencial, 2);
+      assert.strictEqual(sacola[4]!.numeroSequencial, 1);
     });
 
     // --- Vendedor (16 a 27) ---

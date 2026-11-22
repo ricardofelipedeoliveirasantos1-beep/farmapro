@@ -25,15 +25,14 @@ export const BalcaoEmptySearchState: React.FC<BalcaoEmptySearchStateProps> = ({
   ];
 
   return (
-    <div className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col items-center justify-center p-6 text-center select-none overflow-y-auto">
-      {/* 1. GRANDE LOGO CRIATIVA FARMAPRO SAÚDE DA FAMÍLIA */}
-      <div className="relative mb-5 flex flex-col items-center">
+    <div className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col items-center justify-center p-4 sm:p-5 md:p-6 text-center select-none overflow-hidden">
+      {/* 1. GRANDE LOGO CRIATIVA FARMAPRO SAÚDE DA FAMÍLIA (CENTRALIZADA) */}
+      <div className="relative mb-3 sm:mb-4 flex flex-col items-center">
         {/* Halo / Glow de Saúde Suave e Moderno */}
         <div className="absolute -inset-6 bg-gradient-to-r from-blue-500/15 via-emerald-400/20 to-teal-500/15 rounded-full blur-2xl opacity-80 pointer-events-none" />
 
-        {/* Emblema Principal: Escudo da Família + Cruz Farmacêutica + Coração */}
         {/* Emblema Oficial FarmaPro (Imagem 3) */}
-        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white p-2.5 flex items-center justify-center shadow-lg shadow-blue-900/10 border border-slate-200/80">
+        <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-3xl bg-white p-2.5 flex items-center justify-center shadow-lg shadow-blue-900/10 border border-slate-200/80">
           <img
             src="/logo-farmapro-emblema.png"
             alt="FarmaPro"
@@ -42,12 +41,12 @@ export const BalcaoEmptySearchState: React.FC<BalcaoEmptySearchStateProps> = ({
         </div>
 
         {/* Nome FarmaPro • Saúde da Família */}
-        <div className="mt-4 flex flex-col items-center">
+        <div className="mt-3 sm:mt-4 flex flex-col items-center">
           <div className="flex items-center gap-2 flex-wrap justify-center">
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 leading-none">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 leading-none">
               Farma<span className="text-blue-600">Pro</span>
             </h1>
-            <span className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight leading-none">
+            <span className="text-xl sm:text-2xl md:text-3xl font-black text-emerald-600 tracking-tight leading-none">
               • Saúde da Família
             </span>
           </div>
@@ -68,10 +67,10 @@ export const BalcaoEmptySearchState: React.FC<BalcaoEmptySearchStateProps> = ({
       </div>
 
       {/* 2. PILARES DE CUIDADO FAMILIAR */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-xl w-full mb-4">
-        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex items-center gap-2 text-left shadow-2xs">
-          <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-            <Users className="w-4 h-4" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 max-w-xl w-full mb-2.5 sm:mb-3">
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2 sm:p-2.5 flex items-center gap-2 text-left shadow-2xs">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
           <div className="min-w-0">
             <h4 className="text-xs font-bold text-slate-800">Cuidado para Toda Idade</h4>
@@ -79,9 +78,9 @@ export const BalcaoEmptySearchState: React.FC<BalcaoEmptySearchStateProps> = ({
           </div>
         </div>
 
-        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex items-center gap-2 text-left shadow-2xs">
-          <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-4 h-4" />
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2 sm:p-2.5 flex items-center gap-2 text-left shadow-2xs">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
           <div className="min-w-0">
             <h4 className="text-xs font-bold text-slate-800">Economia Inteligente</h4>
@@ -89,9 +88,9 @@ export const BalcaoEmptySearchState: React.FC<BalcaoEmptySearchStateProps> = ({
           </div>
         </div>
 
-        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex items-center gap-2 text-left shadow-2xs">
-          <div className="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
-            <Heart className="w-4 h-4" />
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2 sm:p-2.5 flex items-center gap-2 text-left shadow-2xs">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
+            <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
           <div className="min-w-0">
             <h4 className="text-xs font-bold text-slate-800">Atenção Farmacêutica</h4>
@@ -101,12 +100,12 @@ export const BalcaoEmptySearchState: React.FC<BalcaoEmptySearchStateProps> = ({
       </div>
 
       {/* 3. CAIXA DE INSTRUÇÃO E PRONTIDÃO */}
-      <div className="bg-blue-50/60 border border-blue-200/80 rounded-xl p-3 max-w-lg w-full mb-4 shadow-2xs">
+      <div className="bg-blue-50/60 border border-blue-200/80 rounded-xl p-2.5 sm:p-3 max-w-lg w-full mb-2.5 sm:mb-3 shadow-2xs">
         <div className="flex items-center justify-center gap-2 text-blue-900 font-bold text-xs sm:text-sm mb-1">
-          <Search className="w-4 h-4 text-blue-600 animate-pulse" />
+          <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 animate-pulse" />
           <span>Aguardando pesquisa de medicamento</span>
         </div>
-        <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
+        <p className="text-[10px] sm:text-xs text-slate-600 leading-relaxed">
           Os medicamentos permanecem ocultos até que uma busca seja realizada. Digite o{' '}
           <strong>nome comercial</strong>, <strong>princípio ativo</strong>,{' '}
           <strong>código interno</strong> ou leia o código de barras com o{' '}
