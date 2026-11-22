@@ -149,8 +149,8 @@ export const PreSalesModal: React.FC<PreSalesModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
-                      <span>{pv.items.length} itens</span>
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
+                      <span>Vendedor: <strong>{pv.vendedorNome || pv.attendantName}</strong></span>
                       <span>{new Date(pv.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                   </div>
@@ -187,6 +187,24 @@ export const PreSalesModal: React.FC<PreSalesModalProps> = ({
                   <span className="text-[11px] text-slate-500 block">
                     {preVendaSelecionada.customer.convenio}
                   </span>
+                </div>
+
+                {/* Vendedor Responsável */}
+                <div className="bg-blue-50/70 p-2.5 rounded-lg border border-blue-200">
+                  <span className="text-[10px] text-blue-800 font-bold uppercase block">
+                    Vendedor Responsável
+                  </span>
+                  <span className="font-bold text-slate-900 block text-xs">
+                    {preVendaSelecionada.vendedorNome || preVendaSelecionada.attendantName}
+                  </span>
+                  <span className="text-[11px] text-blue-700 block">
+                    Matrícula: {preVendaSelecionada.vendedorMatricula || 'N/A'}
+                  </span>
+                  {preVendaSelecionada.criadoPorNome && preVendaSelecionada.criadoPorNome !== preVendaSelecionada.vendedorNome && (
+                    <span className="text-[10px] text-slate-500 block mt-1">
+                      Registrado no terminal por: {preVendaSelecionada.criadoPorNome}
+                    </span>
+                  )}
                 </div>
 
                 {/* Lista de Itens */}

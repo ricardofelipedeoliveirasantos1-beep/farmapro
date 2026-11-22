@@ -17,11 +17,22 @@ export interface CustomerInfo {
   convenio: string;
 }
 
+export interface VendedorResponsavel {
+  id: string;
+  matricula: string;
+  nome: string;
+  cargoNome: string;
+}
+
 export interface PreVendaDemo {
   id: string;
   code: string;
   createdAt: string;
-  attendantName: string;
+  attendantName: string; // Mantido para compatibilidade
+  vendedorMatricula: string;
+  vendedorNome: string;
+  criadoPorUsuarioId?: string;
+  criadoPorNome?: string;
   customer: CustomerInfo;
   items: CartItemBalcao[];
   subtotal: number;

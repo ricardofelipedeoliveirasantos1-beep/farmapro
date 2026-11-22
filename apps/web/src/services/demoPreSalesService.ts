@@ -19,6 +19,10 @@ class DemoPreSalesStore {
         code: 'PV-1047',
         createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
         attendantName: 'Carlos Silva (Balcão 02)',
+        vendedorMatricula: 'CX-001',
+        vendedorNome: 'Carlos Silva',
+        criadoPorUsuarioId: '10000000-0000-4000-8000-000000000001',
+        criadoPorNome: 'Carlos Silva',
         customer: {
           name: 'Maria Oliveira Santos',
           cpf: '123.456.789-00',
@@ -42,7 +46,11 @@ class DemoPreSalesStore {
         id: 'pv-mock-02',
         code: 'PV-1048',
         createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-        attendantName: 'Carlos Silva (Balcão 02)',
+        attendantName: 'Mariana Atendente (Balcão 01)',
+        vendedorMatricula: 'BC-002',
+        vendedorNome: 'Mariana Atendente',
+        criadoPorUsuarioId: '10000000-0000-4000-8000-000000000002',
+        criadoPorNome: 'Mariana Atendente',
         customer: {
           name: 'João da Silva',
           cpf: '987.654.321-99',
@@ -77,7 +85,8 @@ class DemoPreSalesStore {
     cart: CartItemBalcao[],
     totals: CartTotals,
     customer: CustomerInfo,
-    attendantName = 'Carlos Silva (Balcão 02)',
+    vendedor: { matricula: string; nome: string },
+    criadoPor?: { id?: string; nome?: string },
   ): PreVendaDemo {
     this.counter++;
     const code = `PV-${this.counter}`;
@@ -86,7 +95,11 @@ class DemoPreSalesStore {
       id: `pv-demo-${Date.now()}`,
       code,
       createdAt: new Date().toISOString(),
-      attendantName,
+      attendantName: `${vendedor.nome} (Balcão)`,
+      vendedorMatricula: vendedor.matricula,
+      vendedorNome: vendedor.nome,
+      criadoPorUsuarioId: criadoPor?.id,
+      criadoPorNome: criadoPor?.nome || 'Operador Balcão',
       customer: { ...customer },
       items: cart.map(i => ({ ...i })),
       subtotal: totals.subtotalBruto,
@@ -95,7 +108,7 @@ class DemoPreSalesStore {
       status: 'PENDING_CASHIER',
     };
 
-    // Insere no início da lista
+    // Insere no início da lista (sem alterar retroativamente nenhuma pré-venda anterior)
     this.preVendas.unshift(newPv);
     return newPv;
   }

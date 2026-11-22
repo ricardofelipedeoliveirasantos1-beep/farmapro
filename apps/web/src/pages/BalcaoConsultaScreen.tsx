@@ -9,6 +9,7 @@ import {
   CustomerInfo,
   PreVendaDemo,
   SearchMode,
+  VendedorResponsavel,
 } from '../types/balcao.js';
 
 import { BalcaoHeader } from '../components/balcao/BalcaoHeader.js';
@@ -22,14 +23,19 @@ import { DiscountModal } from '../components/balcao/DiscountModal.js';
 import { PreSalesModal } from '../components/balcao/PreSalesModal.js';
 import { BalcaoOptionsModal } from '../components/balcao/BalcaoOptionsModal.js';
 import { ComprovantePreVendaModal } from '../components/balcao/ComprovantePreVendaModal.js';
+import { IdentificarVendedorModal } from '../components/balcao/IdentificarVendedorModal.js';
 
 interface BalcaoConsultaScreenProps {
   aoVoltarPortal?: () => void;
   aoAbrirMenu?: () => void;
+  aoTrocarUsuario?: () => void;
+  aoSair?: () => void;
 }
 
 export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
   aoVoltarPortal,
+  aoTrocarUsuario,
+  aoSair,
 }) => {
   const { usuario, filialAtiva } = useAuth();
 
@@ -61,6 +67,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
   const [modalDescontoAberto, setModalDescontoAberto] = useState<boolean>(false);
   const [modalPreVendasAberto, setModalPreVendasAberto] = useState<boolean>(false);
   const [modalOpcoesAberto, setModalOpcoesAberto] = useState<boolean>(false);
+  const [modalVendedorAberto, setModalVendedorAberto] = useState<boolean>(false);
   const [comandaConcluida, setComandaConcluida] = useState<PreVendaDemo | null>(null);
 
   // Contador de Pré-vendas
@@ -125,6 +132,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       modalDescontoAberto ||
       modalPreVendasAberto ||
       modalOpcoesAberto ||
+      modalVendedorAberto ||
       comandaConcluida !== null
     );
   };
@@ -217,22 +225,31 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     }
   };
 
-  // Salvar pré-venda (F5)
-  const handleSalvarPreVenda = () => {
+  // Iniciar criação de pré-venda (F5): abre modal de identificação obrigatória do vendedor
+  const handleIniciarSalvarPreVenda = () => {
     if (sacola.length === 0) {
       alert('A sacola está vazia. Adicione pelo menos um produto antes de salvar a pré-venda.');
       return;
     }
+    setModalVendedorAberto(true);
+  };
 
-    const atendenteNome = usuario?.nome
-      ? `${usuario.nome} (Balcão 02)`
-      : 'Carlos Silva (Balcão 02)';
+  // Confirmação final após validação da matrícula do vendedor
+  const handleConfirmarVendedorPreVenda = (vendedor: VendedorResponsavel) => {
+    setModalVendedorAberto(false);
 
     const novaPreVenda = DemoPreSalesService.savePreVenda(
       sacola,
       totaisSacola,
       cliente,
-      atendenteNome,
+      {
+        matricula: vendedor.matricula,
+        nome: vendedor.nome,
+      },
+      {
+        id: usuario?.id,
+        nome: usuario?.nome ? `${usuario.nome} (${usuario.matricula || 'Balcão'})` : 'Operador Balcão',
+      },
     );
 
     setComandaConcluida(novaPreVenda);
@@ -274,6 +291,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
           setModalDescontoAberto(false);
           setModalPreVendasAberto(false);
           setModalOpcoesAberto(false);
+          setModalVendedorAberto(false);
           setComandaConcluida(null);
           inputBuscaRef.current?.focus();
         } else if (medicamentoFixado !== null) {
@@ -320,7 +338,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       // 7. F5: Salvar Pré-Venda
       if (e.key === 'F5') {
         e.preventDefault();
-        handleSalvarPreVenda();
+        handleIniciarSalvarPreVenda();
         return;
       }
 
@@ -414,12 +432,14 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     <div className="min-h-screen bg-slate-100/70 flex flex-col font-sans select-none text-slate-800">
       {/* 1. Cabeçalho Superior do Balcão */}
       <BalcaoHeader
-        operadorNome={usuario?.nome ? `${usuario.nome} (Balcão 02)` : 'Carlos Silva • Balcão 02'}
+        operadorNome={usuario ? `${usuario.nome} (${usuario.matricula || 'Balcão'})` : 'Operador Não Identificado'}
         filialNome={filialAtiva?.nome || 'Unidade 01 – Centro (Matriz)'}
         contadorPreVendas={listaPreVendas.filter(pv => pv.status === 'PENDING_CASHIER').length}
         aoAbrirPreVendas={() => setModalPreVendasAberto(true)}
         aoAbrirOpcoes={() => setModalOpcoesAberto(true)}
         aoVoltarPortal={aoVoltarPortal}
+        aoTrocarUsuario={aoTrocarUsuario}
+        aoSair={aoSair}
       />
 
       {/* 2. Área Principal de Trabalho (Grid 2 Colunas: Busca/Ficha vs Sacola) */}
@@ -492,7 +512,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
                 setUltimoItemAdicionado(null);
               }
             }}
-            aoSalvarPreVenda={handleSalvarPreVenda}
+            aoSalvarPreVenda={handleIniciarSalvarPreVenda}
             aoAbrirCliente={() => setModalClienteAberto(true)}
             aoAbrirDesconto={() => setModalDescontoAberto(true)}
           />
@@ -500,6 +520,16 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       </main>
 
       {/* 3. Modais Operacionais Independentes */}
+      <IdentificarVendedorModal
+        aberto={modalVendedorAberto}
+        matriculaInicial={usuario?.matricula || ''}
+        aoConfirmar={handleConfirmarVendedorPreVenda}
+        aoFechar={() => {
+          setModalVendedorAberto(false);
+          inputBuscaRef.current?.focus();
+        }}
+      />
+
       <CustomerModal
         aberto={modalClienteAberto}
         clienteAtual={cliente}

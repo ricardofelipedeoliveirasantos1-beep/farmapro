@@ -27,7 +27,7 @@ const obterModuloInicial = (): ModuloNavegacao => {
 };
 
 export const App: React.FC = () => {
-  const { temPermissao, usuario, logout } = useAuth();
+  const { temPermissao, usuario, logout, trocarUsuario } = useAuth();
 
   // Navegação Global FarmaPro — Exclusivamente os dois ambientes operacionais
   const [moduloAtivo, setModuloAtivo] = useState<ModuloNavegacao>(obterModuloInicial);
@@ -169,6 +169,20 @@ export const App: React.FC = () => {
           <BalcaoConsultaScreen
             aoVoltarPortal={isStandalone ? undefined : () => setModuloAtivo('portal-operacional')}
             aoAbrirMenu={() => setMenuAberto(true)}
+            aoTrocarUsuario={() => {
+              trocarUsuario();
+              setLoginOperacional({ aberto: true, estacao: 'BALCAO' });
+            }}
+            aoSair={() => {
+              if (confirm('Deseja realmente encerrar a sessão e sair do FarmaPro Balcão?')) {
+                logout();
+                if (!isStandalone) {
+                  setModuloAtivo('portal-operacional');
+                } else {
+                  setLoginOperacional({ aberto: true, estacao: 'BALCAO' });
+                }
+              }
+            }}
           />
         ) : (
           <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-center select-none font-sans">

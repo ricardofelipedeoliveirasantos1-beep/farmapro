@@ -9,6 +9,7 @@ import {
   ClipboardList,
   HelpCircle,
   LogOut,
+  UserCheck,
 } from 'lucide-react';
 
 interface BalcaoHeaderProps {
@@ -18,6 +19,8 @@ interface BalcaoHeaderProps {
   aoAbrirPreVendas: () => void;
   aoAbrirOpcoes: () => void;
   aoVoltarPortal?: () => void;
+  aoTrocarUsuario?: () => void;
+  aoSair?: () => void;
 }
 
 export const BalcaoHeader: React.FC<BalcaoHeaderProps> = ({
@@ -27,6 +30,8 @@ export const BalcaoHeader: React.FC<BalcaoHeaderProps> = ({
   aoAbrirPreVendas,
   aoAbrirOpcoes,
   aoVoltarPortal,
+  aoTrocarUsuario,
+  aoSair,
 }) => {
   const [horaAtual, setHoraAtual] = useState<string>('');
   const [dataAtual, setDataAtual] = useState<string>('');
@@ -111,12 +116,23 @@ export const BalcaoHeader: React.FC<BalcaoHeaderProps> = ({
 
         <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded-md">
           <User className="w-3.5 h-3.5 text-blue-600" />
-          <span className="text-slate-500">Atendente:</span>
+          <span className="text-slate-500">Operador:</span>
           <span className="font-bold text-slate-800">{operadorNome}</span>
+          {aoTrocarUsuario && (
+            <button
+              type="button"
+              onClick={aoTrocarUsuario}
+              className="ml-2 text-[11px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded border border-blue-200 transition-colors cursor-pointer"
+              title="Encerrar sessão deste colaborador e autenticar outro"
+            >
+              <UserCheck className="w-3 h-3" />
+              Trocar usuário
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Lado Direito: Pré-vendas F4 + Relógio + Tela Cheia + Ajuda F11 */}
+      {/* Lado Direito: Pré-vendas F4 + Relógio + Tela Cheia + Ajuda F11 + Sair */}
       <div className="flex items-center gap-2.5 text-xs">
         {/* Botão Fila de Pré-vendas (F4) */}
         <button
@@ -163,6 +179,18 @@ export const BalcaoHeader: React.FC<BalcaoHeaderProps> = ({
         >
           <HelpCircle className="w-4 h-4" />
         </button>
+
+        {/* Botão Sair */}
+        {aoSair && (
+          <button
+            type="button"
+            onClick={aoSair}
+            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors"
+            title="Encerrar sessão e sair do FarmaPro"
+          >
+            <LogOut className="w-4 h-4 text-red-500" />
+          </button>
+        )}
       </div>
     </header>
   );

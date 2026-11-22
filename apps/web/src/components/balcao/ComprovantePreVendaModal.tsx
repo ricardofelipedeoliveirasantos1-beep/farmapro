@@ -74,8 +74,8 @@ export const ComprovantePreVendaModal: React.FC<ComprovantePreVendaModalProps> =
             </div>
           </div>
 
-          {/* Dados do Atendimento */}
-          <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-1 text-slate-600">
+          {/* Dados do Atendimento e Vendedor Responsável */}
+          <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-1.5 text-slate-600">
             <div className="flex justify-between items-center">
               <span className="font-semibold text-slate-500">Cliente:</span>
               <strong className="text-slate-800">{preVenda.customer.name}</strong>
@@ -86,9 +86,21 @@ export const ComprovantePreVendaModal: React.FC<ComprovantePreVendaModalProps> =
                 <span>{preVenda.customer.cpf}</span>
               </div>
             )}
-            <div className="flex justify-between items-center text-[11px]">
-              <span className="text-slate-500">Atendente:</span>
-              <span>{preVenda.attendantName}</span>
+            <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-200">
+              <span className="font-bold text-slate-700">Vendedor Responsável:</span>
+              <strong className="text-blue-900 font-bold">
+                {preVenda.vendedorNome || preVenda.attendantName} {preVenda.vendedorMatricula ? `(${preVenda.vendedorMatricula})` : ''}
+              </strong>
+            </div>
+            {preVenda.criadoPorNome && preVenda.criadoPorNome !== preVenda.vendedorNome && (
+              <div className="flex justify-between items-center text-[10px] text-slate-400">
+                <span>Registrado no terminal por:</span>
+                <span>{preVenda.criadoPorNome}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center text-[10px] text-slate-400">
+              <span>Data/Hora:</span>
+              <span>{new Date(preVenda.createdAt).toLocaleString('pt-BR')}</span>
             </div>
           </div>
 

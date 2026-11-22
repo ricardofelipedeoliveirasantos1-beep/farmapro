@@ -8,6 +8,8 @@ export interface UsuarioAuth {
   cpf: string;
   eResponsavelTecnico: boolean;
   status: string;
+  matricula?: string;
+  cargoNome?: string;
 }
 
 export interface FilialDisponivel {
@@ -34,6 +36,18 @@ export interface CargoAtual {
   papelEmpresa: 'PROPRIETARIO' | 'ADMINISTRADOR' | 'COLABORADOR';
 }
 
+interface SessaoOperacionalStorage {
+  token: string;
+  usuario: UsuarioAuth;
+  filial: FilialDisponivel;
+  empresa?: EmpresaDisponivel;
+  permissoes: string[];
+  cargoAtual?: CargoAtual;
+  expiraEm: number;
+}
+
+const CHAVE_SESSAO_STORAGE = 'farmapro_sessao_operacional';
+
 interface AuthContextType {
   usuario: UsuarioAuth | null;
   token: string | null;
@@ -49,14 +63,23 @@ interface AuthContextType {
   erroAuth: string | null;
   login: (email: string, senha: string) => Promise<boolean>;
   loginPin: (pin: string, usuarioId: string, identificadorHardware: string) => Promise<boolean>;
+  setSessaoOperacional: (dados: {
+    estacao: 'CAIXA' | 'BALCAO';
+    accessToken?: string;
+    usuario: { id: string; nome: string; email?: string; cpf?: string; matricula?: string; cargoNome?: string };
+    filial: { id: string; nome: string };
+    empresa?: { id: string; nomeFantasia?: string };
+    permissoes?: string[];
+  }) => void;
   selecionarContexto: (empresaId: string, filialId: string) => Promise<boolean>;
+  trocarUsuario: () => void;
   logout: () => void;
   temPermissao: (permissaoId: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Dados Fictícios Demonstrativos para Inicialização
+// Dados Fictícios de Empresas
 const EMPRESAS_DEMO: EmpresaDisponivel[] = [
   {
     id: '11111111-1111-4111-a111-111111111111',
@@ -70,30 +93,14 @@ const EMPRESAS_DEMO: EmpresaDisponivel[] = [
         codigoFilial: 'FIL-01',
         nome: 'Unidade 01 — Centro (Matriz)',
         eMatriz: true,
-        cargoNome: 'Proprietário Geral',
+        cargoNome: 'Atendente de Balcão',
       },
       {
         id: '11111111-aaaa-4111-a111-bbbbbbbbbbbb',
         codigoFilial: 'FIL-02',
         nome: 'Unidade 02 — Bairro Sul',
         eMatriz: false,
-        cargoNome: 'Proprietário Geral',
-      },
-    ],
-  },
-  {
-    id: '22222222-2222-4222-b222-222222222222',
-    razaoSocial: 'Drogaria Norte Ltda',
-    nomeFantasia: 'Drogaria Norte — Filial Campinas',
-    cnpj: '22.333.444/0001-55',
-    papelEmpresa: 'ADMINISTRADOR',
-    filiais: [
-      {
-        id: '22222222-aaaa-4222-b222-aaaaaaaaaaaa',
-        codigoFilial: 'FIL-01',
-        nome: 'Unidade Única — Campinas',
-        eMatriz: true,
-        cargoNome: 'Farmacêutico RT',
+        cargoNome: 'Atendente de Balcão',
       },
     ],
   },
@@ -102,49 +109,115 @@ const EMPRESAS_DEMO: EmpresaDisponivel[] = [
 const EMPRESA_PADRAO = EMPRESAS_DEMO[0]!;
 const FILIAL_PADRAO = EMPRESA_PADRAO.filiais[0]!;
 
-const USUARIO_DEMO_PADRAO: UsuarioAuth = {
-  id: 'aaaaaaaa-1111-4000-8000-000000000001',
-  nome: 'Carlos Proprietário',
-  email: 'carlos@farmavida.demo',
-  cpf: '111.111.111-11',
-  eResponsavelTecnico: true,
-  status: 'ATIVO',
+// Leitura inicial segura do LocalStorage (Sessão persistente)
+const obterSessaoSalva = (): SessaoOperacionalStorage | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(CHAVE_SESSAO_STORAGE);
+    if (!raw) return null;
+    const sessao: SessaoOperacionalStorage = JSON.parse(raw);
+    if (!sessao || !sessao.expiraEm || Date.now() > sessao.expiraEm) {
+      localStorage.removeItem(CHAVE_SESSAO_STORAGE);
+      return null;
+    }
+    return sessao;
+  } catch {
+    return null;
+  }
 };
 
-const PERMISSOES_PROPRIETARIO_DEMO: string[] = [
-  'pdv:acesso', 'pdv:vender', 'pdv:aplicar_desconto', 'pdv:cancelar_item', 'pdv:cancelar_venda',
-  'pdv:sangria', 'pdv:suprimento', 'pdv:fechar_caixa', 'pdv:reabrir_caixa',
-  'vouchers:emitir', 'vouchers:consultar', 'vouchers:autorizar_cancelamento',
-  'estoque:visualizar', 'estoque:cadastrar_produto', 'estoque:editar_produto', 'estoque:entrada_mercadoria',
-  'estoque:movimentar', 'estoque:ajuste_manual', 'estoque:inventario', 'estoque:transferir_filiais',
-  'estoque:gerenciar_lotes', 'estoque:medicamentos_controlados',
-  'compras:visualizar', 'compras:emitir_pedido', 'compras:dar_entrada_nfe',
-  'clientes:visualizar', 'clientes:gerenciar',
-  'financeiro:visualizar', 'financeiro:contas_pagar', 'financeiro:contas_receber', 'financeiro:dre',
-  'usuarios:gerenciar', 'cargos:gerenciar', 'filiais:gerenciar', 'auditoria:visualizar_logs', 'configuracoes:gerenciar',
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [usuario, setUsuario] = useState<UsuarioAuth | null>(USUARIO_DEMO_PADRAO);
-  const [token, setToken] = useState<string | null>('jwt_demo_farmapro_autenticado_etapa05');
-  const [tenant, setTenant] = useState<ContextoTenant | null>({
-    empresaId: EMPRESA_PADRAO.id,
-    filialId: FILIAL_PADRAO.id,
-    usuarioId: USUARIO_DEMO_PADRAO.id,
+  const sessaoInicial = obterSessaoSalva();
+
+  const [usuario, setUsuario] = useState<UsuarioAuth | null>(() => sessaoInicial?.usuario || null);
+  const [token, setToken] = useState<string | null>(() => sessaoInicial?.token || null);
+  const [tenant, setTenant] = useState<ContextoTenant | null>(() => {
+    if (sessaoInicial) {
+      return {
+        empresaId: sessaoInicial.empresa?.id || EMPRESA_PADRAO.id,
+        filialId: sessaoInicial.filial.id,
+        usuarioId: sessaoInicial.usuario.id,
+      };
+    }
+    return null;
   });
-  const [empresaAtiva, setEmpresaAtiva] = useState<EmpresaDisponivel | null>(EMPRESA_PADRAO);
-  const [filialAtiva, setFilialAtiva] = useState<FilialDisponivel | null>(FILIAL_PADRAO);
-  const [empresasDisponiveis, setEmpresasDisponiveis] = useState<EmpresaDisponivel[]>(EMPRESAS_DEMO);
-  const [cargoAtual, setCargoAtual] = useState<CargoAtual | null>({
-    id: 'cargo-proprietario',
-    nome: 'Proprietário Geral',
-    nivelAcesso: 'ADMIN',
-    papelEmpresa: 'PROPRIETARIO',
-  });
-  const [permissoesEfetivas, setPermissoesEfetivas] = useState<string[]>(PERMISSOES_PROPRIETARIO_DEMO);
-  const [origemPin, setOrigemPin] = useState<boolean>(false);
+  const [empresaAtiva, setEmpresaAtiva] = useState<EmpresaDisponivel | null>(() => sessaoInicial?.empresa || EMPRESA_PADRAO);
+  const [filialAtiva, setFilialAtiva] = useState<FilialDisponivel | null>(() => sessaoInicial?.filial || FILIAL_PADRAO);
+  const [empresasDisponiveis] = useState<EmpresaDisponivel[]>(EMPRESAS_DEMO);
+  const [cargoAtual, setCargoAtual] = useState<CargoAtual | null>(() => sessaoInicial?.cargoAtual || null);
+  const [permissoesEfetivas, setPermissoesEfetivas] = useState<string[]>(() => sessaoInicial?.permissoes || []);
+  const [origemPin, setOrigemPin] = useState<boolean>(true);
   const [carregando, setCarregando] = useState<boolean>(false);
   const [erroAuth, setErroAuth] = useState<string | null>(null);
+
+  // Define sessão operacional (Matrícula + Senha) com persistência segura
+  const setSessaoOperacional = (dados: {
+    estacao: 'CAIXA' | 'BALCAO';
+    accessToken?: string;
+    usuario: { id: string; nome: string; email?: string; cpf?: string; matricula?: string; cargoNome?: string };
+    filial: { id: string; nome: string };
+    empresa?: { id: string; nomeFantasia?: string };
+    permissoes?: string[];
+  }) => {
+    const matSegura = dados.usuario.matricula || 'OP-101';
+    const tokenGerado = dados.accessToken || `jwt_operacional_${Date.now()}`;
+    const novoUsuario: UsuarioAuth = {
+      id: dados.usuario.id,
+      nome: dados.usuario.nome,
+      email: dados.usuario.email || `${matSegura.toLowerCase()}@farmapro.demo`,
+      cpf: dados.usuario.cpf || '000.000.000-00',
+      eResponsavelTecnico: false,
+      status: 'ATIVO',
+      matricula: matSegura,
+      cargoNome: dados.usuario.cargoNome,
+    };
+
+    const novaFilial: FilialDisponivel = {
+      id: dados.filial.id,
+      codigoFilial: 'FIL-01',
+      nome: dados.filial.nome,
+      eMatriz: true,
+      cargoNome: dados.usuario.cargoNome || 'Atendente',
+    };
+
+    const perms = dados.permissoes && dados.permissoes.length > 0
+      ? dados.permissoes
+      : dados.estacao === 'CAIXA'
+      ? ['pdv:acesso', 'pdv:vender', 'pdv:fechar_caixa']
+      : ['balcao:consultar', 'balcao:acesso', 'pre_venda:criar', 'pdv:acesso'];
+
+    const novoCargo: CargoAtual = {
+      id: `cargo-${dados.usuario.id}`,
+      nome: dados.usuario.cargoNome || 'Atendente de Balcão',
+      nivelAcesso: 'ATENDENTE',
+      papelEmpresa: 'COLABORADOR',
+    };
+
+    setUsuario(novoUsuario);
+    setToken(tokenGerado);
+    setFilialAtiva(novaFilial);
+    setPermissoesEfetivas(perms);
+    setCargoAtual(novoCargo);
+    setTenant({
+      empresaId: dados.empresa?.id || EMPRESA_PADRAO.id,
+      filialId: dados.filial.id,
+      usuarioId: dados.usuario.id,
+    });
+
+    // Salva no LocalStorage com validade de 8 horas (sem senhas nem dados confidenciais)
+    if (typeof window !== 'undefined') {
+      const payload: SessaoOperacionalStorage = {
+        token: tokenGerado,
+        usuario: novoUsuario,
+        filial: novaFilial,
+        empresa: empresaAtiva || EMPRESA_PADRAO,
+        permissoes: perms,
+        cargoAtual: novoCargo,
+        expiraEm: Date.now() + 8 * 60 * 60 * 1000,
+      };
+      localStorage.setItem(CHAVE_SESSAO_STORAGE, JSON.stringify(payload));
+    }
+  };
 
   const login = async (email: string, _senha: string): Promise<boolean> => {
     setCarregando(true);
@@ -158,18 +231,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Acesso bloqueado pelo administrador da farmácia.');
       }
 
-      setUsuario(USUARIO_DEMO_PADRAO);
-      setToken('jwt_token_sessao_ativa_' + Date.now());
-      setEmpresasDisponiveis(EMPRESAS_DEMO);
-      setEmpresaAtiva(EMPRESA_PADRAO);
-      setFilialAtiva(FILIAL_PADRAO);
-      setTenant({
-        empresaId: EMPRESA_PADRAO.id,
-        filialId: FILIAL_PADRAO.id,
-        usuarioId: USUARIO_DEMO_PADRAO.id,
+      const u: UsuarioAuth = {
+        id: '10000000-0000-4000-8000-000000000001',
+        nome: 'Carlos Silva',
+        email: emailLimpo,
+        cpf: '123.456.789-01',
+        eResponsavelTecnico: true,
+        status: 'ATIVO',
+        matricula: 'CX-001',
+        cargoNome: 'Farmacêutico',
+      };
+
+      setSessaoOperacional({
+        estacao: 'BALCAO',
+        usuario: u,
+        filial: FILIAL_PADRAO,
+        empresa: EMPRESA_PADRAO,
       });
-      setOrigemPin(false);
-      setPermissoesEfetivas(PERMISSOES_PROPRIETARIO_DEMO);
+
       return true;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Falha na autenticação';
@@ -187,39 +266,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!/^\d{6}$/.test(pin)) {
         throw new Error('O PIN deve conter exatamente 6 dígitos numéricos.');
       }
-      if (pin === '000000') {
-        throw new Error('PIN incorreto. Tentativa 1 de 3.');
-      }
-
-      const usuarioOperador: UsuarioAuth = {
-        id: 'aaaaaaaa-2222-4000-8000-000000000002',
-        nome: 'Mariana Atendente',
-        email: 'mariana@farmavida.demo',
-        cpf: '222.222.222-22',
-        eResponsavelTecnico: false,
-        status: 'ATIVO',
-      };
-
-      setUsuario(usuarioOperador);
-      setToken('jwt_pin_pdv_' + Date.now());
-      setEmpresaAtiva(EMPRESA_PADRAO);
-      setFilialAtiva(FILIAL_PADRAO);
-      setTenant({
-        empresaId: EMPRESA_PADRAO.id,
-        filialId: FILIAL_PADRAO.id,
-        usuarioId: usuarioOperador.id,
+      setSessaoOperacional({
+        estacao: 'BALCAO',
+        usuario: {
+          id: '10000000-0000-4000-8000-000000000002',
+          nome: 'Mariana Atendente',
+          email: 'mariana.atendente@farmapro.demo',
+          cpf: '234.567.890-12',
+          matricula: 'BC-002',
+          cargoNome: 'Atendente de Balcão',
+        },
+        filial: FILIAL_PADRAO,
+        empresa: EMPRESA_PADRAO,
       });
-      setCargoAtual({
-        id: 'cargo-atendente',
-        nome: 'Operador de Caixa / Atendente',
-        nivelAcesso: 'OPERADOR_CAIXA',
-        papelEmpresa: 'COLABORADOR',
-      });
-      setPermissoesEfetivas([
-        'pdv:acesso', 'pdv:vender', 'pdv:fechar_caixa', 'pdv:sangria', 'pdv:suprimento',
-        'vouchers:consultar', 'estoque:visualizar', 'clientes:visualizar',
-      ]);
-      setOrigemPin(true);
       return true;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Falha no login com PIN';
@@ -245,15 +304,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         filialId,
         usuarioId: usuario ? usuario.id : 'anonimo',
       });
-
-      if (emp.papelEmpresa === 'PROPRIETARIO') {
-        setPermissoesEfetivas(PERMISSOES_PROPRIETARIO_DEMO);
-      } else {
-        setPermissoesEfetivas([
-          'pdv:acesso', 'pdv:vender', 'estoque:visualizar', 'clientes:visualizar', 'clientes:gerenciar',
-        ]);
-      }
-
       return true;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao selecionar filial';
@@ -265,6 +315,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(CHAVE_SESSAO_STORAGE);
+    }
     setUsuario(null);
     setToken(null);
     setTenant(null);
@@ -273,6 +326,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCargoAtual(null);
     setPermissoesEfetivas([]);
     setOrigemPin(false);
+  };
+
+  const trocarUsuario = () => {
+    logout();
   };
 
   const temPermissao = (permissaoId: string): boolean => {
@@ -297,7 +354,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         erroAuth,
         login,
         loginPin,
+        setSessaoOperacional,
         selecionarContexto,
+        trocarUsuario,
         logout,
         temPermissao,
       }}
