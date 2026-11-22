@@ -26,6 +26,7 @@ import { BalcaoOptionsModal } from '../components/balcao/BalcaoOptionsModal.js';
 import { ComprovantePreVendaModal } from '../components/balcao/ComprovantePreVendaModal.js';
 import { IdentificarVendedorModal } from '../components/balcao/IdentificarVendedorModal.js';
 import { ConfirmarExclusaoModal } from '../components/balcao/ConfirmarExclusaoModal.js';
+import { BalcaoFooterShortcuts } from '../components/balcao/BalcaoFooterShortcuts.js';
 
 interface BalcaoConsultaScreenProps {
   aoVoltarPortal?: () => void;
@@ -43,7 +44,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
 
   // Estados de Pesquisa
   const [termoBusca, setTermoBusca] = useState<string>('');
-  const [modoBusca, setModoBusca] = useState<SearchMode>('NAME');
+  const modoBusca: SearchMode = 'NAME';
   const [indiceSelecionado, setIndiceSelecionado] = useState<number>(0);
   const inputBuscaRef = useRef<HTMLInputElement>(null);
 
@@ -345,14 +346,6 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     setListaPreVendas(DemoPreSalesService.getPreVendas());
   };
 
-  // Alternar modo de pesquisa via clique no botão
-  const handleAlternarModo = () => {
-    const modos: SearchMode[] = ['NAME', 'PRINCIPIO', 'EAN', 'CODE'];
-    const idx = modos.indexOf(modoBusca);
-    const prox = modos[(idx + 1) % modos.length]!;
-    setModoBusca(prox);
-  };
-
   // Event Listener Global de Atalhos de Teclado
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -561,7 +554,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       <main className="flex-1 p-2 sm:p-2.5 max-w-full w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-2.5 min-h-0 overflow-hidden">
         {/* Lado Esquerdo: Pesquisa, Ficha Técnica Completa ou Tabela de Resultados (7 colunas) */}
         <section className="lg:col-span-7 flex flex-col min-w-0 h-full overflow-hidden space-y-2">
-          {/* Caixa de Pesquisa e Filtros (Preserva exatamente o texto digitado) */}
+          {/* Caixa de Pesquisa Full-Width (Preserva exatamente o texto digitado) */}
           <ProductSearch
             termoBusca={termoBusca}
             aoMudarBusca={val => setTermoBusca(val)}
@@ -569,8 +562,6 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
               setTermoBusca('');
               inputBuscaRef.current?.focus();
             }}
-            modoBusca={modoBusca}
-            aoAlternarModo={handleAlternarModo}
             multiplicadorPendente={multiplier}
             inputRef={inputBuscaRef}
             totalResultados={medicamentosFiltrados.length}
@@ -646,6 +637,9 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
           />
         </aside>
       </main>
+
+      {/* Barra Inferior Fixa com Cores do Projeto (Azul #1a365d) e Funções de Atalhos em Linha */}
+      <BalcaoFooterShortcuts />
 
       {/* 3. Modais Operacionais Independentes */}
       <IdentificarVendedorModal

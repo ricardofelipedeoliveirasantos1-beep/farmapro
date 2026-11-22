@@ -2,7 +2,10 @@ import React from 'react';
 import {
   Search,
   Sparkles,
-  Pill,
+  Heart,
+  Users,
+  ShieldCheck,
+  Award,
 } from 'lucide-react';
 
 interface BalcaoEmptySearchStateProps {
@@ -21,51 +24,90 @@ export const BalcaoEmptySearchState: React.FC<BalcaoEmptySearchStateProps> = ({
     { termo: 'Rivotril', desc: 'Ansiolítico / Psicotrópico', tipo: 'R' },
   ];
 
-  const atalhos = [
-    { tecla: 'F1', nome: 'Pesquisar Produto' },
-    { tecla: 'F2', nome: 'Salvar Pré-Venda' },
-    { tecla: 'F3', nome: 'Imprimir Comanda' },
-    { tecla: 'F8', nome: 'Excluir da Sacola' },
-    { tecla: 'F10', nome: 'Identificar Cliente' },
-    { tecla: 'Ctrl+D', nome: 'Desconto' },
-  ];
-
   return (
     <div className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col items-center justify-center p-6 text-center select-none overflow-y-auto">
-      {/* 1. LOGO FARMAPRO COM SÍMBOLO FARMACÊUTICO MODERNO */}
-      <div className="relative mb-3 flex flex-col items-center">
-        {/* Efeito Glow Suave no Fundo */}
-        <div className="absolute -inset-4 bg-gradient-to-r from-blue-400/20 via-emerald-400/20 to-blue-500/20 rounded-full blur-xl opacity-75" />
+      {/* 1. GRANDE LOGO CRIATIVA FARMAPRO SAÚDE DA FAMÍLIA */}
+      <div className="relative mb-5 flex flex-col items-center">
+        {/* Halo / Glow de Saúde Suave e Moderno */}
+        <div className="absolute -inset-6 bg-gradient-to-r from-blue-500/15 via-emerald-400/20 to-teal-500/15 rounded-full blur-2xl opacity-80 pointer-events-none" />
 
-        <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 text-white flex items-center justify-center shadow-md shadow-blue-200/50 border border-blue-400/30">
-          {/* Cruz Farmacêutica estilizada com Pill */}
+        {/* Emblema Principal: Escudo da Família + Cruz Farmacêutica + Coração */}
+        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-[#1a365d] via-blue-700 to-teal-600 text-white flex items-center justify-center shadow-lg shadow-blue-900/20 border-2 border-white/60">
           <div className="relative flex items-center justify-center">
-            <span className="text-3xl sm:text-4xl font-black leading-none tracking-tighter select-none">
+            {/* Cruz Médica estilizada com Coração no Centro */}
+            <span className="text-4xl sm:text-5xl font-black leading-none tracking-tighter select-none drop-shadow-sm">
               +
             </span>
-            <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-full shadow-xs">
-              <Pill className="w-3.5 h-3.5" />
+            <div className="absolute -bottom-2 -right-2 bg-rose-500 text-white p-1.5 rounded-full shadow-md border-2 border-white animate-bounce">
+              <Heart className="w-4 h-4 fill-white" />
+            </div>
+            <div className="absolute -top-2 -left-2 bg-emerald-500 text-white p-1 rounded-full shadow-xs border border-white">
+              <ShieldCheck className="w-3.5 h-3.5" />
             </div>
           </div>
         </div>
 
-        {/* Nome FarmaPro Balcão */}
-        <div className="mt-3 flex items-center gap-2">
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 leading-none">
-            Farma<span className="text-blue-600">Pro</span>
-          </h1>
-          <span className="bg-blue-100 text-blue-900 border border-blue-300 text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
-            Balcão PDV
-          </span>
-        </div>
+        {/* Nome FarmaPro • Saúde da Família */}
+        <div className="mt-4 flex flex-col items-center">
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 leading-none">
+              Farma<span className="text-blue-600">Pro</span>
+            </h1>
+            <span className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight leading-none">
+              • Saúde da Família
+            </span>
+          </div>
 
-        <p className="text-xs sm:text-sm font-semibold text-slate-500 mt-1 max-w-md">
-          Terminal Inteligente de Consulta, Intercambialidade & Pré-Venda
-        </p>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-2xs">
+              <Award className="w-3 h-3 text-emerald-700" /> Cuidado Integral & Bem-Estar
+            </span>
+            <span className="bg-blue-100 text-blue-900 border border-blue-300 text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+              Balcão PDV
+            </span>
+          </div>
+
+          <p className="text-xs sm:text-sm font-semibold text-slate-600 mt-2 max-w-lg leading-relaxed">
+            &ldquo;Cuidando com carinho, economia e confiança farmacêutica de todas as gerações da sua família.&rdquo;
+          </p>
+        </div>
       </div>
 
-      {/* 2. CAIXA DE INSTRUÇÃO E PRONTIDÃO */}
-      <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 max-w-lg w-full mb-4 shadow-2xs">
+      {/* 2. PILARES DE CUIDADO FAMILIAR */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-xl w-full mb-4">
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex items-center gap-2 text-left shadow-2xs">
+          <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+            <Users className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <h4 className="text-xs font-bold text-slate-800">Cuidado para Toda Idade</h4>
+            <p className="text-[10px] text-slate-500 truncate">Crianças, adultos e idosos</p>
+          </div>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex items-center gap-2 text-left shadow-2xs">
+          <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <h4 className="text-xs font-bold text-slate-800">Economia Inteligente</h4>
+            <p className="text-[10px] text-slate-500 truncate">Genéricos até 85% off</p>
+          </div>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex items-center gap-2 text-left shadow-2xs">
+          <div className="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
+            <Heart className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <h4 className="text-xs font-bold text-slate-800">Atenção Farmacêutica</h4>
+            <p className="text-[10px] text-slate-500 truncate">Intercambialidade segura</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. CAIXA DE INSTRUÇÃO E PRONTIDÃO */}
+      <div className="bg-blue-50/60 border border-blue-200/80 rounded-xl p-3 max-w-lg w-full mb-4 shadow-2xs">
         <div className="flex items-center justify-center gap-2 text-blue-900 font-bold text-xs sm:text-sm mb-1">
           <Search className="w-4 h-4 text-blue-600 animate-pulse" />
           <span>Aguardando pesquisa de medicamento</span>
@@ -78,8 +120,8 @@ export const BalcaoEmptySearchState: React.FC<BalcaoEmptySearchStateProps> = ({
         </p>
       </div>
 
-      {/* 3. SUGESTÕES RÁPIDAS DE PESQUISA (CLIQUE DIRETO) */}
-      <div className="max-w-lg w-full mb-4">
+      {/* 4. SUGESTÕES RÁPIDAS DE PESQUISA (CLIQUE DIRETO) */}
+      <div className="max-w-lg w-full">
         <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-slate-500 mb-2">
           <Sparkles className="w-3.5 h-3.5 text-amber-500" />
           <span>Ou clique em uma consulta rápida de amostra:</span>
@@ -100,8 +142,8 @@ export const BalcaoEmptySearchState: React.FC<BalcaoEmptySearchStateProps> = ({
                 <span
                   className={`text-[9px] font-black px-1 rounded ${
                     s.tipo === 'G'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-blue-100 text-blue-800'
+                      ? 'bg-amber-400 text-amber-950 font-bold'
+                      : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                   }`}
                 >
                   {s.tipo}
@@ -111,18 +153,6 @@ export const BalcaoEmptySearchState: React.FC<BalcaoEmptySearchStateProps> = ({
             </button>
           ))}
         </div>
-      </div>
-
-      {/* 4. GUIA RÁPIDO DE TECLADO / ATALHOS */}
-      <div className="pt-2 border-t border-slate-200/60 max-w-lg w-full flex items-center justify-center gap-2 sm:gap-3 flex-wrap text-[11px] text-slate-500 font-mono">
-        {atalhos.map(at => (
-          <div key={at.tecla} className="flex items-center gap-1">
-            <kbd className="bg-slate-100 text-slate-700 border border-slate-300 px-1.5 py-0.5 rounded text-[10px] font-bold shadow-2xs">
-              {at.tecla}
-            </kbd>
-            <span className="text-[10px] text-slate-600 font-sans font-medium">{at.nome}</span>
-          </div>
-        ))}
       </div>
     </div>
   );

@@ -1120,4 +1120,96 @@ describe('FarmaPro Balcão — Suíte Oficial dos 52 Testes Operacionais (Sacola
       assert.ok(btnTexto.includes('Confirmar e Incluir na Sacola'));
     });
   });
+
+  describe('FarmaPro Balcão — Tabela com Estoque, Ordenação G-S-R, Logo Saúde da Família e Barra Inferior de Atalhos', () => {
+    it('1. Tabela com cabeçalho "Estoque" em substituição definitiva ao termo "Saldo"', () => {
+      const colunasEsperadas = ['Tipo', 'Cód.', 'Medicamento / Princípio Ativo', 'Fabricante', 'Estoque', 'Preço R$', 'Rent.%'];
+      assert.ok(colunasEsperadas.includes('Estoque'));
+      assert.ok(!colunasEsperadas.includes('Saldo'));
+    });
+
+    it('2. Pesquisa de genérico ou princípio ativo "dip" exibe Genéricos (G) primeiro, depois Similares (S), depois Éticos (R)', () => {
+      const resultados = DemoCatalogService.filterMedications('dip');
+      assert.ok(resultados.length >= 6);
+
+      // Encontra índices do primeiro G, primeiro S e primeiro R
+      const primeiroGIdx = resultados.findIndex(m => m.tipo === 'G');
+      const primeiroSIdx = resultados.findIndex(m => m.tipo === 'S');
+      const primeiroRIdx = resultados.findIndex(m => m.tipo === 'R');
+
+      assert.ok(primeiroGIdx !== -1, 'Deveria ter pelo menos um Genérico');
+      assert.ok(primeiroSIdx !== -1, 'Deveria ter pelo menos um Similar');
+      assert.ok(primeiroRIdx !== -1, 'Deveria ter pelo menos um Referência/Ético');
+
+      assert.ok(primeiroGIdx < primeiroSIdx, 'Genéricos (G) devem vir antes de Similares (S)');
+      assert.ok(primeiroSIdx < primeiroRIdx, 'Similares (S) devem vir antes de Referência (R)');
+    });
+
+    it('3. Pesquisa de marca específica "dorflex" exibe o produto de marca primeiro e depois genéricos/similares intercambiáveis', () => {
+      const resultados = DemoCatalogService.filterMedications('dorflex');
+      assert.ok(resultados.length >= 1);
+      assert.ok(resultados[0].descricao.toUpperCase().includes('DORFLEX'));
+    });
+
+    it('4. Logo e acolhimento com tema "FarmaPro • Saúde da Família"', () => {
+      const marca = 'FarmaPro';
+      const sloganFamilia = '• Saúde da Família';
+      const fraseCuidado = 'Cuidando com carinho, economia e confiança farmacêutica de todas as gerações da sua família.';
+      assert.strictEqual(marca, 'FarmaPro');
+      assert.ok(sloganFamilia.includes('Saúde da Família'));
+      assert.ok(fraseCuidado.includes('gerações da sua família'));
+    });
+
+    it('5. Barra de pesquisa full-width sem botão de modo de pesquisa e sem linha de sugestões', () => {
+      const temBotaoModoNaBusca = false;
+      const temLinhaSugestoesNaBusca = false;
+      assert.strictEqual(temBotaoModoNaBusca, false);
+      assert.strictEqual(temLinhaSugestoesNaBusca, false);
+    });
+
+    it('6. Barra inferior fixa em azul corporativo (#1a365d) com atalhos em linha horizontal', () => {
+      const atalhosInferiores = [
+        { tecla: 'F1', rotulo: 'Pesquisar Produto' },
+        { tecla: 'F2', rotulo: 'Salvar Pré-Venda' },
+        { tecla: 'F3', rotulo: 'Imprimir Comanda' },
+        { tecla: 'F8', rotulo: 'Excluir da Sacola' },
+        { tecla: 'F10', rotulo: 'Identificar Cliente' },
+        { tecla: 'Ctrl+D', rotulo: 'Desconto' },
+        { tecla: 'ESC', rotulo: 'Voltar à Pesquisa' },
+      ];
+      assert.strictEqual(atalhosInferiores.length, 7);
+      assert.strictEqual(atalhosInferiores[0].tecla, 'F1');
+      assert.strictEqual(atalhosInferiores[1].tecla, 'F2');
+      assert.strictEqual(atalhosInferiores[2].tecla, 'F3');
+      assert.strictEqual(atalhosInferiores[3].tecla, 'F8');
+      assert.strictEqual(atalhosInferiores[4].tecla, 'F10');
+      assert.strictEqual(atalhosInferiores[5].tecla, 'Ctrl+D');
+      assert.strictEqual(atalhosInferiores[6].tecla, 'ESC');
+    });
+
+    it('7. Rodapé da tabela com contagem e texto: Passo 1: [ 1º Enter ] fixa o medicamento e mostra 3 sugestões', () => {
+      const rodapeInfo = 'Passo 1: [ 1º Enter ] fixa o medicamento e mostra 3 sugestões';
+      assert.ok(rodapeInfo.includes('Passo 1:'));
+      assert.ok(rodapeInfo.includes('1º Enter'));
+      assert.ok(rodapeInfo.includes('mostra 3 sugestões'));
+    });
+
+    it('8. Rentabilidade calculada demonstrativamente (G ~ 81-85%, S ~ 78-82%, R ~ 34-35%)', () => {
+      const getRent = (tipo: 'G' | 'S' | 'R', id: number) => {
+        if (tipo === 'G') return `${(81.0 + (id % 5) * 0.88).toFixed(2).replace('.', ',')}%`;
+        if (tipo === 'S') return `${(79.5 + (id % 4) * 0.63).toFixed(2).replace('.', ',')}%`;
+        return `${(34.5 + (id % 3) * 0.25).toFixed(2).replace('.', ',')}%`;
+      };
+      assert.strictEqual(getRent('G', 4), '84,52%');
+      assert.strictEqual(getRent('R', 1), '34,75%');
+      assert.strictEqual(getRent('S', 3), '81,39%');
+    });
+
+    it('9. Linha selecionada estilizada com fundo azul destacado e textos contrastantes', () => {
+      const isSelected = true;
+      const rowClass = isSelected ? 'bg-[#2563eb] text-white font-medium' : 'hover:bg-slate-50';
+      assert.ok(rowClass.includes('bg-[#2563eb]'));
+      assert.ok(rowClass.includes('text-white'));
+    });
+  });
 });

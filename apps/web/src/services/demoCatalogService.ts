@@ -57,7 +57,7 @@ export class DemoCatalogService {
     const { query } = this.extractMultiplier(rawTerm);
     const normQuery = this.normalizeText(query);
 
-    return MEDICAMENTOS_DEMONSTRATIVOS.filter(med => {
+    const matches = MEDICAMENTOS_DEMONSTRATIVOS.filter(med => {
       // Filtro de saldo
       if (onlyWithStock && med.saldo <= 0) {
         return false;
@@ -84,6 +84,48 @@ export class DemoCatalogService {
         default:
           return this.matchesWordPrefix(med.descricao, normQuery);
       }
+    });
+
+    if (!normQuery) {
+      return matches;
+    }
+
+    // Ordenação Inteligente solicitada pelo proprietário:
+    // Se a pesquisa for por um medicamento genérico ou princípio ativo (ex: "dipirona", "losartana", "omeprazol"):
+    // Os GENÉRICOS (G) aparecem primeiro, seguidos por SIMILARES (S) e por último ÉTICOS / REFERÊNCIA (R).
+    // Se for por uma marca de referência específica (ex: "dorflex"):
+    // Os produtos que iniciam pela marca pesquisada aparecem no topo.
+    const isGenericOrPrincipleSearch =
+      MEDICAMENTOS_DEMONSTRATIVOS.some(
+        m => m.tipo === 'G' && this.normalizeText(m.descricao).startsWith(normQuery),
+      ) ||
+      MEDICAMENTOS_DEMONSTRATIVOS.some(
+        m => this.normalizeText(m.principioAtivo).startsWith(normQuery),
+      );
+
+    return matches.sort((a, b) => {
+      if (isGenericOrPrincipleSearch) {
+        // Hierarquia solicitada: Genéricos (G: 1) -> Similares (S: 2) -> Éticos/Referência (R: 3)
+        const tipoPriority: Record<'G' | 'S' | 'R', number> = { G: 1, S: 2, R: 3 };
+        const diffTipo = tipoPriority[a.tipo] - tipoPriority[b.tipo];
+        if (diffTipo !== 0) return diffTipo;
+
+        // Se ambos forem do mesmo tipo, quem tem descrição iniciando pela query fica à frente
+        const aStarts = this.normalizeText(a.descricao).startsWith(normQuery);
+        const bStarts = this.normalizeText(b.descricao).startsWith(normQuery);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+
+        return a.descricao.localeCompare(b.descricao);
+      }
+
+      // Se a pesquisa iniciou pelo nome comercial de referência (ex: Dorflex):
+      const aStarts = this.normalizeText(a.descricao).startsWith(normQuery);
+      const bStarts = this.normalizeText(b.descricao).startsWith(normQuery);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+
+      return a.descricao.localeCompare(b.descricao);
     });
   }
 
