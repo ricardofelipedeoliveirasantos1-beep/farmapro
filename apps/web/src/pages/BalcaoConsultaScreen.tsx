@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext.js';
 import { DemoCatalogService } from '../services/demoCatalogService.js';
 import { DemoPreSalesService } from '../services/demoPreSalesService.js';
@@ -24,6 +24,7 @@ import { PreSalesModal } from '../components/balcao/PreSalesModal.js';
 import { BalcaoOptionsModal } from '../components/balcao/BalcaoOptionsModal.js';
 import { ComprovantePreVendaModal } from '../components/balcao/ComprovantePreVendaModal.js';
 import { IdentificarVendedorModal } from '../components/balcao/IdentificarVendedorModal.js';
+import { ConfirmarExclusaoModal } from '../components/balcao/ConfirmarExclusaoModal.js';
 
 interface BalcaoConsultaScreenProps {
   aoVoltarPortal?: () => void;
@@ -39,10 +40,9 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
 }) => {
   const { usuario, filialAtiva } = useAuth();
 
-  // Estados de Pesquisa e Filtros
+  // Estados de Pesquisa
   const [termoBusca, setTermoBusca] = useState<string>('');
   const [modoBusca, setModoBusca] = useState<SearchMode>('NAME');
-  const [somenteComEstoque, setSomenteComEstoque] = useState<boolean>(false);
   const [indiceSelecionado, setIndiceSelecionado] = useState<number>(0);
   const inputBuscaRef = useRef<HTMLInputElement>(null);
 
@@ -54,6 +54,11 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
   const [sacola, setSacola] = useState<CartItemBalcao[]>([]);
   const [ultimoItemAdicionado, setUltimoItemAdicionado] = useState<CartItemBalcao | null>(null);
   const [descontoGlobal, setDescontoGlobal] = useState<number>(0);
+
+  // Estados do Modo de Exclusão Interativo (F8)
+  const [modoExclusaoSacola, setModoExclusaoSacola] = useState<boolean>(false);
+  const [indiceItemExclusao, setIndiceItemExclusao] = useState<number>(0);
+  const [itemExclusaoConfirmando, setItemExclusaoConfirmando] = useState<CartItemBalcao | null>(null);
 
   // Identificação do Cliente
   const [cliente, setCliente] = useState<CustomerInfo>({
@@ -70,7 +75,11 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
   const [modalVendedorAberto, setModalVendedorAberto] = useState<boolean>(false);
   const [comandaConcluida, setComandaConcluida] = useState<PreVendaDemo | null>(null);
 
-  // Contador de Pré-vendas
+  // Memória da última pré-venda salva e controle de debounce no F2
+  const [ultimaPreVendaCriada, setUltimaPreVendaCriada] = useState<PreVendaDemo | null>(null);
+  const salvandoPreVendaRef = useRef<boolean>(false);
+
+  // Fila de Pré-vendas
   const [listaPreVendas, setListaPreVendas] = useState<PreVendaDemo[]>(() =>
     DemoPreSalesService.getPreVendas(),
   );
@@ -81,10 +90,10 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     [termoBusca],
   );
 
-  // Filtragem dos 56 medicamentos demonstrativos
+  // Filtragem dos 56 medicamentos demonstrativos (filtro de estoque removido)
   const medicamentosFiltrados = useMemo(
-    () => DemoCatalogService.filterMedications(queryLimpa, modoBusca, somenteComEstoque),
-    [queryLimpa, modoBusca, somenteComEstoque],
+    () => DemoCatalogService.filterMedications(queryLimpa, modoBusca, false),
+    [queryLimpa, modoBusca],
   );
 
   // Sugestões Intercambiáveis calculadas para o produto fixado
@@ -126,19 +135,29 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
   }, [medicamentosFiltrados.length, termoBusca]);
 
   // Helper para verificar se há algum modal aberto
-  const isAnyModalOpen = () => {
+  const isAnyModalOpen = useCallback(() => {
     return (
       modalClienteAberto ||
       modalDescontoAberto ||
       modalPreVendasAberto ||
       modalOpcoesAberto ||
       modalVendedorAberto ||
+      itemExclusaoConfirmando !== null ||
       comandaConcluida !== null
     );
-  };
+  }, [
+    modalClienteAberto,
+    modalDescontoAberto,
+    modalPreVendasAberto,
+    modalOpcoesAberto,
+    modalVendedorAberto,
+    itemExclusaoConfirmando,
+    comandaConcluida,
+  ]);
 
   // Fixar medicamento
   const handleFixarMedicamento = (med: MedicamentoDemonstrativo) => {
+    setModoExclusaoSacola(false);
     setMedicamentoFixado(med);
     setIndiceFocadoSugestao(-1);
   };
@@ -184,9 +203,9 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       }
     });
 
-    // Destrava e limpa o termo após adicionar, voltando o foco para a pesquisa
     setMedicamentoFixado(null);
     setTermoBusca('');
+    setModoExclusaoSacola(false);
     setTimeout(() => {
       inputBuscaRef.current?.focus();
     }, 50);
@@ -213,50 +232,111 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     });
   };
 
-  // Remover item por índice
-  const handleRemoverItem = (idx: number) => {
-    setSacola(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  // Remover último item adicionado (F8)
-  const handleRemoverUltimoItem = () => {
-    if (sacola.length > 0) {
-      setSacola(prev => prev.slice(1));
+  // Iniciar exclusão de item por índice
+  const handleAbrirConfirmarExclusao = (idx: number) => {
+    const item = sacola[idx];
+    if (item) {
+      setIndiceItemExclusao(idx);
+      setItemExclusaoConfirmando(item);
     }
   };
 
-  // Iniciar criação de pré-venda (F5): abre modal de identificação obrigatória do vendedor
+  // Confirmação SIM no modal de exclusão
+  const handleConfirmarExclusaoItem = () => {
+    if (itemExclusaoConfirmando) {
+      setSacola(prev => prev.filter((_, i) => i !== indiceItemExclusao));
+      setItemExclusaoConfirmando(null);
+      setModoExclusaoSacola(false);
+      setTimeout(() => {
+        inputBuscaRef.current?.focus();
+      }, 50);
+    }
+  };
+
+  // Cancelamento NÃO / ESC no modal de exclusão
+  const handleCancelarExclusaoItem = () => {
+    setItemExclusaoConfirmando(null);
+    inputBuscaRef.current?.focus();
+  };
+
+  // Alternar modo de exclusão (F8)
+  const handleAtivarModoExclusao = () => {
+    if (sacola.length === 0) {
+      alert('A sacola está vazia. Não há produtos para selecionar ou excluir.');
+      return;
+    }
+    setModoExclusaoSacola(prev => {
+      const proximo = !prev;
+      if (proximo) {
+        setIndiceItemExclusao(0);
+      }
+      return proximo;
+    });
+  };
+
+  // Iniciar criação de pré-venda (F2): valida sacola e abre modal de identificação do vendedor
   const handleIniciarSalvarPreVenda = () => {
+    if (salvandoPreVendaRef.current) return;
     if (sacola.length === 0) {
       alert('A sacola está vazia. Adicione pelo menos um produto antes de salvar a pré-venda.');
       return;
     }
+    setModoExclusaoSacola(false);
     setModalVendedorAberto(true);
   };
 
-  // Confirmação final após validação da matrícula do vendedor
+  // Confirmação final após validação do vendedor (Debounced)
   const handleConfirmarVendedorPreVenda = (vendedor: VendedorResponsavel) => {
-    setModalVendedorAberto(false);
+    if (salvandoPreVendaRef.current) return;
+    salvandoPreVendaRef.current = true;
 
-    const novaPreVenda = DemoPreSalesService.savePreVenda(
-      sacola,
-      totaisSacola,
-      cliente,
-      {
-        matricula: vendedor.matricula,
-        nome: vendedor.nome,
-      },
-      {
-        id: usuario?.id,
-        nome: usuario?.nome ? `${usuario.nome} (${usuario.matricula || 'Balcão'})` : 'Operador Balcão',
-      },
-    );
+    try {
+      setModalVendedorAberto(false);
 
-    setComandaConcluida(novaPreVenda);
-    setListaPreVendas(DemoPreSalesService.getPreVendas());
-    setSacola([]);
-    setDescontoGlobal(0);
-    setUltimoItemAdicionado(null);
+      const novaPreVenda = DemoPreSalesService.savePreVenda(
+        sacola,
+        totaisSacola,
+        cliente,
+        {
+          matricula: vendedor.matricula,
+          nome: vendedor.nome,
+        },
+        {
+          id: usuario?.id,
+          nome: usuario?.nome ? `${usuario.nome} (${usuario.matricula || 'Balcão'})` : 'Operador Balcão',
+        },
+      );
+
+      setUltimaPreVendaCriada(novaPreVenda);
+      setComandaConcluida(novaPreVenda);
+      setListaPreVendas(DemoPreSalesService.getPreVendas());
+      setSacola([]);
+      setDescontoGlobal(0);
+      setUltimoItemAdicionado(null);
+      setModoExclusaoSacola(false);
+    } finally {
+      setTimeout(() => {
+        salvandoPreVendaRef.current = false;
+      }, 600);
+    }
+  };
+
+  // Imprimir Comprovante de Pré-venda (F3)
+  const handleImprimirPreVenda = () => {
+    if (comandaConcluida) {
+      window.print();
+      return;
+    }
+
+    const preVendaAlvo = ultimaPreVendaCriada || listaPreVendas[0];
+    if (preVendaAlvo) {
+      setComandaConcluida(preVendaAlvo);
+      setTimeout(() => {
+        window.print();
+      }, 150);
+    } else {
+      alert('Nenhuma pré-venda salva para imprimir. Salve primeiro uma pré-venda com F2.');
+    }
   };
 
   // Cancelar pré-venda da fila
@@ -265,7 +345,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     setListaPreVendas(DemoPreSalesService.getPreVendas());
   };
 
-  // Alternar modo de pesquisa (F3)
+  // Alternar modo de pesquisa via clique no botão
   const handleAlternarModo = () => {
     const modos: SearchMode[] = ['NAME', 'PRINCIPIO', 'EAN', 'CODE'];
     const idx = modos.indexOf(modoBusca);
@@ -279,13 +359,18 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       // 1. Atalho Ctrl+D / Cmd+D para Desconto
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
         e.preventDefault();
+        setModoExclusaoSacola(false);
         setModalDescontoAberto(true);
         return;
       }
 
-      // 2. Tecla ESC
+      // 2. Tecla ESC: Cancelar ou fechar operação atual
       if (e.key === 'Escape') {
         e.preventDefault();
+        if (itemExclusaoConfirmando !== null) {
+          setItemExclusaoConfirmando(null);
+          return;
+        }
         if (isAnyModalOpen()) {
           setModalClienteAberto(false);
           setModalDescontoAberto(false);
@@ -293,6 +378,9 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
           setModalOpcoesAberto(false);
           setModalVendedorAberto(false);
           setComandaConcluida(null);
+          inputBuscaRef.current?.focus();
+        } else if (modoExclusaoSacola) {
+          setModoExclusaoSacola(false);
           inputBuscaRef.current?.focus();
         } else if (medicamentoFixado !== null) {
           handleDestravarMedicamento();
@@ -306,66 +394,87 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       // 3. F1: Focar pesquisa
       if (e.key === 'F1') {
         e.preventDefault();
+        setModoExclusaoSacola(false);
         setModalClienteAberto(false);
         setModalDescontoAberto(false);
         setModalPreVendasAberto(false);
         setModalOpcoesAberto(false);
+        setModalVendedorAberto(false);
         inputBuscaRef.current?.focus();
         return;
       }
 
-      // 4. F2: Alternar filtro de estoque
+      // 4. F2: Salvar Pré-Venda
       if (e.key === 'F2') {
         e.preventDefault();
-        setSomenteComEstoque(prev => !prev);
+        handleIniciarSalvarPreVenda();
         return;
       }
 
-      // 5. F3: Alternar modo de pesquisa
+      // 5. F3: Imprimir Pré-Venda
       if (e.key === 'F3') {
         e.preventDefault();
-        handleAlternarModo();
+        handleImprimirPreVenda();
         return;
       }
 
       // 6. F4: Abrir fila e histórico de pré-vendas
       if (e.key === 'F4') {
         e.preventDefault();
+        setModoExclusaoSacola(false);
         setModalPreVendasAberto(true);
         return;
       }
 
-      // 7. F5: Salvar Pré-Venda
-      if (e.key === 'F5') {
-        e.preventDefault();
-        handleIniciarSalvarPreVenda();
-        return;
-      }
-
-      // 8. F8: Remover último item da sacola
+      // 7. F8: Selecionar e excluir produto da sacola
       if (e.key === 'F8') {
         e.preventDefault();
-        handleRemoverUltimoItem();
+        handleAtivarModoExclusao();
         return;
       }
 
-      // 9. F10: Identificar Cliente
+      // 8. F10: Identificar Cliente
       if (e.key === 'F10') {
         e.preventDefault();
+        setModoExclusaoSacola(false);
         setModalClienteAberto(true);
         return;
       }
 
-      // 10. F11: Opções de atendimento e atalhos
+      // 9. F11: Opções de atendimento e atalhos
       if (e.key === 'F11') {
         e.preventDefault();
+        setModoExclusaoSacola(false);
         setModalOpcoesAberto(true);
         return;
       }
 
-      // 11. Navegação na Tabela de Pesquisa e Comportamento de Dois Enter
+      // 10. Ações de Teclado sem nenhum modal aberto
       if (!isAnyModalOpen()) {
-        // Se nenhum produto estiver fixado
+        // Se estiver no Modo de Exclusão Interativo (F8)
+        if (modoExclusaoSacola) {
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (sacola.length > 0) {
+              setIndiceItemExclusao(prev => (prev < sacola.length - 1 ? prev + 1 : 0));
+            }
+            return;
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (sacola.length > 0) {
+              setIndiceItemExclusao(prev => (prev > 0 ? prev - 1 : sacola.length - 1));
+            }
+            return;
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (sacola[indiceItemExclusao]) {
+              handleAbrirConfirmarExclusao(indiceItemExclusao);
+            }
+            return;
+          }
+        }
+
+        // Navegação Padrão na Pesquisa e Fixação de Medicamentos
         if (medicamentoFixado === null) {
           if (e.key === 'ArrowDown') {
             e.preventDefault();
@@ -388,13 +497,13 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
             }
           }
         } else {
-          // Quando já há um produto fixado (pinnedMedId ativo)
+          // Quando já há um produto fixado
           if (e.key === 'Enter') {
             // 2º ENTER: Confirma a inclusão do produto fixado na sacola
             e.preventDefault();
             handleAdicionarProdutoSacola(medicamentoFixado, multiplier);
           } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-            // Setas esquerda/direita alternam entre as sugestões intercambiáveis
+            // Setas esquerda/direita alternam entre as sugestões intercambiáveis (R/S/G)
             if (sugestoesIntercambiaveis.length > 0) {
               e.preventDefault();
               const delta = e.key === 'ArrowRight' ? 1 : -1;
@@ -425,6 +534,12 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     multiplier,
     sacola,
     termoBusca,
+    modoExclusaoSacola,
+    indiceItemExclusao,
+    itemExclusaoConfirmando,
+    comandaConcluida,
+    ultimaPreVendaCriada,
+    listaPreVendas,
     isAnyModalOpen,
   ]);
 
@@ -456,8 +571,6 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
             }}
             modoBusca={modoBusca}
             aoAlternarModo={handleAlternarModo}
-            somenteComEstoque={somenteComEstoque}
-            aoAlternarEstoque={() => setSomenteComEstoque(prev => !prev)}
             multiplicadorPendente={multiplier}
             inputRef={inputBuscaRef}
             totalResultados={medicamentosFiltrados.length}
@@ -503,18 +616,23 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
             cliente={cliente}
             ultimoItemAdicionado={ultimoItemAdicionado}
             aoAlterarQuantidade={handleAlterarQuantidade}
-            aoRemoverItem={handleRemoverItem}
-            aoRemoverUltimoItem={handleRemoverUltimoItem}
+            aoRemoverItem={handleAbrirConfirmarExclusao}
             aoLimparSacola={() => {
               if (confirm('Deseja limpar todos os itens da sacola?')) {
                 setSacola([]);
                 setDescontoGlobal(0);
                 setUltimoItemAdicionado(null);
+                setModoExclusaoSacola(false);
               }
             }}
             aoSalvarPreVenda={handleIniciarSalvarPreVenda}
             aoAbrirCliente={() => setModalClienteAberto(true)}
             aoAbrirDesconto={() => setModalDescontoAberto(true)}
+            modoExclusao={modoExclusaoSacola}
+            indiceItemExclusao={indiceItemExclusao}
+            aoAlternarModoExclusao={handleAtivarModoExclusao}
+            aoSelecionarIndiceExclusao={idx => setIndiceItemExclusao(idx)}
+            aoConfirmarExclusaoItem={handleAbrirConfirmarExclusao}
           />
         </aside>
       </main>
@@ -528,6 +646,13 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
           setModalVendedorAberto(false);
           inputBuscaRef.current?.focus();
         }}
+      />
+
+      <ConfirmarExclusaoModal
+        aberto={itemExclusaoConfirmando !== null}
+        item={itemExclusaoConfirmando}
+        aoConfirmar={handleConfirmarExclusaoItem}
+        aoCancelar={handleCancelarExclusaoItem}
       />
 
       <CustomerModal
@@ -570,6 +695,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
           setDescontoGlobal(0);
           setMedicamentoFixado(null);
           setTermoBusca('');
+          setModoExclusaoSacola(false);
         }}
         aoFechar={() => {
           setModalOpcoesAberto(false);

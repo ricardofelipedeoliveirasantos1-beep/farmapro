@@ -22,18 +22,17 @@ export const BalcaoOptionsModal: React.FC<BalcaoOptionsModalProps> = ({
 
   const atalhos = [
     { tecla: 'F1', descricao: 'Focar campo de pesquisa de medicamentos' },
-    { tecla: 'F2', descricao: 'Alternar filtro de produtos com saldo em estoque' },
-    { tecla: 'F3', descricao: 'Alternar modo de pesquisa (Nome, Princípio, EAN, Código)' },
+    { tecla: 'F2', descricao: 'Salvar pré-venda e gerar comanda para o Caixa PDV' },
+    { tecla: 'F3', descricao: 'Imprimir comprovante da pré-venda salva' },
     { tecla: 'F4', descricao: 'Abrir fila e histórico de pré-vendas' },
-    { tecla: 'F5', descricao: 'Salvar sacola e gerar comanda de pré-venda' },
-    { tecla: 'F8', descricao: 'Remover último item adicionado à sacola' },
+    { tecla: 'F8', descricao: 'Selecionar e excluir produto da sacola' },
     { tecla: 'F10', descricao: 'Identificar cliente, CPF e convênio' },
-    { tecla: 'F11', descricao: 'Abrir este menu de opções e atalhos' },
+    { tecla: 'F11', descricao: 'Abrir este menu de opções e guia de atalhos' },
     { tecla: 'Ctrl+D', descricao: 'Aplicar desconto percentual ou em reais' },
-    { tecla: 'Enter', descricao: '1º Enter: Fixar medicamento selecionado / 2º Enter: Incluir na sacola' },
-    { tecla: '← / →', descricao: 'Alternar entre sugestões intercambiáveis (R / S / G)' },
-    { tecla: '↑ / ↓', descricao: 'Navegar pelas linhas da tabela de medicamentos' },
-    { tecla: 'ESC', descricao: 'Fechar modais abertos ou limpar/destravar pesquisa' },
+    { tecla: 'Enter', descricao: '1º Enter: Fixar produto / 2º Enter: Incluir na sacola / Confirmar ações' },
+    { tecla: '← / →', descricao: 'Alternar sugestões intercambiáveis (R/S/G) ou SIM/NÃO no F8' },
+    { tecla: '↑ / ↓', descricao: 'Navegar linhas da pesquisa ou itens da sacola no modo de exclusão' },
+    { tecla: 'ESC', descricao: 'Fechar modais abertos, cancelar exclusão ou destravar produto' },
     { tecla: '3*', descricao: 'Digitar multiplicador antes da busca (Ex: 3*ome inclui 3 unidades)' },
   ];
 
@@ -98,39 +97,26 @@ export const BalcaoOptionsModal: React.FC<BalcaoOptionsModalProps> = ({
           <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl space-y-2">
             <h4 className="font-bold text-slate-700 text-xs flex items-center gap-1.5">
               <Info className="w-4 h-4 text-slate-500" />
-              Ambiente Demonstrativo Balcão
+              Dados do Catálogo e Testes
             </h4>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Este terminal opera com a base de 56 medicamentos de referência demonstrativos.
-              Você pode reiniciar o catálogo e a lista de pré-vendas a qualquer momento.
+            <p className="text-slate-600 leading-relaxed">
+              O catálogo de medicamentos de demonstração contém 56 itens padronizados pela Anvisa
+              com estoque, PMC, PBM e sugestões intercambiáveis (Referência, Similar e Genérico).
             </p>
-
             <button
               type="button"
               onClick={() => {
-                if (confirm('Deseja restaurar os dados demonstrativos do catálogo e comandas?')) {
+                if (confirm('Deseja resetar as pré-vendas e reiniciar o catálogo para os padrões de teste?')) {
                   aoReiniciarDadosDemo();
-                  alert('Dados demonstrativos restaurados com sucesso!');
                   aoFechar();
                 }
               }}
-              className="py-1.5 px-3 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+              className="w-full mt-1 py-2 px-3 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
-              <span>Restaurar Base Demonstrativa Original</span>
+              <span>Reiniciar Dados de Demonstração</span>
             </button>
           </div>
-        </div>
-
-        {/* Rodapé */}
-        <div className="bg-slate-50 p-3 border-t border-slate-200 flex justify-end">
-          <button
-            type="button"
-            onClick={aoFechar}
-            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors"
-          >
-            Entendido (ESC)
-          </button>
         </div>
       </div>
     </div>

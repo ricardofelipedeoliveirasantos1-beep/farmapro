@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X, Layers, Filter, Sparkles } from 'lucide-react';
+import { Search, X, Layers, Sparkles } from 'lucide-react';
 import { SearchMode } from '../../types/balcao.js';
 
 interface ProductSearchProps {
@@ -8,8 +8,6 @@ interface ProductSearchProps {
   aoLimparBusca: () => void;
   modoBusca: SearchMode;
   aoAlternarModo: () => void;
-  somenteComEstoque: boolean;
-  aoAlternarEstoque: () => void;
   multiplicadorPendente: number;
   inputRef: React.RefObject<HTMLInputElement>;
   totalResultados: number;
@@ -21,8 +19,6 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({
   aoLimparBusca,
   modoBusca,
   aoAlternarModo,
-  somenteComEstoque,
-  aoAlternarEstoque,
   multiplicadorPendente,
   inputRef,
   totalResultados,
@@ -88,43 +84,17 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({
           </div>
         </div>
 
-        {/* Botões de Filtro F2 e Modo F3 */}
+        {/* Botão de Modo de Pesquisa (Clique Direto) */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Alternar Modo F3 */}
           <button
             type="button"
             onClick={aoAlternarModo}
-            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200/80 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all"
-            title="Alternar Modo de Busca (F3)"
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200/80 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            title="Clique para alternar o modo de busca (Nome, Princípio Ativo, EAN, Código Interno)"
           >
             <Layers className="w-3.5 h-3.5 text-blue-600" />
             <span>Modo:</span>
             <span className="text-blue-700 underline underline-offset-2">{getModoLabel()}</span>
-            <span className="bg-slate-200 text-slate-600 text-[10px] font-mono px-1 py-0.2 rounded ml-1">
-              F3
-            </span>
-          </button>
-
-          {/* Filtro Somente com Saldo F2 */}
-          <button
-            type="button"
-            onClick={aoAlternarEstoque}
-            className={`flex items-center gap-1.5 px-3 py-2 border rounded-xl text-xs font-bold transition-all ${
-              somenteComEstoque
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-2xs'
-                : 'bg-slate-100 hover:bg-slate-200/80 border-slate-300 text-slate-600'
-            }`}
-            title="Filtrar Produtos com Saldo em Estoque (F2)"
-          >
-            <Filter className="w-3.5 h-3.5" />
-            <span>{somenteComEstoque ? 'Com Saldo' : 'Todos'}</span>
-            <span
-              className={`text-[10px] font-mono px-1 py-0.2 rounded ml-1 ${
-                somenteComEstoque ? 'bg-emerald-200 text-emerald-900' : 'bg-slate-200 text-slate-600'
-              }`}
-            >
-              F2
-            </span>
           </button>
         </div>
       </div>
@@ -139,16 +109,20 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({
             <button
               key={s}
               type="button"
-              onClick={() => aoMudarBusca(s)}
-              className="px-2 py-0.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 border border-slate-200 rounded-md text-[11px] font-medium text-slate-600 transition-colors shrink-0"
+              onClick={() => {
+                aoMudarBusca(s);
+                inputRef.current?.focus();
+              }}
+              className="px-2 py-0.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 border border-slate-200 rounded-md text-[11px] font-medium transition-colors shrink-0"
             >
               {s}
             </button>
           ))}
         </div>
 
-        <div className="shrink-0 text-[11px] font-bold text-slate-600">
-          <span className="text-blue-600">{totalResultados}</span> medicamentos encontrados
+        <div className="text-[11px] text-slate-500 font-medium shrink-0">
+          <strong className="text-slate-800 font-mono font-bold">{totalResultados}</strong>{' '}
+          {totalResultados === 1 ? 'medicamento' : 'medicamentos'}
         </div>
       </div>
     </div>

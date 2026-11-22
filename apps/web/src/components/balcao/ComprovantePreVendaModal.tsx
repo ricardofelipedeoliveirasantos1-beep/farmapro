@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PreVendaDemo } from '../../types/balcao.js';
 import { CheckCircle2, X, Printer, ArrowRight } from 'lucide-react';
 
@@ -11,8 +11,6 @@ export const ComprovantePreVendaModal: React.FC<ComprovantePreVendaModalProps> =
   preVenda,
   aoFechar,
 }) => {
-  if (!preVenda) return null;
-
   const formatBRL = (val: number) => {
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
@@ -21,8 +19,33 @@ export const ComprovantePreVendaModal: React.FC<ComprovantePreVendaModalProps> =
     window.print();
   };
 
+  useEffect(() => {
+    if (!preVenda) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F3') {
+        e.preventDefault();
+        handleImprimir();
+      } else if (e.key === 'Escape' || e.key === 'Enter') {
+        // ESC fecha o comprovante, Enter avança para Novo Atendimento
+        e.preventDefault();
+        aoFechar();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [preVenda, aoFechar]);
+
+  if (!preVenda) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-2xs animate-in fade-in duration-150">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="comprovante-pv-titulo"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-2xs animate-in fade-in duration-150"
+    >
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden text-slate-800">
         {/* Topo de Sucesso */}
         <div className="bg-emerald-600 p-4 text-white text-center relative">
@@ -30,6 +53,7 @@ export const ComprovantePreVendaModal: React.FC<ComprovantePreVendaModalProps> =
             type="button"
             onClick={aoFechar}
             className="absolute right-3 top-3 p-1 rounded-lg hover:bg-emerald-700 text-white/80 hover:text-white transition-colors"
+            title="Fechar (ESC)"
           >
             <X className="w-5 h-5" />
           </button>
@@ -38,7 +62,7 @@ export const ComprovantePreVendaModal: React.FC<ComprovantePreVendaModalProps> =
             <CheckCircle2 className="w-8 h-8" />
           </div>
 
-          <h3 className="text-lg font-black tracking-tight leading-none">
+          <h3 id="comprovante-pv-titulo" className="text-lg font-black tracking-tight leading-none">
             Pré-Venda Emitida com Sucesso!
           </h3>
           <p className="text-xs text-emerald-100 mt-1">
@@ -131,16 +155,17 @@ export const ComprovantePreVendaModal: React.FC<ComprovantePreVendaModalProps> =
             <button
               type="button"
               onClick={handleImprimir}
-              className="py-2 px-3 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl font-bold transition-colors flex items-center justify-center gap-1.5"
+              className="py-2 px-3 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              title="Imprimir comprovante da pré-venda (F3)"
             >
-              <Printer className="w-4 h-4" />
-              <span>Imprimir</span>
+              <Printer className="w-4 h-4 text-blue-600" />
+              <span>Imprimir (F3)</span>
             </button>
 
             <button
               type="button"
               onClick={aoFechar}
-              className="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black shadow-xs transition-colors flex items-center justify-center gap-1.5"
+              className="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               autoFocus
             >
               <span>Novo Atendimento (Enter)</span>
