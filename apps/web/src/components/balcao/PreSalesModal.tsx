@@ -8,12 +8,14 @@ import {
   CheckCircle2,
   XCircle,
   Copy,
+  Printer,
 } from 'lucide-react';
 
 interface PreSalesModalProps {
   aberto: boolean;
   preVendas: PreVendaDemo[];
   aoCancelarPreVenda: (id: string) => void;
+  aoImprimirPreVenda?: (pv: PreVendaDemo) => void;
   aoFechar: () => void;
 }
 
@@ -21,6 +23,7 @@ export const PreSalesModal: React.FC<PreSalesModalProps> = ({
   aberto,
   preVendas,
   aoCancelarPreVenda,
+  aoImprimirPreVenda,
   aoFechar,
 }) => {
   const [preVendaSelecionada, setPreVendaSelecionada] = useState<PreVendaDemo | null>(null);
@@ -245,8 +248,19 @@ export const PreSalesModal: React.FC<PreSalesModalProps> = ({
                 </div>
 
                 {/* Ações da Pré-venda */}
-                {preVendaSelecionada.status === 'PENDING_CASHIER' && (
-                  <div className="pt-2">
+                <div className="pt-2 flex items-center gap-2">
+                  {aoImprimirPreVenda && (
+                    <button
+                      type="button"
+                      onClick={() => aoImprimirPreVenda(preVendaSelecionada)}
+                      className="flex-1 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      title="Imprimir comanda selecionada (F3)"
+                    >
+                      <Printer className="w-4 h-4 text-blue-600" />
+                      <span>Imprimir Comanda (F3)</span>
+                    </button>
+                  )}
+                  {preVendaSelecionada.status === 'PENDING_CASHIER' && (
                     <button
                       type="button"
                       onClick={() => {
@@ -255,13 +269,14 @@ export const PreSalesModal: React.FC<PreSalesModalProps> = ({
                           setPreVendaSelecionada(prev => (prev ? { ...prev, status: 'CANCELLED' } : null));
                         }
                       }}
-                      className="w-full py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl font-bold transition-colors flex items-center justify-center gap-1.5"
+                      className="py-2 px-3 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      title="Cancelar comanda"
                     >
                       <XCircle className="w-4 h-4" />
-                      <span>Cancelar Comanda (Liberar Atendimento)</span>
+                      <span>Cancelar</span>
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-8">

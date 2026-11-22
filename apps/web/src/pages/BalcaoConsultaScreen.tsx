@@ -186,10 +186,10 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
           quantity: novaQtd,
           subtotal,
         };
-        const novaSacola = [...prev];
-        novaSacola[idxExistente] = novoItem;
+        // Reposiciona o medicamento existente no topo da sacola
+        const outrosItens = prev.filter((_, i) => i !== idxExistente);
         setUltimoItemAdicionado(novoItem);
-        return novaSacola;
+        return [novoItem, ...outrosItens];
       } else {
         novoItem = {
           medication: med,
@@ -680,6 +680,13 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
         aberto={modalPreVendasAberto}
         preVendas={listaPreVendas}
         aoCancelarPreVenda={handleCancelarPreVenda}
+        aoImprimirPreVenda={pv => {
+          setModalPreVendasAberto(false);
+          setComandaConcluida(pv);
+          setTimeout(() => {
+            window.print();
+          }, 150);
+        }}
         aoFechar={() => {
           setModalPreVendasAberto(false);
           inputBuscaRef.current?.focus();

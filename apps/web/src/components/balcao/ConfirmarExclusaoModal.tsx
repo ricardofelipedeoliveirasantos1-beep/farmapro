@@ -75,8 +75,8 @@ export const ConfirmarExclusaoModal: React.FC<ConfirmarExclusaoModalProps> = ({
               <Trash2 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 id="modal-exclusao-titulo" className="font-black text-base tracking-tight leading-none">
-                Excluir Produto da Sacola
+              <h3 id="modal-exclusao-titulo" className="font-black text-base tracking-tight leading-none uppercase">
+                EXCLUIR ITEM DA SACOLA
               </h3>
               <span className="text-[11px] text-red-100 font-medium">
                 Atalho de Exclusão (F8)
@@ -95,19 +95,26 @@ export const ConfirmarExclusaoModal: React.FC<ConfirmarExclusaoModalProps> = ({
 
         {/* Detalhes do Produto a ser Excluído */}
         <div className="p-4 space-y-4 text-xs">
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2.5">
             <div className="flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
                   Medicamento Selecionado
                 </span>
-                <strong className="text-slate-900 text-sm font-black block leading-tight">
+                <strong className="text-slate-900 text-sm font-black block leading-tight break-words">
                   {item.medication.descricao}
                 </strong>
                 <span className="text-[11px] text-slate-500 block truncate mt-0.5">
                   {item.medication.laboratorio} • {item.medication.principioAtivo}
                 </span>
+
+                {/* Códigos Interno e EAN */}
+                <div className="flex items-center gap-2 mt-1.5 text-[11px] font-mono text-slate-600 bg-white border border-slate-200 rounded-lg p-1.5">
+                  <span>Cód. interno: <strong className="text-slate-900">{item.medication.codigoInterno}</strong></span>
+                  <span>|</span>
+                  <span>EAN: <strong className="text-slate-900">{item.medication.ean}</strong></span>
+                </div>
               </div>
             </div>
 
@@ -130,7 +137,7 @@ export const ConfirmarExclusaoModal: React.FC<ConfirmarExclusaoModalProps> = ({
               </div>
               <div className="bg-white p-1.5 rounded-lg border border-slate-200/80">
                 <span className="text-[9px] text-slate-400 uppercase font-sans block font-semibold">
-                  Subtotal
+                  Total da Linha
                 </span>
                 <strong className="text-red-700 text-xs font-black">
                   {formatBRL(item.subtotal)}

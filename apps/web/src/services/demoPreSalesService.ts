@@ -92,7 +92,7 @@ class DemoPreSalesStore {
     const code = `PV-${this.counter}`;
 
     const newPv: PreVendaDemo = {
-      id: `pv-demo-${Date.now()}`,
+      id: `pv-demo-${Date.now()}-${this.counter}`,
       code,
       createdAt: new Date().toISOString(),
       attendantName: `${vendedor.nome} (Balcão)`,

@@ -1,16 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PreVendaDemo } from '../../types/balcao.js';
 import { CheckCircle2, X, Printer, ArrowRight } from 'lucide-react';
+import { BarcodeCode128 } from '../../utils/barcodeGenerator.js';
 
 interface ComprovantePreVendaModalProps {
   preVenda: PreVendaDemo | null;
   aoFechar: () => void;
 }
 
+export type FormatoImpressao = '80mm' | '58mm' | 'A4';
+
 export const ComprovantePreVendaModal: React.FC<ComprovantePreVendaModalProps> = ({
   preVenda,
   aoFechar,
 }) => {
+  const [formato, setFormato] = useState<FormatoImpressao>('80mm');
+
   const formatBRL = (val: number) => {
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
@@ -39,139 +44,269 @@ export const ComprovantePreVendaModal: React.FC<ComprovantePreVendaModalProps> =
 
   if (!preVenda) return null;
 
+  const totalVolumes = preVenda.items.reduce((acc, it) => acc + it.quantity, 0);
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="comprovante-pv-titulo"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-2xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-2xs overflow-y-auto animate-in fade-in duration-150 print:p-0 print:bg-white print:static"
     >
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden text-slate-800">
-        {/* Topo de Sucesso */}
-        <div className="bg-emerald-600 p-4 text-white text-center relative">
+      <div
+        className={`bg-white rounded-2xl shadow-2xl border border-slate-200 w-full overflow-hidden text-slate-800 my-auto print:border-none print:shadow-none print:w-full print:m-0 ${
+          formato === 'A4'
+            ? 'max-w-3xl'
+            : formato === '58mm'
+            ? 'max-w-xs'
+            : 'max-w-md'
+        }`}
+      >
+        {/* Topo Informativo na Tela (Oculto na Impressão Física) */}
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-3.5 text-white text-center relative print:hidden">
           <button
             type="button"
             onClick={aoFechar}
-            className="absolute right-3 top-3 p-1 rounded-lg hover:bg-emerald-700 text-white/80 hover:text-white transition-colors"
+            className="absolute right-2.5 top-2.5 p-1 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
             title="Fechar (ESC)"
           >
             <X className="w-5 h-5" />
           </button>
 
-          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2 text-white">
-            <CheckCircle2 className="w-8 h-8" />
+          <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-1 text-white">
+            <CheckCircle2 className="w-6 h-6" />
           </div>
 
-          <h3 id="comprovante-pv-titulo" className="text-lg font-black tracking-tight leading-none">
+          <h3 id="comprovante-pv-titulo" className="text-base font-black tracking-tight leading-none">
             Pré-Venda Emitida com Sucesso!
           </h3>
-          <p className="text-xs text-emerald-100 mt-1">
+          <p className="text-[11px] text-emerald-100 mt-1">
             Comanda gerada para encaminhamento ao Caixa PDV
           </p>
+
+          {/* Seletor de Formato de Impressão */}
+          <div className="mt-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold">
+            <span className="text-emerald-150 text-[10px] mr-1">Formato de Papel:</span>
+            <button
+              type="button"
+              onClick={() => setFormato('80mm')}
+              className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+                formato === '80mm'
+                  ? 'bg-white text-emerald-900 shadow-xs'
+                  : 'bg-white/15 text-white hover:bg-white/25'
+              }`}
+            >
+              Térmica 80 mm
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormato('58mm')}
+              className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+                formato === '58mm'
+                  ? 'bg-white text-emerald-900 shadow-xs'
+                  : 'bg-white/15 text-white hover:bg-white/25'
+              }`}
+            >
+              Térmica 58 mm
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormato('A4')}
+              className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+                formato === 'A4'
+                  ? 'bg-white text-emerald-900 shadow-xs'
+                  : 'bg-white/15 text-white hover:bg-white/25'
+              }`}
+            >
+              Folha A4
+            </button>
+          </div>
         </div>
 
-        {/* Corpo do Comprovante */}
-        <div className="p-4 space-y-3.5 text-xs">
-          {/* Caixa de Destaque da Comanda */}
-          <div className="bg-slate-50 border-2 border-dashed border-blue-300 rounded-xl p-3 text-center space-y-1">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-              Número da Comanda / Pré-Venda
-            </span>
-            <span className="text-3xl font-black font-mono text-blue-700 tracking-tight block">
-              {preVenda.code}
-            </span>
-
-            {/* Simulação Visual do Código de Barras */}
-            <div className="pt-1 flex flex-col items-center justify-center">
-              <div className="flex items-center gap-0.5 h-7">
-                {[4, 2, 6, 3, 5, 2, 4, 7, 3, 2, 5, 4, 3, 6, 2, 4, 5, 3, 2, 6, 4, 2].map((w, i) => (
-                  <div
-                    key={i}
-                    className="bg-slate-800 h-full"
-                    style={{ width: `${w * 1.5}px` }}
-                  />
-                ))}
+        {/* ÁREA OFICIAL DO COMPROVANTE (IMPRESSÃO E TELA) */}
+        <div
+          id="farmapro-comprovante-print"
+          className={`p-4 space-y-3 text-xs bg-white text-slate-800 ${
+            formato === '58mm' ? 'text-[10px] leading-tight' : ''
+          }`}
+        >
+          {/* 1. Cabeçalho Institucional do Comprovante */}
+          <div className="text-center border-b border-slate-300 pb-2.5 space-y-1">
+            <div className="flex items-center justify-center gap-1.5">
+              <div className="w-5 h-5 rounded bg-blue-600 text-white font-black flex items-center justify-center text-xs">
+                +
               </div>
-              <span className="text-[10px] font-mono text-slate-400 tracking-widest mt-0.5">
-                *{preVenda.code}*
+              <span className="font-black text-sm tracking-tight text-slate-900">
+                FarmaPro SaaS
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">
+              Gestão Farmacêutica Inteligente
+            </p>
+            <p className="text-[10px] text-slate-500 font-medium">
+              Unidade 01 – Centro (Matriz) • CNPJ: 12.345.678/0001-90
+            </p>
+            <div className="pt-1">
+              <span className="font-black text-xs uppercase bg-slate-100 text-slate-800 px-2 py-0.5 rounded border border-slate-300">
+                PRÉ-VENDA / COMANDA DE BALCÃO
               </span>
             </div>
           </div>
 
-          {/* Dados do Atendimento e Vendedor Responsável */}
-          <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-1.5 text-slate-600">
+          {/* 2. Destaque do Número PV e Código de Barras Oficial */}
+          <div className="bg-slate-50 border-2 border-dashed border-blue-300 rounded-xl p-3 text-center space-y-1.5 print:border-slate-800 print:bg-transparent">
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
+              Número da Comanda / Pré-Venda
+            </span>
+            <span className="text-3xl font-black font-mono text-blue-800 tracking-tight block print:text-black">
+              {preVenda.code}
+            </span>
+
+            {/* Código de barras Code 128 vetorial de alta nitidez */}
+            <div className="pt-1 flex flex-col items-center justify-center">
+              <BarcodeCode128 value={preVenda.code} height={42} showText={false} />
+              <span className="text-[10px] font-mono text-slate-500 tracking-widest mt-1 block">
+                *{preVenda.code}*
+              </span>
+            </div>
+            <span className="text-[9px] text-slate-400 block">
+              (Apresente ou digite este código no Caixa PDV para localizar os produtos)
+            </span>
+          </div>
+
+          {/* 3. Dados do Atendimento e Vendedor Responsável */}
+          <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-1 text-slate-700 text-[11px] print:bg-transparent print:border-slate-300">
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-slate-500">Cliente:</span>
-              <strong className="text-slate-800">{preVenda.customer.name}</strong>
+              <span className="text-slate-500">Cliente:</span>
+              <strong className="text-slate-900 font-bold">{preVenda.customer.name}</strong>
             </div>
             {preVenda.customer.cpf && (
-              <div className="flex justify-between items-center font-mono text-[11px]">
+              <div className="flex justify-between items-center font-mono text-[10px]">
                 <span className="text-slate-500">CPF:</span>
                 <span>{preVenda.customer.cpf}</span>
               </div>
             )}
-            <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-200">
+            <div className="flex justify-between items-center text-[10px]">
+              <span className="text-slate-500">Convênio:</span>
+              <span>{preVenda.customer.convenio}</span>
+            </div>
+            <div className="flex justify-between items-center pt-1 border-t border-slate-200">
               <span className="font-bold text-slate-700">Vendedor Responsável:</span>
-              <strong className="text-blue-900 font-bold">
+              <strong className="text-blue-900 font-bold font-mono print:text-black">
                 {preVenda.vendedorNome || preVenda.attendantName} {preVenda.vendedorMatricula ? `(${preVenda.vendedorMatricula})` : ''}
               </strong>
             </div>
             {preVenda.criadoPorNome && preVenda.criadoPorNome !== preVenda.vendedorNome && (
-              <div className="flex justify-between items-center text-[10px] text-slate-400">
+              <div className="flex justify-between items-center text-[9px] text-slate-400">
                 <span>Registrado no terminal por:</span>
                 <span>{preVenda.criadoPorNome}</span>
               </div>
             )}
-            <div className="flex justify-between items-center text-[10px] text-slate-400">
-              <span>Data/Hora:</span>
+            <div className="flex justify-between items-center text-[10px] text-slate-400 pt-0.5">
+              <span>Data/Hora Emissão:</span>
               <span>{new Date(preVenda.createdAt).toLocaleString('pt-BR')}</span>
             </div>
           </div>
 
-          {/* Resumo de Itens e Total */}
-          <div className="border border-slate-200 rounded-lg p-2.5 bg-white space-y-1 font-mono text-xs">
-            <div className="max-h-24 overflow-y-auto divide-y divide-slate-100 text-[11px]">
+          {/* 4. Tabela Completa de Produtos */}
+          <div className="border border-slate-200 rounded-lg overflow-hidden bg-white print:border-slate-400">
+            <div className="bg-slate-100 p-1.5 px-2 font-bold text-[10px] text-slate-700 uppercase tracking-wider flex justify-between border-b border-slate-200">
+              <span>Produtos da Comanda ({preVenda.items.length})</span>
+              <span>Qtd × Unitário = Total</span>
+            </div>
+
+            <div className="divide-y divide-slate-100 max-h-56 overflow-y-auto print:max-h-none print:overflow-visible text-[11px]">
               {preVenda.items.map((it, idx) => (
-                <div key={idx} className="py-1 flex justify-between">
-                  <span className="truncate mr-2 font-sans">{it.quantity}x {it.medication.descricao}</span>
-                  <span className="font-bold">{formatBRL(it.subtotal)}</span>
+                <div
+                  key={idx}
+                  className="p-2 space-y-1 print:break-inside-avoid"
+                  style={{ pageBreakInside: 'avoid' }}
+                >
+                  {/* Linha 1 do Produto: Sequencial e Nome Completo */}
+                  <div className="flex items-start justify-between gap-1.5">
+                    <span className="font-mono font-bold text-[10px] text-slate-400 shrink-0">
+                      #{idx + 1}
+                    </span>
+                    <strong className="text-slate-900 font-bold flex-1 leading-snug break-words">
+                      {it.medication.descricao}
+                    </strong>
+                    <span className="font-mono font-black text-slate-900 text-xs shrink-0">
+                      {formatBRL(it.subtotal)}
+                    </span>
+                  </div>
+
+                  {/* Linha 2 do Produto: Código Interno, EAN, Quantidade e Preço */}
+                  <div className="flex flex-wrap items-center justify-between text-[10px] text-slate-500 font-mono pl-4">
+                    <span>Cód: {it.medication.codigoInterno} | EAN: {it.medication.ean}</span>
+                    <span>
+                      {it.quantity} un × {formatBRL(it.unitPrice)}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
+          </div>
 
-            <div className="pt-2 border-t border-slate-200 flex justify-between font-black text-slate-900 text-sm">
-              <span className="font-sans">Total a Pagar:</span>
-              <span className="text-emerald-700">{formatBRL(preVenda.total)}</span>
+          {/* 5. Totalizadores Finais do Comprovante */}
+          <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-1 font-mono text-xs print:bg-transparent print:border-slate-300">
+            <div className="flex justify-between text-slate-600 text-[11px]">
+              <span>Produtos Distintos:</span>
+              <strong className="text-slate-800">{preVenda.items.length}</strong>
+            </div>
+            <div className="flex justify-between text-slate-600 text-[11px]">
+              <span>Total de Unidades (Volumes):</span>
+              <strong className="text-slate-800">{totalVolumes}</strong>
+            </div>
+            <div className="flex justify-between text-slate-600 text-[11px]">
+              <span>Subtotal Bruto:</span>
+              <strong className="text-slate-800">{formatBRL(preVenda.subtotal)}</strong>
+            </div>
+            {preVenda.discount > 0 && (
+              <div className="flex justify-between text-red-600 font-bold text-[11px]">
+                <span>Desconto Aplicado:</span>
+                <span>- {formatBRL(preVenda.discount)}</span>
+              </div>
+            )}
+            <div className="pt-1.5 border-t border-slate-300 flex justify-between font-black text-sm text-slate-900">
+              <span className="font-sans">Total a Pagar no Caixa:</span>
+              <span className="text-emerald-700 font-mono text-base print:text-black">
+                {formatBRL(preVenda.total)}
+              </span>
             </div>
           </div>
 
-          {/* Mensagem Operacional */}
-          <div className="bg-blue-50 border border-blue-200 p-2.5 rounded-xl text-[11px] text-blue-900 leading-snug">
-            <strong>Próximo Passo:</strong> Oriente o cliente a se dirigir ao <strong>Caixa PDV</strong> com o código <strong>{preVenda.code}</strong> para conferência dos produtos e pagamento.
+          {/* 6. Instrução Operacional de Rodapé */}
+          <div className="bg-blue-50 border border-blue-200 p-2.5 rounded-xl text-center space-y-1 print:border-slate-400 print:bg-transparent">
+            <p className="text-[11px] text-blue-900 font-black uppercase leading-tight print:text-black">
+              Apresentar esta comanda no Caixa PDV para pagamento e finalização.
+            </p>
+            <p className="text-[9px] text-blue-700 print:text-slate-500">
+              Ambiente de Balcão • Os produtos estão reservados para conferência e emissão do cupom fiscal no Caixa.
+            </p>
           </div>
+        </div>
 
-          {/* Ações */}
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={handleImprimir}
-              className="py-2 px-3 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-              title="Imprimir comprovante da pré-venda (F3)"
-            >
-              <Printer className="w-4 h-4 text-blue-600" />
-              <span>Imprimir (F3)</span>
-            </button>
+        {/* 7. Barra de Ações (Oculta na Impressão Física) */}
+        <div className="bg-slate-50 p-3 border-t border-slate-200 flex items-center gap-2 print:hidden">
+          <button
+            type="button"
+            onClick={handleImprimir}
+            className="py-2.5 px-4 border border-slate-300 bg-white hover:bg-slate-100 text-slate-800 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-2xs cursor-pointer"
+            title="Imprimir comprovante da pré-venda (F3)"
+          >
+            <Printer className="w-4 h-4 text-blue-600" />
+            <span>IMPRIMIR PRÉ-VENDA (F3)</span>
+          </button>
 
-            <button
-              type="button"
-              onClick={aoFechar}
-              className="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-              autoFocus
-            >
-              <span>Novo Atendimento (Enter)</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={aoFechar}
+            className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            autoFocus
+          >
+            <span>Novo Atendimento (Enter)</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
