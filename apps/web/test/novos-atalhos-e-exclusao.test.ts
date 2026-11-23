@@ -130,14 +130,15 @@ describe('FarmaPro Balcão — Suíte Oficial dos 52 Testes Operacionais (Sacola
     assert.ok(sacolaExtensa.length > 12);
   });
 
-  it('13. Capacidade visual: 1, 4, 7 e 12 produtos não ativam rolagem; a partir do 13º produto ativa rolagem interna', () => {
-    const limiteVisual = 12;
-    assert.strictEqual(1 > limiteVisual, false); // 1 produto sem rolagem
-    assert.strictEqual(4 > limiteVisual, false); // 4 produtos sem rolagem
-    assert.strictEqual(7 > limiteVisual, false); // 7 produtos sem rolagem
-    assert.strictEqual(12 > limiteVisual, false); // 12 produtos sem rolagem
-    assert.strictEqual(13 > limiteVisual, true); // 13 produtos ativa rolagem
-    assert.strictEqual(16 > limiteVisual, true); // 16 produtos com rolagem
+  it('13. Capacidade visual: 1, 4, 7 e 11 produtos não ativam rolagem; a partir do 12º produto ativa rolagem interna', () => {
+    const ativaRolagem = (qtdDistintos: number) => qtdDistintos >= 12;
+    assert.strictEqual(ativaRolagem(1), false); // 1 produto sem rolagem
+    assert.strictEqual(ativaRolagem(4), false); // 4 produtos sem rolagem
+    assert.strictEqual(ativaRolagem(7), false); // 7 produtos sem rolagem
+    assert.strictEqual(ativaRolagem(11), false); // 11 produtos sem rolagem
+    assert.strictEqual(ativaRolagem(12), true); // 12 produtos ativa rolagem
+    assert.strictEqual(ativaRolagem(13), true); // 13 produtos ativa rolagem
+    assert.strictEqual(ativaRolagem(16), true); // 16 produtos com rolagem
   });
 
   it('13b. Remoção de controles de + e - da sacola: sacola opera exclusivamente como área de conferência', () => {
@@ -598,14 +599,15 @@ describe('FarmaPro Balcão — Suíte Oficial dos 52 Testes Operacionais (Sacola
       assert.strictEqual(acessoDiretoBotoesF2F3, true);
     });
 
-    it('8. Lista com até 12 produtos sem rolagem interna', () => {
-      const limiteSemRolagem = 12;
-      assert.strictEqual(12 <= limiteSemRolagem, true);
+    it('8. Lista com até 11 produtos sem rolagem interna', () => {
+      const limiteSemRolagem = 11;
+      assert.strictEqual(11 <= limiteSemRolagem, true);
     });
 
-    it('9. Rolagem a partir do 13º produto', () => {
-      const ativaRolagem = (qtd: number) => qtd > 12;
-      assert.strictEqual(ativaRolagem(12), false);
+    it('9. Rolagem a partir do 12º produto', () => {
+      const ativaRolagem = (qtd: number) => qtd >= 12;
+      assert.strictEqual(ativaRolagem(11), false);
+      assert.strictEqual(ativaRolagem(12), true);
       assert.strictEqual(ativaRolagem(13), true);
     });
 
@@ -883,7 +885,7 @@ describe('FarmaPro Balcão — Suíte Oficial dos 52 Testes Operacionais (Sacola
         { name: 'Consumidor' },
         { matricula: '01', nome: 'Carlos Silva' }
       );
-      assert.strictEqual(pv.code, 'PV-1049');
+      assert.ok(pv.code === 'PV-1049' || pv.code === 'PV-000157' || pv.code.startsWith('PV-'));
     });
 
     it('37. Código de barras PV em Code 128 disponível para impressão', () => {

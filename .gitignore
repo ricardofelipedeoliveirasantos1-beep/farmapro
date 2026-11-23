@@ -53,6 +53,8 @@ coverage/
 *.dump
 *.sql.gz
 *.backup
+*.bak
+*.tmp
 
 # IDEs e Editores
 .vscode/*

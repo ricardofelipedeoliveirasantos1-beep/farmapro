@@ -639,6 +639,98 @@ export class PreVendaService {
   }
 
   /**
+   * Pesquisa pré-vendas com normalização de CPF, busca por nome e código de comanda.
+   * Multi-tenant: filtra estritamente por empresa_id e filial_id.
+   */
+  static async pesquisarPreVendas(
+    client: pg.PoolClient | pg.Pool,
+    tenant: ContextoTenant,
+    termoBusca: string,
+  ): Promise<PreVenda[]> {
+    const termo = (termoBusca || '').trim();
+    if (!termo) {
+      return this.listarPendentes(client, tenant);
+    }
+
+    const termoDigitos = termo.replace(/\D/g, '');
+    const termoLike = `%${termo}%`;
+    const termoDigitosLike = termoDigitos ? `%${termoDigitos}%` : '';
+
+    const sql = `
+      SELECT 
+        pv.id,
+        pv.empresa_id,
+        pv.filial_id,
+        pv.codigo_comanda,
+        pv.atendente_id,
+        u.nome AS atendente_nome,
+        pv.identificacao_balcao,
+        pv.cliente_id,
+        pv.cliente_nome,
+        pv.cliente_cpf,
+        pv.subtotal_centavos,
+        pv.desconto_centavos,
+        pv.total_centavos,
+        pv.status,
+        pv.validade_minutos,
+        pv.observacoes,
+        pv.criado_em
+      FROM pre_vendas pv
+      JOIN usuarios u ON u.id = pv.atendente_id
+      WHERE pv.empresa_id = $1 
+        AND pv.filial_id = $2 
+        AND (
+          pv.codigo_comanda ILIKE $3
+          OR pv.cliente_nome ILIKE $3
+          OR ($4 <> '' AND REGEXP_REPLACE(COALESCE(pv.cliente_cpf, ''), '\\D', '', 'g') LIKE $5)
+        )
+      ORDER BY pv.criado_em DESC
+      LIMIT 50;
+    `;
+
+    const res = await client.query<{
+      id: string;
+      empresa_id: string;
+      filial_id: string;
+      codigo_comanda: string;
+      atendente_id: string;
+      atendente_nome: string;
+      identificacao_balcao: string;
+      cliente_id: string | null;
+      cliente_nome: string | null;
+      cliente_cpf: string | null;
+      subtotal_centavos: string | number;
+      desconto_centavos: string | number;
+      total_centavos: string | number;
+      status: string;
+      validade_minutos: number;
+      observacoes: string | null;
+      criado_em: string;
+    }>(sql, [tenant.empresaId, tenant.filialId, termoLike, termoDigitos, termoDigitosLike || '%']);
+
+    return res.rows.map((pv) => ({
+      id: pv.id,
+      empresaId: pv.empresa_id,
+      filialId: pv.filial_id,
+      codigoComanda: pv.codigo_comanda,
+      atendenteId: pv.atendente_id,
+      atendenteNome: pv.atendente_nome,
+      identificacaoBalcao: pv.identificacao_balcao,
+      clienteId: pv.cliente_id || undefined,
+      clienteNome: pv.cliente_nome || undefined,
+      clienteCpf: pv.cliente_cpf || undefined,
+      subtotalCentavos: Number(pv.subtotal_centavos),
+      descontoCentavos: Number(pv.desconto_centavos),
+      totalCentavos: Number(pv.total_centavos),
+      status: pv.status as any,
+      validadeMinutos: Number(pv.validade_minutos),
+      observacoes: pv.observacoes || undefined,
+      criadoEm: pv.criado_em,
+      itens: [],
+    }));
+  }
+
+  /**
    * Cancela uma pré-venda pendente.
    */
   static async cancelarPreVenda(
@@ -712,5 +804,262 @@ export class PreVendaService {
     `,
       [vendaId, caixaOperadorId, preVendaId, tenant.empresaId]
     );
+  }
+
+  /**
+   * Atualização de Pré-Venda existente no Balcão de Atendimento.
+   * Preserva rigorosamente o código de comanda original (ex: PV-000157),
+   * atualiza itens, subtotais e totais, sem alterar Caixa nem movimentar estoque definitivo.
+   */
+  static async atualizarPreVenda(
+    client: pg.PoolClient | pg.Pool,
+    tenant: ContextoTenant,
+    preVendaId: string,
+    dto: CriarPreVendaDTO,
+  ): Promise<PreVenda> {
+    if (!dto.itens || dto.itens.length === 0) {
+      throw new Error('A pré-venda deve conter pelo menos um produto selecionado.');
+    }
+
+    const filialId = dto.filialId || tenant.filialId;
+
+    // Verificar se existe a pré-venda e se pode ser editada
+    const resExistente = await client.query<{
+      id: string;
+      codigo_comanda: string;
+      status: string;
+      criado_em: string;
+      atendente_id: string;
+      identificacao_balcao: string;
+    }>(
+      `
+      SELECT id, codigo_comanda, status, criado_em, atendente_id, identificacao_balcao
+      FROM pre_vendas
+      WHERE id = $1 AND empresa_id = $2 AND filial_id = $3
+      FOR UPDATE;
+    `,
+      [preVendaId, tenant.empresaId, filialId]
+    );
+
+    if (resExistente.rowCount === 0) {
+      throw new Error('Pré-venda não encontrada para atualização.');
+    }
+
+    const preVendaAtual = resExistente.rows[0];
+
+    if (preVendaAtual.status === 'FINALIZADA') {
+      throw new Error('Não é possível editar uma pré-venda que já foi finalizada no Caixa.');
+    }
+
+    if (preVendaAtual.status === 'CANCELADA') {
+      throw new Error('Não é possível editar uma pré-venda cancelada.');
+    }
+
+    // Calcular valores dos itens
+    let subtotalCentavos = 0;
+    let descontoItensCentavos = 0;
+
+    const itensProcessados: Array<{
+      produtoId: string;
+      loteId?: string;
+      numeroItem: number;
+      codigoBarras: string;
+      nomeProduto: string;
+      apresentacao: string;
+      quantidade: number;
+      precoUnitarioCentavos: number;
+      descontoUnitarioCentavos: number;
+      totalItemCentavos: number;
+      exigeReceita: boolean;
+      classificacaoReceita: string;
+    }> = [];
+
+    for (let i = 0; i < dto.itens.length; i++) {
+      const item = dto.itens[i];
+      if (item.quantidade <= 0) {
+        throw new Error(`Quantidade inválida para o item #${i + 1}: deve ser maior que zero.`);
+      }
+
+      const resProd = await client.query<{
+        id: string;
+        nome_comercial: string;
+        apresentacao: string;
+        preco_venda_centavos: string | number;
+        classificacao_receita: string | null;
+        codigo_barras: string | null;
+      }>(
+        `
+        SELECT 
+          p.id,
+          p.nome_comercial,
+          p.apresentacao,
+          COALESCE(pf.preco_venda_centavos, 0) AS preco_venda_centavos,
+          mdf.classificacao_receita,
+          pcb.codigo_barras
+        FROM produtos p
+        LEFT JOIN produtos_filiais pf ON pf.produto_id = p.id AND pf.filial_id = $2
+        LEFT JOIN medicamentos_dados_farmaceuticos mdf ON mdf.produto_id = p.id
+        LEFT JOIN (
+          SELECT DISTINCT ON (produto_id) produto_id, codigo_barras 
+          FROM produtos_codigos_barras 
+          ORDER BY produto_id, e_principal DESC
+        ) pcb ON pcb.produto_id = p.id
+        WHERE p.id = $1 AND p.empresa_id = $3
+      `,
+        [item.produtoId, filialId, tenant.empresaId]
+      );
+
+      const prod = resProd.rows[0];
+      if (!prod) {
+        throw new Error(`Produto #${item.produtoId} não encontrado para a empresa.`);
+      }
+
+      const precoUnit = item.precoUnitarioCentavos ?? Number(prod.preco_venda_centavos);
+      const descUnit = item.descontoUnitarioCentavos ?? 0;
+      const totalItem = Math.max(0, (precoUnit * item.quantidade) - (descUnit * item.quantidade));
+
+      subtotalCentavos += precoUnit * item.quantidade;
+      descontoItensCentavos += descUnit * item.quantidade;
+
+      itensProcessados.push({
+        produtoId: item.produtoId,
+        loteId: item.loteId,
+        numeroItem: i + 1,
+        codigoBarras: prod.codigo_barras || '',
+        nomeProduto: prod.nome_comercial,
+        apresentacao: prod.apresentacao,
+        quantidade: item.quantidade,
+        precoUnitarioCentavos: precoUnit,
+        descontoUnitarioCentavos: descUnit,
+        totalItemCentavos: totalItem,
+        exigeReceita: (prod.classificacao_receita || '').includes('RECEITA') || (prod.classificacao_receita || '').includes('CONTROLADO'),
+        classificacaoReceita: prod.classificacao_receita || 'ISENTO',
+      });
+    }
+
+    const descontoGlobal = dto.descontoGlobalCentavos || 0;
+    const totalDesconto = Math.min(subtotalCentavos, descontoItensCentavos + descontoGlobal);
+    const totalCentavos = Math.max(0, subtotalCentavos - totalDesconto);
+
+    // 1. Atualizar registro pai (pre_vendas) PRESERVANDO rigorosamente codigo_comanda e criado_em
+    await client.query(
+      `
+      UPDATE pre_vendas
+      SET cliente_id = $1,
+          cliente_nome = $2,
+          cliente_cpf = $3,
+          subtotal_centavos = $4,
+          desconto_centavos = $5,
+          total_centavos = $6,
+          observacoes = $7,
+          status = 'PENDENTE',
+          atualizado_em = NOW()
+      WHERE id = $8 AND empresa_id = $9 AND filial_id = $10;
+    `,
+      [
+        dto.clienteId || null,
+        dto.clienteNome || null,
+        dto.clienteCpf || null,
+        subtotalCentavos,
+        totalDesconto,
+        totalCentavos,
+        dto.observacoes || null,
+        preVendaId,
+        tenant.empresaId,
+        filialId,
+      ]
+    );
+
+    // 2. Limpar itens antigos e reinserir itens atualizados
+    await client.query(
+      `DELETE FROM pre_venda_itens WHERE pre_venda_id = $1 AND empresa_id = $2;`,
+      [preVendaId, tenant.empresaId]
+    );
+
+    const itensRetorno: PreVendaItem[] = [];
+
+    for (const it of itensProcessados) {
+      const resItem = await client.query<{ id: string; criado_em: string }>(
+        `
+        INSERT INTO pre_venda_itens (
+          empresa_id,
+          filial_id,
+          pre_venda_id,
+          produto_id,
+          lote_id,
+          numero_item,
+          codigo_barras,
+          nome_produto,
+          apresentacao,
+          quantidade,
+          preco_unitario_centavos,
+          desconto_unitario_centavos,
+          total_item_centavos,
+          exige_receita,
+          classificacao_receita
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+        ) RETURNING id, criado_em;
+      `,
+        [
+          tenant.empresaId,
+          filialId,
+          preVendaId,
+          it.produtoId,
+          it.loteId || null,
+          it.numeroItem,
+          it.codigoBarras,
+          it.nomeProduto,
+          it.apresentacao,
+          it.quantidade,
+          it.precoUnitarioCentavos,
+          it.descontoUnitarioCentavos,
+          it.totalItemCentavos,
+          it.exigeReceita,
+          it.classificacaoReceita,
+        ]
+      );
+
+      itensRetorno.push({
+        id: resItem.rows[0].id,
+        empresaId: tenant.empresaId,
+        filialId,
+        preVendaId,
+        produtoId: it.produtoId,
+        loteId: it.loteId,
+        numeroItem: it.numeroItem,
+        codigoBarras: it.codigoBarras,
+        nomeProduto: it.nomeProduto,
+        apresentacao: it.apresentacao,
+        quantidade: it.quantidade,
+        precoUnitarioCentavos: it.precoUnitarioCentavos,
+        descontoUnitarioCentavos: it.descontoUnitarioCentavos,
+        totalItemCentavos: it.totalItemCentavos,
+        exigeReceita: it.exigeReceita,
+        classificacaoReceita: it.classificacaoReceita,
+        criadoEm: resItem.rows[0].criado_em,
+      });
+    }
+
+    return {
+      id: preVendaId,
+      empresaId: tenant.empresaId,
+      filialId,
+      codigoComanda: preVendaAtual.codigo_comanda, // Rigorosamente preservado
+      atendenteId: preVendaAtual.atendente_id,
+      identificacaoBalcao: preVendaAtual.identificacao_balcao,
+      clienteId: dto.clienteId,
+      clienteNome: dto.clienteNome,
+      clienteCpf: dto.clienteCpf,
+      subtotalCentavos,
+      descontoCentavos: totalDesconto,
+      totalCentavos,
+      status: 'PENDENTE',
+      validadeMinutos: 120,
+      observacoes: dto.observacoes,
+      criadoEm: preVendaAtual.criado_em,
+      atualizadoEm: new Date().toISOString(),
+      itens: itensRetorno,
+    };
   }
 }

@@ -147,8 +147,8 @@ export const ComprovantePreVendaModal: React.FC<ComprovantePreVendaModalProps> =
               Unidade 01 – Centro (Matriz) • CNPJ: 12.345.678/0001-90
             </p>
             <div className="pt-1">
-              <span className="font-black text-xs uppercase bg-slate-100 text-slate-800 px-2 py-0.5 rounded border border-slate-300">
-                PRÉ-VENDA / COMANDA DE BALCÃO
+              <span className="font-black text-xs uppercase bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded border border-amber-300 block">
+                PRÉ-VENDA — NÃO É DOCUMENTO DE VENDA CONCLUÍDA
               </span>
             </div>
           </div>

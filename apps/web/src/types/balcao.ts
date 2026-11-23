@@ -29,6 +29,7 @@ export interface PreVendaDemo {
   id: string;
   code: string;
   createdAt: string;
+  updatedAt?: string;
   attendantName: string; // Mantido para compatibilidade
   vendedorMatricula: string;
   vendedorNome: string;
@@ -39,7 +40,7 @@ export interface PreVendaDemo {
   subtotal: number;
   discount: number;
   total: number;
-  status: 'PENDING_CASHIER' | 'CANCELLED' | 'COMPLETED';
+  status: 'PENDING_CASHIER' | 'IN_EDIT' | 'CANCELLED' | 'COMPLETED';
 }
 
 export interface CartTotals {

@@ -98,6 +98,55 @@ export async function rotasPreVenda(fastify: FastifyInstance): Promise<void> {
   );
 
   /**
+   * PUT /api/pre-vendas/:id
+   * Atualiza comanda / pré-venda no balcão mantendo rigorosamente o código original.
+   */
+  fastify.put(
+    '/api/pre-vendas/:id',
+    {
+      preHandler: [
+        exigirTenantAutenticado,
+        exigirPermissao('pre_venda:criar'),
+      ],
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const tenant = request.tenant!;
+      const params = request.params as { id: string };
+      const body = request.body as CriarPreVendaDTO;
+
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(`SET LOCAL app.current_empresa_id = '${tenant.empresaId}'`);
+
+        const preVenda = await PreVendaService.atualizarPreVenda(
+          client,
+          tenant,
+          params.id,
+          body
+        );
+
+        await client.query('COMMIT');
+
+        return reply.status(200).send({
+          sucesso: true,
+          preVenda,
+          mensagem: `Comanda ${preVenda.codigoComanda} atualizada com sucesso!`,
+        });
+      } catch (err: any) {
+        await client.query('ROLLBACK');
+        request.log.error(err, `Erro ao atualizar comanda de pré-venda ${params.id}`);
+        return reply.status(400).send({
+          sucesso: false,
+          mensagem: err.message || 'Erro ao atualizar pré-venda',
+        });
+      } finally {
+        client.release();
+      }
+    }
+  );
+
+  /**
    * GET /api/pre-vendas/comanda/:codigo
    * Busca e valida comanda para o Caixa/PDV ou Balcão.
    */
@@ -174,6 +223,39 @@ export async function rotasPreVenda(fastify: FastifyInstance): Promise<void> {
         return reply.status(400).send({
           sucesso: false,
           mensagem: err.message || 'Erro ao listar comandas',
+        });
+      }
+    }
+  );
+
+  /**
+   * GET /api/pre-vendas/pesquisar
+   * Pesquisa inteligente de pré-vendas por nome, CPF (normalizado) ou código.
+   */
+  fastify.get(
+    '/api/pre-vendas/pesquisar',
+    {
+      preHandler: [
+        exigirTenantAutenticado,
+      ],
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const tenant = request.tenant!;
+      const query = request.query as { q?: string };
+      const termo = query.q || '';
+
+      try {
+        const preVendas = await PreVendaService.pesquisarPreVendas(pool, tenant, termo);
+
+        return reply.status(200).send({
+          sucesso: true,
+          preVendas,
+        });
+      } catch (err: any) {
+        request.log.error(err, 'Erro ao pesquisar pré-vendas');
+        return reply.status(400).send({
+          sucesso: false,
+          mensagem: err.message || 'Erro ao pesquisar pré-vendas',
         });
       }
     }

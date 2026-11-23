@@ -12,7 +12,14 @@ import {
   VendedorResponsavel,
 } from '../types/balcao.js';
 
-import { BalcaoHeader } from '../components/balcao/BalcaoHeader.js';
+import { PainelVendaHeader } from '../components/balcao/PainelVendaHeader.js';
+import { OpcaoMenuPainelVenda } from '../components/balcao/PainelVendaMenu.js';
+import { CadastrarClienteView } from '../components/balcao/CadastrarClienteView.js';
+import { HistoricoComprasView } from '../components/balcao/HistoricoComprasView.js';
+import { RelatorioVendasDiaView } from '../components/balcao/RelatorioVendasDiaView.js';
+import { TrocaDevolucaoView } from '../components/balcao/TrocaDevolucaoView.js';
+import { PesquisaReceitaView } from '../components/balcao/PesquisaReceitaView.js';
+
 import { ProductSearch } from '../components/balcao/ProductSearch.js';
 import { ProductResultsTable } from '../components/balcao/ProductResultsTable.js';
 import { PinnedProductDetails } from '../components/balcao/PinnedProductDetails.js';
@@ -36,11 +43,14 @@ interface BalcaoConsultaScreenProps {
 }
 
 export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
-  aoVoltarPortal,
+  aoVoltarPortal: _aoVoltarPortal,
   aoTrocarUsuario,
   aoSair,
 }) => {
   const { usuario, filialAtiva } = useAuth();
+
+  // Módulo / Aba Ativa do Painel de Venda (Separação estrita dos módulos conforme solicitação)
+  const [abaAtiva, setAbaAtiva] = useState<OpcaoMenuPainelVenda>('pre-venda');
 
   // Estados de Pesquisa
   const [termoBusca, setTermoBusca] = useState<string>('');
@@ -78,6 +88,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
 
   // Memória da última pré-venda salva e controle de debounce no F2
   const [ultimaPreVendaCriada, setUltimaPreVendaCriada] = useState<PreVendaDemo | null>(null);
+  const [preVendaEmEdicao, setPreVendaEmEdicao] = useState<PreVendaDemo | null>(null);
   const [acaoVendedorPendente, setAcaoVendedorPendente] = useState<'SALVAR' | 'IMPRIMIR'>('SALVAR');
   const salvandoPreVendaRef = useRef<boolean>(false);
 
@@ -233,6 +244,40 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     }, 50);
   };
 
+  // Alterar diretamente a quantidade de um item na sacola (coluna QTD)
+  const handleAlterarQuantidadeSacola = (idx: number, novaQtd: number) => {
+    setSacola(prev => {
+      if (idx < 0 || idx >= prev.length) return prev;
+      const itemAtual = prev[idx];
+      if (!itemAtual) return prev;
+
+      // Validação de número inteiro positivo (mínimo 1 unidade)
+      const qtdValida = Math.max(1, Math.floor(novaQtd));
+
+      // Validação de estoque disponível no cadastro demonstrativo
+      let qtdFinal = qtdValida;
+      if (itemAtual.medication.saldo && qtdValida > itemAtual.medication.saldo) {
+        alert(
+          `Aviso: A quantidade informada (${qtdValida}) supera o saldo em estoque (${itemAtual.medication.saldo} un). Ajustado para o saldo máximo.`
+        );
+        qtdFinal = itemAtual.medication.saldo;
+      }
+
+      // Preservação rigorosa dos descontos unitários e cálculo imediato do novo subtotal
+      const novoSubtotal = Math.max(0, qtdFinal * itemAtual.unitPrice - (itemAtual.discount || 0));
+
+      const atualizado: CartItemBalcao = {
+        ...itemAtual,
+        quantity: qtdFinal,
+        subtotal: novoSubtotal,
+      };
+
+      const novaSacola = [...prev];
+      novaSacola[idx] = atualizado;
+      return novaSacola;
+    });
+  };
+
   // Iniciar exclusão de item por índice
   const handleAbrirConfirmarExclusao = (idx: number) => {
     const item = sacola[idx];
@@ -320,26 +365,49 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     try {
       setModalVendedorAberto(false);
 
-      const novaPreVenda = DemoPreSalesService.savePreVenda(
-        sacola,
-        totaisSacola,
-        cliente,
-        {
-          matricula: vendedor.matricula,
-          nome: vendedor.nome,
-        },
-        {
-          id: usuario?.id,
-          nome: usuario?.nome ? `${usuario.nome} (${usuario.matricula || 'Balcão'})` : 'Operador Balcão',
-        },
-      );
+      let preVendaFinal: PreVendaDemo | null = null;
 
-      setUltimaPreVendaCriada(novaPreVenda);
-      setComandaConcluida(novaPreVenda);
+      if (preVendaEmEdicao) {
+        // Atualiza rigorosamente o mesmo registro de pré-venda preservando seu número original (ex: PV-000156)
+        preVendaFinal = DemoPreSalesService.updatePreVenda(
+          preVendaEmEdicao.id,
+          sacola,
+          totaisSacola,
+          cliente,
+          {
+            matricula: vendedor.matricula,
+            nome: vendedor.nome,
+          },
+          {
+            id: usuario?.id,
+            nome: usuario?.nome ? `${usuario.nome} (${usuario.matricula || 'Balcão'})` : 'Operador Balcão',
+          },
+        );
+        setPreVendaEmEdicao(null);
+      } else {
+        // Cria nova pré-venda gerando novo número sequencial (ex: PV-000157)
+        preVendaFinal = DemoPreSalesService.savePreVenda(
+          sacola,
+          totaisSacola,
+          cliente,
+          {
+            matricula: vendedor.matricula,
+            nome: vendedor.nome,
+          },
+          {
+            id: usuario?.id,
+            nome: usuario?.nome ? `${usuario.nome} (${usuario.matricula || 'Balcão'})` : 'Operador Balcão',
+          },
+        );
+      }
+
+      setUltimaPreVendaCriada(preVendaFinal);
+      setComandaConcluida(preVendaFinal);
       setListaPreVendas(DemoPreSalesService.getPreVendas());
       setSacola([]);
       setDescontoGlobal(0);
       setModoExclusaoSacola(false);
+      setCliente({ name: 'Consumidor Final', cpf: '', convenio: 'NENHUM' });
 
       // Conclui a operação e inicia automaticamente a impressão da pré-venda (Seção 7)
       setTimeout(() => {
@@ -353,15 +421,70 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     }
   };
 
-  // Cancelar pré-venda da fila
+  // Carregar Pré-venda selecionada na Sacola para Edição
+  const handleCarregarPreVendaNaSacola = (pv: PreVendaDemo) => {
+    DemoPreSalesService.setPreVendaStatus(pv.id, 'IN_EDIT');
+    setSacola(
+      pv.items.map((it, idx) => ({
+        ...it,
+        numeroSequencial: pv.items.length - idx,
+      })),
+    );
+    setCliente({ ...pv.customer });
+    setDescontoGlobal(pv.discount || 0);
+    setPreVendaEmEdicao(pv);
+    setAbaAtiva('pre-venda');
+    setModalPreVendasAberto(false);
+    setTimeout(() => {
+      inputBuscaRef.current?.focus();
+    }, 50);
+  };
+
+  // Descartar Edição e voltar a sacola limpa
+  const handleDescartarEdicaoPreVenda = () => {
+    if (preVendaEmEdicao) {
+      DemoPreSalesService.setPreVendaStatus(preVendaEmEdicao.id, 'PENDING_CASHIER');
+      setPreVendaEmEdicao(null);
+    }
+    setSacola([]);
+    setDescontoGlobal(0);
+    setModoExclusaoSacola(false);
+    setCliente({ name: 'Consumidor Final', cpf: '', convenio: 'NENHUM' });
+    setTimeout(() => {
+      inputBuscaRef.current?.focus();
+    }, 50);
+  };
+
+  // Alternância de Tela Cheia Global (F11)
+  const handleToggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  };
+
+  // Cancelar ou Excluir pré-venda da fila
   const handleCancelarPreVenda = (id: string) => {
-    DemoPreSalesService.cancelPreVenda(id);
+    DemoPreSalesService.deletePreVenda(id);
     setListaPreVendas(DemoPreSalesService.getPreVendas());
   };
 
   // Event Listener Global de Atalhos de Teclado
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // 0. Tecla ESC em abas secundárias retorna diretamente para a Pré-venda / Balcão
+      if (abaAtiva !== 'pre-venda') {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setAbaAtiva('pre-venda');
+          setTimeout(() => inputBuscaRef.current?.focus(), 50);
+        }
+        return;
+      }
+
       // 1. Atalho Ctrl+D / Cmd+D para Desconto
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
         e.preventDefault();
@@ -447,11 +570,10 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
         return;
       }
 
-      // 9. F11: Opções de atendimento e atalhos
+      // 9. F11: Ativar / Desativar Tela Cheia (FASE 5)
       if (e.key === 'F11') {
         e.preventDefault();
-        setModoExclusaoSacola(false);
-        setModalOpcoesAberto(true);
+        handleToggleFullScreen();
         return;
       }
 
@@ -532,6 +654,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
+    abaAtiva,
     medicamentoFixado,
     medicamentosFiltrados,
     indiceSelecionado,
@@ -551,22 +674,31 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
 
   return (
     <div className="h-screen max-h-screen bg-slate-100/70 flex flex-col font-sans select-none text-slate-800 overflow-hidden">
-      {/* 1. Cabeçalho Superior do Balcão */}
-      <BalcaoHeader
-        operadorNome={usuario ? `${usuario.nome} (${usuario.matricula || 'Balcão'})` : 'Operador Não Identificado'}
-        filialNome={filialAtiva?.nome || 'Unidade 01 – Centro (Matriz)'}
+      {/* 1. Barra Superior Oficial com Logo FarmaPro, Unidade 01, Data/Hora, Ativo, Operador, Tela Cheia, Ajuda e Menu Hambúrguer */}
+      <PainelVendaHeader
+        operadorNome={usuario?.nome || 'Mariana'}
+        filialNome={filialAtiva?.nome || 'Unidade 01'}
         contadorPreVendas={listaPreVendas.filter(pv => pv.status === 'PENDING_CASHIER').length}
-        aoAbrirPreVendas={() => setModalPreVendasAberto(true)}
-        aoAbrirOpcoes={() => setModalOpcoesAberto(true)}
-        aoVoltarPortal={aoVoltarPortal}
+        abaAtiva={abaAtiva}
+        aoSelecionarOpcaoMenu={(opcao) => {
+          if (opcao === 'sair') {
+            if (aoSair) aoSair();
+          } else if (opcao === 'pre-venda') {
+            setModalPreVendasAberto(true);
+          } else {
+            setAbaAtiva(opcao);
+          }
+        }}
+        aoAbrirAtalhos={() => setModalOpcoesAberto(true)}
         aoTrocarUsuario={aoTrocarUsuario}
         aoSair={aoSair}
       />
 
-      {/* 2. Área Principal de Trabalho (Grid 2 Colunas 100% sem Rolagem da Página: 7 colunas Busca vs 5 colunas Sacola) */}
-      <main className="flex-1 p-2 sm:p-2.5 max-w-full w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-2.5 min-h-0 overflow-hidden">
-        {/* Lado Esquerdo: Pesquisa, Ficha Técnica Completa ou Tabela de Resultados (7 colunas) */}
-        <section className="lg:col-span-7 flex flex-col min-w-0 h-full overflow-hidden space-y-2">
+      {/* 2. Área Central de Conteúdo por Módulo (Sem barra horizontal secundária) */}
+      {abaAtiva === 'pre-venda' ? (
+        <main className="flex-1 p-2 sm:p-2.5 max-w-full w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-2.5 min-h-0 overflow-hidden">
+          {/* Lado Esquerdo: Pesquisa, Ficha Técnica Completa ou Tabela de Resultados (7 colunas) */}
+          <section className="lg:col-span-7 flex flex-col min-w-0 h-full overflow-hidden space-y-2">
           {/* Caixa de Pesquisa Full-Width (Preserva exatamente o texto digitado) */}
           <ProductSearch
             termoBusca={termoBusca}
@@ -629,7 +761,10 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
             itens={sacola}
             totais={totaisSacola}
             cliente={cliente}
+            preVendaEmEdicao={preVendaEmEdicao}
+            aoDescartarEdicaoPreVenda={handleDescartarEdicaoPreVenda}
             aoRemoverItem={handleAbrirConfirmarExclusao}
+            aoAlterarQuantidade={handleAlterarQuantidadeSacola}
             aoLimparSacola={() => {
               if (confirm('Deseja limpar todos os itens da sacola?')) {
                 setSacola([]);
@@ -650,9 +785,81 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
           />
         </aside>
       </main>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-y-auto bg-slate-100/70 p-3 sm:p-5">
+          {/* Botão de Retorno Rápido ao Balcão / Pré-venda */}
+          <div className="max-w-6xl mx-auto mb-3 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => {
+                setAbaAtiva('pre-venda');
+                setTimeout(() => inputBuscaRef.current?.focus(), 50);
+              }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-blue-700 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+            >
+              <kbd className="bg-slate-100 text-slate-600 font-mono text-[10px] px-1.5 py-0.5 rounded border border-slate-300">
+                ESC
+              </kbd>
+              <span>Voltar ao Balcão / Pré-Venda</span>
+            </button>
+          </div>
 
-      {/* Barra Inferior Fixa com Cores do Projeto (Azul #1a365d) e Funções de Atalhos em Linha */}
-      <BalcaoFooterShortcuts />
+          {abaAtiva === 'cadastrar-cliente' && (
+            <CadastrarClienteView
+              aoClienteCadastrado={(c) => {
+                setCliente({
+                  name: `${c.nome} ${c.sobrenome}`,
+                  cpf: c.cpfFormatado,
+                  convenio: 'PARTICULAR',
+                });
+                setAbaAtiva('pre-venda');
+                setTimeout(() => inputBuscaRef.current?.focus(), 50);
+              }}
+              aoVoltarPreVenda={() => {
+                setAbaAtiva('pre-venda');
+                setTimeout(() => inputBuscaRef.current?.focus(), 50);
+              }}
+            />
+          )}
+
+          {abaAtiva === 'historico-compra' && (
+            <HistoricoComprasView
+              cpfInicial={cliente.cpf || '123.456.789-10'}
+              aoIrParaCadastro={() => setAbaAtiva('cadastrar-cliente')}
+            />
+          )}
+
+          {abaAtiva === 'relatorios' && (
+            <RelatorioVendasDiaView
+              aoVoltarPreVenda={() => {
+                setAbaAtiva('pre-venda');
+                setTimeout(() => inputBuscaRef.current?.focus(), 50);
+              }}
+            />
+          )}
+
+          {(abaAtiva === 'troca' || abaAtiva === 'devolucao' || abaAtiva === 'consulta-troca') && (
+            <TrocaDevolucaoView
+              aoVoltarPreVenda={() => {
+                setAbaAtiva('pre-venda');
+                setTimeout(() => inputBuscaRef.current?.focus(), 50);
+              }}
+            />
+          )}
+
+          {abaAtiva === 'pesquisa-receita' && (
+            <PesquisaReceitaView
+              aoVoltarPreVenda={() => {
+                setAbaAtiva('pre-venda');
+                setTimeout(() => inputBuscaRef.current?.focus(), 50);
+              }}
+            />
+          )}
+        </div>
+      )}
+
+      {/* 3. Barra Inferior Oficial Fixa (Identidade Cromática Azul Idêntica à Barra Superior) */}
+      <BalcaoFooterShortcuts isEdicaoAtiva={!!preVendaEmEdicao} />
 
       {/* 3. Modais Operacionais Independentes */}
       <IdentificarVendedorModal
@@ -698,7 +905,13 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
       <PreSalesModal
         aberto={modalPreVendasAberto}
         preVendas={listaPreVendas}
+        temSacolaAtiva={sacola.length > 0}
+        aoCarregarPreVendaNaSacola={handleCarregarPreVendaNaSacola}
         aoCancelarPreVenda={handleCancelarPreVenda}
+        aoExcluirPreVenda={(id) => {
+          DemoPreSalesService.deletePreVenda(id);
+          setListaPreVendas(DemoPreSalesService.getPreVendas());
+        }}
         aoImprimirPreVenda={pv => {
           setModalPreVendasAberto(false);
           setComandaConcluida(pv);
