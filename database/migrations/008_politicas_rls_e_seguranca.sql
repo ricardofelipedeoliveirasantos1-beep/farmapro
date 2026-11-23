@@ -4,19 +4,27 @@
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
--- 1. Criação de Roles Dedicadas do PostgreSQL
+-- 1. Criação de Roles Dedicadas do PostgreSQL (Compatível com Cloud e Supabase)
 -- ------------------------------------------------------------------------------
 DO $$
 BEGIN
-  -- Papel da aplicação (não possui BYPASSRLS)
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'farmapro_app') THEN
-    CREATE ROLE farmapro_app NOINHERIT;
-  END IF;
+  BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'farmapro_app') THEN
+      CREATE ROLE farmapro_app NOINHERIT;
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE NOTICE 'Papel farmapro_app já existente ou permissão limitada: %', SQLERRM;
+  END;
 
-  -- Papel de migrações e manutenção (possui BYPASSRLS)
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'farmapro_migrator') THEN
-    CREATE ROLE farmapro_migrator NOINHERIT BYPASSRLS;
-  END IF;
+  BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'farmapro_migrator') THEN
+      CREATE ROLE farmapro_migrator NOINHERIT;
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE NOTICE 'Papel farmapro_migrator já existente ou permissão limitada: %', SQLERRM;
+  END;
 END $$;
 
 -- ------------------------------------------------------------------------------

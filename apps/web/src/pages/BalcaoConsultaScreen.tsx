@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext.js';
 import { DemoCatalogService } from '../services/demoCatalogService.js';
 import { DemoPreSalesService } from '../services/demoPreSalesService.js';
+import { PreVendasApiService } from '../services/preVendasApiService.js';
 import { MedicamentoDemonstrativo } from '../services/demoCatalogData.js';
 import {
   CartItemBalcao,
@@ -383,6 +384,15 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
             nome: usuario?.nome ? `${usuario.nome} (${usuario.matricula || 'Balcão'})` : 'Operador Balcão',
           },
         );
+        // Persistência assíncrona oficial no PostgreSQL via API
+        PreVendasApiService.atualizarPreVenda(
+          preVendaEmEdicao.id,
+          sacola,
+          totaisSacola,
+          cliente,
+          { matricula: vendedor.matricula, nome: vendedor.nome },
+          { id: usuario?.id, nome: usuario?.nome ? `${usuario.nome} (${usuario.matricula || 'Balcão'})` : 'Operador Balcão' },
+        ).catch(() => {});
         setPreVendaEmEdicao(null);
       } else {
         // Cria nova pré-venda gerando novo número sequencial (ex: PV-000157)
@@ -399,6 +409,14 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
             nome: usuario?.nome ? `${usuario.nome} (${usuario.matricula || 'Balcão'})` : 'Operador Balcão',
           },
         );
+        // Persistência assíncrona oficial no PostgreSQL via API
+        PreVendasApiService.salvarPreVenda(
+          sacola,
+          totaisSacola,
+          cliente,
+          { matricula: vendedor.matricula, nome: vendedor.nome },
+          { id: usuario?.id, nome: usuario?.nome ? `${usuario.nome} (${usuario.matricula || 'Balcão'})` : 'Operador Balcão' },
+        ).catch(() => {});
       }
 
       setUltimaPreVendaCriada(preVendaFinal);
@@ -910,6 +928,7 @@ export const BalcaoConsultaScreen: React.FC<BalcaoConsultaScreenProps> = ({
         aoCancelarPreVenda={handleCancelarPreVenda}
         aoExcluirPreVenda={(id) => {
           DemoPreSalesService.deletePreVenda(id);
+          PreVendasApiService.excluirPreVenda(id).catch(() => {});
           setListaPreVendas(DemoPreSalesService.getPreVendas());
         }}
         aoImprimirPreVenda={pv => {

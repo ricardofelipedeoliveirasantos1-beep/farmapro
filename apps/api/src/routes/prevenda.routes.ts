@@ -299,4 +299,41 @@ export async function rotasPreVenda(fastify: FastifyInstance): Promise<void> {
       }
     }
   );
+
+  /**
+   * DELETE /api/pre-vendas/:id
+   * Exclusão de comanda pendente no balcão.
+   */
+  fastify.delete(
+    '/api/pre-vendas/:id',
+    {
+      preHandler: [
+        exigirTenantAutenticado,
+        exigirPermissao('pre_venda:criar'),
+      ],
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const tenant = request.tenant!;
+      const params = request.params as { id: string };
+
+      try {
+        await PreVendaService.excluirPreVenda(
+          pool,
+          tenant,
+          params.id
+        );
+
+        return reply.status(200).send({
+          sucesso: true,
+          mensagem: 'Pré-venda excluída com sucesso.',
+        });
+      } catch (err: any) {
+        request.log.error(err, `Erro ao excluir pré-venda ${params.id}`);
+        return reply.status(400).send({
+          sucesso: false,
+          mensagem: err.message || 'Erro ao excluir pré-venda',
+        });
+      }
+    }
+  );
 }

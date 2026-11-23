@@ -207,7 +207,7 @@ export class PreVendaService {
     }> = [];
 
     for (let i = 0; i < dto.itens.length; i++) {
-      const item = dto.itens[i];
+      const item = dto.itens[i]!;
       if (item.quantidade <= 0) {
         throw new Error(`Quantidade inválida para o item #${i + 1}: deve ser maior que zero.`);
       }
@@ -316,8 +316,8 @@ export class PreVendaService {
       ]
     );
 
-    const preVendaId = resPreVenda.rows[0].id;
-    const criadoEm = resPreVenda.rows[0].criado_em;
+    const preVendaId = resPreVenda.rows[0]!.id;
+    const criadoEm = resPreVenda.rows[0]!.criado_em;
 
     // Inserção dos itens
     const itensRetorno: PreVendaItem[] = [];
@@ -365,7 +365,7 @@ export class PreVendaService {
       );
 
       itensRetorno.push({
-        id: resItem.rows[0].id,
+        id: resItem.rows[0]!.id,
         empresaId: tenant.empresaId,
         filialId,
         preVendaId,
@@ -381,7 +381,7 @@ export class PreVendaService {
         totalItemCentavos: it.totalItemCentavos,
         exigeReceita: it.exigeReceita,
         classificacaoReceita: it.classificacaoReceita,
-        criadoEm: resItem.rows[0].criado_em,
+        criadoEm: resItem.rows[0]!.criado_em,
       });
     }
 
@@ -396,7 +396,7 @@ export class PreVendaService {
       empresaId: tenant.empresaId,
       filialId,
       codigoComanda,
-      atendenteId: tenant.usuarioId,
+      atendenteId: tenant.usuarioId || '',
       atendenteNome: resAtendente.rows[0]?.nome || 'Atendente',
       identificacaoBalcao: dto.identificacaoBalcao || 'Balcão 01',
       clienteId: dto.clienteId,
@@ -744,7 +744,7 @@ export class PreVendaService {
       [preVendaId, tenant.empresaId, tenant.filialId]
     );
 
-    if (res.rowCount === 0) {
+    if (res.rowCount === 0 || !res.rows[0]) {
       throw new Error('Pré-venda não encontrada para cancelamento.');
     }
 
@@ -765,6 +765,39 @@ export class PreVendaService {
   }
 
   /**
+   * Exclui fisicamente uma pré-venda pendente no Balcão.
+   * Não permite excluir pré-venda finalizada no Caixa.
+   */
+  static async excluirPreVenda(
+    client: pg.PoolClient | pg.Pool,
+    tenant: ContextoTenant,
+    preVendaId: string,
+  ): Promise<void> {
+    const res = await client.query<{ status: string }>(
+      `SELECT status FROM pre_vendas WHERE id = $1 AND empresa_id = $2 AND filial_id = $3`,
+      [preVendaId, tenant.empresaId, tenant.filialId]
+    );
+
+    if (res.rowCount === 0 || !res.rows[0]) {
+      throw new Error('Pré-venda não encontrada para exclusão.');
+    }
+
+    if (res.rows[0].status === 'FINALIZADA') {
+      throw new Error('Não é possível excluir uma pré-venda que já foi finalizada no Caixa.');
+    }
+
+    await client.query(
+      `DELETE FROM pre_venda_itens WHERE pre_venda_id = $1 AND empresa_id = $2;`,
+      [preVendaId, tenant.empresaId]
+    );
+
+    await client.query(
+      `DELETE FROM pre_vendas WHERE id = $1 AND empresa_id = $2 AND filial_id = $3;`,
+      [preVendaId, tenant.empresaId, tenant.filialId]
+    );
+  }
+
+  /**
    * Finaliza a Pré-venda no Caixa ao concluir a venda.
    * Chamado internamente dentro da transação da Venda.
    */
@@ -780,7 +813,7 @@ export class PreVendaService {
       [preVendaId, tenant.empresaId]
     );
 
-    if (res.rowCount === 0) {
+    if (res.rowCount === 0 || !res.rows[0]) {
       throw new Error('Pré-venda vinculada não encontrada.');
     }
 
@@ -841,11 +874,11 @@ export class PreVendaService {
       [preVendaId, tenant.empresaId, filialId]
     );
 
-    if (resExistente.rowCount === 0) {
+    if (resExistente.rowCount === 0 || !resExistente.rows[0]) {
       throw new Error('Pré-venda não encontrada para atualização.');
     }
 
-    const preVendaAtual = resExistente.rows[0];
+    const preVendaAtual = resExistente.rows[0]!;
 
     if (preVendaAtual.status === 'FINALIZADA') {
       throw new Error('Não é possível editar uma pré-venda que já foi finalizada no Caixa.');
@@ -875,7 +908,7 @@ export class PreVendaService {
     }> = [];
 
     for (let i = 0; i < dto.itens.length; i++) {
-      const item = dto.itens[i];
+      const item = dto.itens[i]!;
       if (item.quantidade <= 0) {
         throw new Error(`Quantidade inválida para o item #${i + 1}: deve ser maior que zero.`);
       }
@@ -937,7 +970,7 @@ export class PreVendaService {
       });
     }
 
-    const descontoGlobal = dto.descontoGlobalCentavos || 0;
+    const descontoGlobal = dto.descontoGlobalCentavos || dto.descontoCentavos || 0;
     const totalDesconto = Math.min(subtotalCentavos, descontoItensCentavos + descontoGlobal);
     const totalCentavos = Math.max(0, subtotalCentavos - totalDesconto);
 
@@ -1021,7 +1054,7 @@ export class PreVendaService {
       );
 
       itensRetorno.push({
-        id: resItem.rows[0].id,
+        id: resItem.rows[0]!.id,
         empresaId: tenant.empresaId,
         filialId,
         preVendaId,
@@ -1037,14 +1070,14 @@ export class PreVendaService {
         totalItemCentavos: it.totalItemCentavos,
         exigeReceita: it.exigeReceita,
         classificacaoReceita: it.classificacaoReceita,
-        criadoEm: resItem.rows[0].criado_em,
+        criadoEm: resItem.rows[0]!.criado_em,
       });
     }
 
     return {
       id: preVendaId,
       empresaId: tenant.empresaId,
-      filialId,
+      filialId: filialId || '',
       codigoComanda: preVendaAtual.codigo_comanda, // Rigorosamente preservado
       atendenteId: preVendaAtual.atendente_id,
       identificacaoBalcao: preVendaAtual.identificacao_balcao,

@@ -1,8 +1,9 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
 
-// Carregar .env se presente
+// Carregar .env se presente (tanto na raiz quanto no subdiretório apps/api)
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'apps/api/.env') });
 
 export interface ConfiguracaoBanco {
   connectionString?: string;
@@ -19,6 +20,8 @@ export interface ConfiguracaoBanco {
 
 export function obterConfiguracaoBanco(): ConfiguracaoBanco {
   const isProd = process.env.NODE_ENV === 'production';
+  const url = process.env.DATABASE_URL || '';
+  const isSupabase = url.includes('supabase.co') || url.includes('supabase.com');
 
   return {
     connectionString: process.env.DATABASE_URL,
@@ -27,9 +30,9 @@ export function obterConfiguracaoBanco(): ConfiguracaoBanco {
     database: process.env.DB_NAME || 'farmapro_dev',
     user: process.env.DB_USER || 'farmapro_app',
     password: process.env.DB_PASSWORD,
-    ssl: process.env.DB_SSL === 'true' || isProd,
+    ssl: process.env.DB_SSL === 'true' || isProd || isSupabase,
     minPool: Number(process.env.DB_POOL_MIN) || 2,
-    maxPool: Number(process.env.DB_POOL_MAX) || 20,
-    timeoutMs: Number(process.env.DB_TIMEOUT_MS) || 5000,
+    maxPool: Number(process.env.DB_POOL_MAX) || 15,
+    timeoutMs: Number(process.env.DB_TIMEOUT_MS) || 10000,
   };
 }

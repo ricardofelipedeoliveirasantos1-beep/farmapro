@@ -4,9 +4,40 @@ import { MEDICAMENTOS_DEMONSTRATIVOS } from './demoCatalogData.js';
 class DemoPreSalesStore {
   private preVendas: PreVendaDemo[] = [];
   private counter = 157;
+  private readonly STORAGE_KEY = 'farmapro_prevendas_store_v1';
 
   constructor() {
-    this.seedInitialPreVendas();
+    if (!this.loadLocal()) {
+      this.seedInitialPreVendas();
+    }
+  }
+
+  private loadLocal(): boolean {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const raw = window.localStorage.getItem(this.STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            this.preVendas = parsed;
+            return true;
+          }
+        }
+      } catch {
+        // Fallback seguro para seed inicial
+      }
+    }
+    return false;
+  }
+
+  private persistLocal(): void {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.preVendas));
+      } catch {
+        // Ignora erro de cota ou modo anônimo
+      }
+    }
   }
 
   private seedInitialPreVendas() {
@@ -375,6 +406,7 @@ class DemoPreSalesStore {
 
     // Insere no início da lista (sem alterar retroativamente nenhuma pré-venda anterior)
     this.preVendas.unshift(newPv);
+    this.persistLocal();
     return newPv;
   }
 
@@ -382,6 +414,7 @@ class DemoPreSalesStore {
     const idx = this.preVendas.findIndex(p => p.id === id);
     if (idx >= 0) {
       this.preVendas.splice(idx, 1);
+      this.persistLocal();
       return true;
     }
     return false;
@@ -416,6 +449,7 @@ class DemoPreSalesStore {
     };
 
     this.preVendas[idx] = updatedPv;
+    this.persistLocal();
     return updatedPv;
   }
 
@@ -423,6 +457,7 @@ class DemoPreSalesStore {
     const pv = this.preVendas.find(p => p.id === id);
     if (pv) {
       pv.status = status;
+      this.persistLocal();
       return true;
     }
     return false;
@@ -436,6 +471,7 @@ class DemoPreSalesStore {
     const pv = this.preVendas.find(p => p.id === id);
     if (pv && pv.status === 'PENDING_CASHIER') {
       pv.status = 'CANCELLED';
+      this.persistLocal();
       return true;
     }
     return false;
@@ -486,6 +522,13 @@ class DemoPreSalesStore {
 
   resetStore() {
     this.counter = 157;
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.removeItem(this.STORAGE_KEY);
+      } catch {
+        // Ignora
+      }
+    }
     this.seedInitialPreVendas();
   }
 }

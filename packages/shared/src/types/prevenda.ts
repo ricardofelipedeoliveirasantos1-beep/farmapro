@@ -76,6 +76,7 @@ export interface CriarPreVendaDTO {
   clienteCpf?: string;
   itens: ItemPreVendaDTO[];
   descontoCentavos?: number;
+  descontoGlobalCentavos?: number;
   observacoes?: string;
 }
 
